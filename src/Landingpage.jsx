@@ -94,9 +94,9 @@ export default function Landingpage() {
       <Container>
         <header className="flex justify-between items-center py-5">
           <img src={logo} alt="Career Connect" className="h-10 md:h-12 w-auto" />
-          <div className="flex gap-2.5">
+          <div className="flex gap-2.5 items-center">
             <Link to="/registo" className={BTN_BASE}>Garantir o meu lugar</Link>
-            <Link to="/entrar" className={`${BTN_BASE} ${BTN_GHOST} ${BTN_SM}`}>Entrar</Link>
+            <Link to="/entrar" className={`${BTN_BASE} ${BTN_GHOST}`}>Entrar</Link>
           </div>
         </header>
 
@@ -238,35 +238,37 @@ export default function Landingpage() {
           ))}
           </div>
         </section>
+      </Container>
 
-        {/* Masterclasses: full-width band */}
-        <section className="py-16 md:py-20 bg-navy-800 text-white w-full">
-          <Container>
-            <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-3.5">Para cada desafio, uma masterclass.</h2>
-            <p className="text-navy-100 mt-3.5 max-w-[56ch] mb-10">
-              Cria a tua conta para ver o programa completo, enviar perguntas aos palestrantes e reservar lugar em cada sessão.
-            </p>
-            <div className="grid gap-4.5">
-              {MASTERCLASSES.map(masterclass => (
-                <div key={masterclass.id} className="grid grid-cols-[56px_1fr] md:grid-cols-[64px_1fr_auto] gap-4.5 items-center bg-surface-soft text-ink rounded-inner px-6 py-5">
-                  <div className="w-14 md:w-16 h-14 md:h-16 rounded-full overflow-hidden bg-navy-800 shadow-[0_0_0_3px_var(--color-surface),0_0_0_5px_var(--color-primary-500)]">
-                    <img src={IMAGES[masterclass.id]} alt={masterclass.name} className="w-full h-full object-cover" />
-                  </div>
-                  <div>
-                    <div className="text-[.78rem] font-semibold text-primary-500">{masterclass.theme}</div>
-                    <h3 className="text-[1.15rem] font-extrabold">{masterclass.title}</h3>
-                    <p className="text-ink-muted text-[.9rem]">{masterclass.name} · {masterclass.role}</p>
-                  </div>
-                  <div className="text-[.82rem] text-ink-muted font-semibold col-start-2 md:col-start-auto">
-                    Com sessão iniciada
-                  </div>
+      {/* Masterclasses: full-width band */}
+      <section className="py-16 md:py-20 bg-navy-800 text-white w-full">
+        <Container>
+          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-3.5">Para cada desafio, uma masterclass.</h2>
+          <p className="text-navy-100 mt-3.5 max-w-[56ch] mb-10">
+            Cria a tua conta para ver o programa completo, enviar perguntas aos palestrantes e reservar lugar em cada sessão.
+          </p>
+          <div className="grid gap-4.5">
+            {MASTERCLASSES.map(masterclass => (
+              <div key={masterclass.id} className="grid grid-cols-[56px_1fr] md:grid-cols-[64px_1fr_auto] gap-4.5 items-center bg-surface-soft text-ink rounded-inner px-6 py-5">
+                <div className="w-14 md:w-16 h-14 md:h-16 rounded-full overflow-hidden bg-navy-800 shadow-[0_0_0_3px_var(--color-surface),0_0_0_5px_var(--color-primary-500)]">
+                  <img src={IMAGES[masterclass.id]} alt={masterclass.name} className="w-full h-full object-cover" />
                 </div>
-              ))}
-            </div>
-          </Container>
-        </section>
+                <div>
+                  <div className="text-[.78rem] font-semibold text-primary-500">{masterclass.theme}</div>
+                  <h3 className="text-[1.15rem] font-extrabold">{masterclass.title}</h3>
+                  <p className="text-ink-muted text-[.9rem]">{masterclass.name} · {masterclass.role}</p>
+                </div>
+                <div className="text-[.82rem] text-ink-muted font-semibold col-start-2 md:col-start-auto">
+                  Com sessão iniciada
+                </div>
+              </div>
+            ))}
+          </div>
+        </Container>
+      </section>
 
-        {/* Quem te vai orientar */}
+      {/* Quem te vai orientar */}
+      <Container>
         <section className="py-16 md:py-20">
           <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-11">Quem te vai orientar.</h2>
           <div className="mt-11 space-y-14">

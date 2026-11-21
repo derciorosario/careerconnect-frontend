@@ -77,7 +77,12 @@ function BottomNav({ items, activeTab, setActiveTab }) {
             onClick={() => { setActiveTab(item.key); window.scrollTo(0, 0); }}
             className={`flex-1 flex flex-col items-center justify-center gap-[3px] py-[10px] pb-[9px] min-h-[56px] text-[.68rem] font-semibold transition ${activeTab === item.key ? 'text-primary-500' : 'text-ink-muted'}`}
           >
-            <span className={`text-[1.2rem] leading-none transition ${activeTab === item.key ? 'opacity-100 -translate-y-px' : 'opacity-55'}`}>{item.icon}</span>
+            <item.icon
+              size={20}
+              strokeWidth={2.5}
+              stroke="currentColor"
+              className={`transition ${activeTab === item.key ? 'opacity-100 -translate-y-px' : 'opacity-55'}`}
+            />
             {item.label}
           </button>
         ))}

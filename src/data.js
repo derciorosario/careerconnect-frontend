@@ -1,6 +1,25 @@
 // ─────────────────────────────────────────────
 // CONSTANTS
 // ─────────────────────────────────────────────
+import {
+  Home, Play, User, Users, Link, Mail, CheckCircle, UserCircle,
+  Calendar, Table, Inbox,
+} from 'lucide-react';
+
+const ICONS = {
+  home: Home,
+  live: Play,
+  mentors: User,
+  met: Users,
+  conn: Link,
+  msg: Mail,
+  fecho: CheckCircle,
+  profile: UserCircle,
+  hoje: Calendar,
+  mesa: Table,
+  req: Inbox,
+};
+
 export const EVENT_DATE = new Date('2026-12-04T14:00:00+02:00');
 
 export const MENTEES = [
@@ -46,23 +65,23 @@ export const ROUNDS = [
 ];
 
 export const NAV_MENTEE = [
-  { key: 'home',    label: 'Passaporte', icon: '◉' },
-  { key: 'live',    label: 'Ao vivo',    icon: '◈' },
-  { key: 'mentors', label: 'Mentores',   icon: '✦' },
-  { key: 'met',     label: 'Conheci',    icon: '◍' },
-  { key: 'conn',    label: 'Conexões',   icon: '◇' },
-  { key: 'msg',     label: 'Mensagens',  icon: '✉' },
-  { key: 'fecho',   label: 'Fecho',      icon: '✔' },
-  { key: 'profile', label: 'Perfil',     icon: '○' },
+  { key: 'home',    label: 'Passaporte', icon: ICONS.home },
+  { key: 'live',    label: 'Ao vivo',    icon: ICONS.live },
+  { key: 'mentors', label: 'Mentores',   icon: ICONS.mentors },
+  { key: 'met',     label: 'Conheci',    icon: ICONS.met },
+  { key: 'conn',    label: 'Conexões',   icon: ICONS.conn },
+  { key: 'msg',     label: 'Mensagens',  icon: ICONS.msg },
+  { key: 'fecho',   label: 'Fecho',      icon: ICONS.fecho },
+  { key: 'profile', label: 'Perfil',     icon: ICONS.profile },
 ];
 
 export const NAV_MENTOR = [
-  { key: 'home',    label: 'Hoje',      icon: '◉' },
-  { key: 'live',    label: 'Mesa',      icon: '◈' },
-  { key: 'req',     label: 'Pedidos',   icon: '✦' },
-  { key: 'conn',    label: 'Conexões',  icon: '◇' },
-  { key: 'msg',     label: 'Mensagens',  icon: '✉' },
-  { key: 'profile', label: 'Perfil',    icon: '○' },
+  { key: 'home',    label: 'Hoje',      icon: ICONS.hoje },
+  { key: 'live',    label: 'Mesa',      icon: ICONS.mesa },
+  { key: 'req',     label: 'Pedidos',   icon: ICONS.req },
+  { key: 'conn',    label: 'Conexões',  icon: ICONS.conn },
+  { key: 'msg',     label: 'Mensagens',  icon: ICONS.msg },
+  { key: 'profile', label: 'Perfil',    icon: ICONS.profile },
 ];
 
 export const ORGANIZER_TABS = [

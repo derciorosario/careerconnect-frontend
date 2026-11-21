@@ -31,7 +31,7 @@ export default function Register() {
   const [form, setForm] = useState({
     name: '', email: '', phone: '', password: '', role: isMentor ? 'mentor' : 'mentee',
     level: '', course: '', institution: '', interests: [], goal: '', pitch: '',
-    jobTitle: '', company: '', sector: '', years: '', mentorInterests: [], canHelpGoals: [], supportType: '', maxMentees: '1',
+    jobTitle: '', company: '', sector: '', years: '', mentorInterests: [], canHelpGoals: [], supportType: '',
     photo: '', linkedin: '',
   });
   const [error, setError] = useState('');
@@ -74,13 +74,13 @@ export default function Register() {
       if (!form.level || !form.course || !form.institution || form.interests.length === 0 || !form.goal || !form.pitch) return setError('Preencha todos os campos obrigatórios.');
       if (form.pitch.length > 120) return setError('O pitch deve ter no máximo 120 caracteres.');
     } else {
-      if (!form.jobTitle || !form.company || !form.sector || form.mentorInterests.length === 0 || form.canHelpGoals.length === 0 || !form.supportType || !form.maxMentees) return setError('Preencha todos os campos obrigatórios.');
+      if (!form.jobTitle || !form.company || !form.sector || form.mentorInterests.length === 0 || form.canHelpGoals.length === 0 || !form.supportType) return setError('Preencha todos os campos obrigatórios.');
     }
     const email = form.email;
     const user = state.users[email];
     const profile = form.role === 'mentee'
-      ? { user_id: email, level: form.level, course: form.course, institution: form.institution, interests: form.interests, goal: form.goal, pitch: form.pitch }
-      : { user_id: email, job_title: form.jobTitle, company: form.company, sector: form.sector, years: form.years, interests: form.mentorInterests, can_help_goals: form.canHelpGoals, support_type: form.supportType, max_mentees: Number(form.maxMentees), approval: 'pending', approved_by: null, approved_at: null };
+      ? { user_id: email, level: form.level, course: form.course, institution: form.institution, interests: form.interests, goal: form.goal, pitch: form.pitch, photo: form.photo }
+      : { user_id: email, job_title: form.jobTitle, company: form.company, sector: form.sector, years: form.years, interests: form.mentorInterests, can_help_goals: form.canHelpGoals, support_type: form.supportType, approval: 'pending', approved_by: null, approved_at: null, photo: form.photo };
     setState((s) => {
       const next = { ...s };
       if (form.role === 'mentee') next.menteeProfiles[email] = profile;
@@ -145,7 +145,7 @@ export default function Register() {
         </div>
         <div className="pt-4 border-t border-line">
           <p className="text-[.8rem] text-ink-muted mb-3">Ou entrar sem palavra-passe por código OTP</p>
-          <button type="button" onClick={handleOtp} className="w-full rounded-full font-bold text-[.82rem] h-10 bg-surface2 text-ink">Enviar código OTP por SMS/email</button>
+          <button type="button" onClick={handleOtp} className="w-full rounded-full font-bold text-[.82rem] h-10 bg-surface2 text-ink">Enviar código OTP por email</button>
           {otpSent && (
             <div className="mt-3">
               <label className="text-[.85rem] font-semibold block mb-1.5">Código de 6 dígitos</label>
@@ -153,6 +153,18 @@ export default function Register() {
               <button onClick={verifyOtp} className="w-full mt-2 rounded-full font-bold text-[.82rem] h-10 bg-primary-500 text-white">Verificar código</button>
             </div>
           )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[.85rem] font-semibold">Foto (opcional)</label>
+          <input type="file" accept="image/*" onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = (ev) => setField('photo', ev.target.result);
+              reader.readAsDataURL(file);
+            }
+          }} className="block w-full text-sm text-ink-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-500 file:text-white hover:file:bg-primary-600" />
         </div>
         <div className="text-danger text-sm font-semibold mt-2">{error}</div>
         <button className={`${BTN_BASE} w-full mt-4`} type="submit">Continuar para o perfil</button>
@@ -211,14 +223,6 @@ export default function Register() {
                 <label className="text-[.85rem] font-semibold">Tipo de apoio</label>
                 <select value={form.supportType} onChange={(e) => setField('supportType', e.target.value)} className={FIELD_BASE}>
                   {SUPPORT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[.85rem] font-semibold">Máximo de mentorados (1 a 3)</label>
-                <select value={form.maxMentees} onChange={(e) => setField('maxMentees', e.target.value)} className={FIELD_BASE}>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
                 </select>
               </div>
             </>

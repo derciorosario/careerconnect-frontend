@@ -1,4 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
+import logo from './assets/logo.png';
+import partner1 from './assets/patners/1.jpeg';
+import partner2 from './assets/patners/2.png';
+import partner3 from './assets/patners/3.jpeg';
+import partner4 from './assets/patners/4.png';
+
+const PARTNERS = [
+  { src: partner1, alt: 'Parceiro 1' },
+  { src: partner2, alt: 'Parceiro 2' },
+  { src: partner3, alt: 'Parceiro 3' },
+  { src: partner4, alt: 'Parceiro 4' },
+];
 
 // --- Data & Constants ---
 const IMAGES = [
@@ -327,7 +339,7 @@ export default function CareerConnect() {
 
         {/* Header */}
         <header className="flex justify-between items-center py-5">
-          <div className="font-extrabold text-2xl italic tracking-tighter leading-none">Career<br />Co<span className="text-primary-500">nn</span>ect</div>
+          <img src={logo} alt="Career Connect" className="h-10 md:h-12 w-auto" />
           <a className={`${BTN_BASE} ${BTN_GHOST} ${BTN_SM}`} href="#acesso" id="navBtn">
             {isLoggedIn ? 'O meu passe' : 'Entrar'}
           </a>
@@ -528,6 +540,20 @@ export default function CareerConnect() {
       <section id="acesso" className="py-16 md:py-20">
         <div className="max-w-[1080px] mx-auto px-[22px]">
           {isLoggedIn ? renderPass() : renderAuth()}
+        </div>
+      </section>
+
+      {/* Section: Partners */}
+      <section className="py-16 md:py-20">
+        <div className="max-w-[1080px] mx-auto px-[22px]">
+          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] text-center mx-auto">Os nossos parceiros.</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mt-10 items-center justify-items-center">
+            {PARTNERS.map((partner, i) => (
+              <div key={i} className="w-full max-w-[160px] h-24 flex items-center justify-center rounded-inner bg-white p-3 border border-line">
+                <img src={partner.src} alt={partner.alt} className="max-h-full max-w-full object-contain" />
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

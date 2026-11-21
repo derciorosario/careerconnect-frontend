@@ -1,11 +1,13 @@
 @import "tailwindcss";
 
+/*
 input, textarea, select{
   color: #111 !important;
 }
 input::placeholder, textarea::placeholder{
   color: #111111a8 !important;
 }
+  */
 
 #goog-gt-vt{
   display: none !important;

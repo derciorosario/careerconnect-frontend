@@ -36,6 +36,11 @@ const BTN_GHOST  = 'bg-transparent text-ink shadow-[inset_0_0_0_2px_var(--color-
 const BTN_SM     = 'px-[18px] py-[9px] text-sm';
 const FIELD_BASE = 'w-full font-normal text-base text-ink bg-surface border-2 border-line rounded-field px-3.5 py-3 focus:border-primary-500 focus:outline-none';
 
+// Constrained content wrapper reused by every non-bleed section
+const Container = ({ children }) => (
+  <div className="max-w-[1080px] mx-auto px-[22px]">{children}</div>
+);
+
 export default function Landingpage() {
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0 });
   const [shareOpen, setShareOpen] = useState(false);
@@ -83,10 +88,10 @@ export default function Landingpage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface text-ink font-sans bg-navy-950">
-      <div className="max-w-[1080px] mx-auto px-[22px]">
+    <div className="min-h-screen bg-surface text-ink font-sans bg-navy-950 overflow-x-hidden">
 
-        {/* Header */}
+      {/* ── Constrained: header + hero ── */}
+      <Container>
         <header className="flex justify-between items-center py-5">
           <img src={logo} alt="Career Connect" className="h-10 md:h-12 w-auto" />
           <div className="flex gap-2.5">
@@ -95,7 +100,6 @@ export default function Landingpage() {
           </div>
         </header>
 
-        {/* Hero */}
         <div className="pt-10 overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-[1.2fr_.8fr] gap-7.5 items-center">
             <div>
@@ -161,86 +165,83 @@ export default function Landingpage() {
 
         {/* F-02: O que ganhas */}
         <section className="py-16 md:py-20">
-          <div className="max-w-[1080px] mx-auto px-[22px]">
-            <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-10">O que ganhas no Career Connect</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5.5">
-              {[
-                { title: 'Encontrar um mentor', text: 'Profissionais aprovados que orientam a tua carreira antes, durante e depois do evento.' },
-                { title: 'Fazer conexões profissionais', text: 'Rondas de 5 minutos com mentores e contacto direto com quem já está no mercado.' },
-                { title: '8 conversas num só dia', text: 'Dois intervalos de 20 minutos com 4 rondas cada para conhecer vários mentores.' },
-                { title: 'Dar o próximo passo', text: 'Pede mentoria, troca contactos e continua a ligação depois do evento.' },
-              ].map((benefit, i) => (
-                <div key={i} className="bg-surface-soft rounded-inner p-6">
-                  <div className="w-10 h-10 rounded-full bg-primary-500 text-white grid place-items-center font-extrabold mb-4">{i + 1}</div>
-                  <h3 className="text-[1.1rem] font-extrabold mb-2">{benefit.title}</h3>
-                  <p className="text-ink-muted text-[.88rem]">{benefit.text}</p>
-                </div>
-              ))}
-            </div>
+          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-10">O que ganhas no Career Connect</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5.5">
+            {[
+              { title: 'Encontrar um mentor', text: 'Profissionais aprovados que orientam a tua carreira antes, durante e depois do evento.' },
+              { title: 'Fazer conexões profissionais', text: 'Rondas de 5 minutos com mentores e contacto direto com quem já está no mercado.' },
+              { title: '8 conversas num só dia', text: 'Dois intervalos de 20 minutos com 4 rondas cada para conhecer vários mentores.' },
+              { title: 'Dar o próximo passo', text: 'Pede mentoria, troca contactos e continua a ligação depois do evento.' },
+            ].map((benefit, i) => (
+              <div key={i} className="bg-surface-soft rounded-inner p-6">
+                <div className="w-10 h-10 rounded-full bg-primary-500 text-white grid place-items-center font-extrabold mb-4">{i + 1}</div>
+                <h3 className="text-[1.1rem] font-extrabold mb-2">{benefit.title}</h3>
+                <p className="text-ink-muted text-[.88rem]">{benefit.text}</p>
+              </div>
+            ))}
           </div>
         </section>
+      </Container>
 
-        {/* F-04: Como funcionam as ligações */}
-        <section className="py-16 md:py-20 bg-navy-800 text-white">
-          <div className="max-w-[1080px] mx-auto px-[22px]">
-            <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-10">Como funcionam as ligações</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[
-                { step: '1', title: 'Regista-te', text: 'Cria a tua conta na landing principal em menos de 2 minutos e escolhe se és mentorado ou mentor.' },
-                { step: '2', title: 'Conversa nos intervalos', text: 'Durante os dois intervalos de 20 minutos, falas com mentores em rondas de 5 minutos, numa mesa numerada.' },
-                { step: '3', title: 'Continua a conexão', text: 'Marca "quero continuar", troca códigos ou pede mentoria e mantém a ligação depois do evento.' },
-              ].map((step, i) => (
-                <div key={i} className="relative pt-[52px]">
-                  <div className="absolute top-0 left-0 w-10 h-10 rounded-full bg-primary-500 text-white grid place-items-center font-extrabold">{step.step}</div>
-                  <h3 className="text-[1.15rem] font-extrabold mb-2">{step.title}</h3>
-                  <p className="text-navy-100 text-[.9rem]">{step.text}</p>
-                </div>
-              ))}
-            </div>
+      {/* ── F-04: full-width band ── */}
+      <section className="py-16 md:py-20 bg-navy-800 text-white w-full">
+        <Container>
+          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-10">Como funcionam as ligações</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { step: '1', title: 'Regista-te', text: 'Cria a tua conta na landing principal em menos de 2 minutos e escolhe se és mentorado ou mentor.' },
+              { step: '2', title: 'Conversa nos intervalos', text: 'Durante os dois intervalos de 20 minutos, falas com mentores em rondas de 5 minutos, numa mesa numerada.' },
+              { step: '3', title: 'Continua a conexão', text: 'Marca "quero continuar", troca códigos ou pede mentoria e mantém a ligação depois do evento.' },
+            ].map((step, i) => (
+              <div key={i} className="relative pt-[52px]">
+                <div className="absolute top-0 left-0 w-10 h-10 rounded-full bg-primary-500 text-white grid place-items-center font-extrabold">{step.step}</div>
+                <h3 className="text-[1.15rem] font-extrabold mb-2">{step.title}</h3>
+                <p className="text-navy-100 text-[.9rem]">{step.text}</p>
+              </div>
+            ))}
           </div>
-        </section>
+        </Container>
+      </section>
 
+      {/* ── Constrained ── */}
+      <Container>
         {/* Duas formas de ligação */}
         <section className="py-16 md:py-20">
-          <div className="max-w-[1080px] mx-auto px-[22px]">
-            <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-10">Uma plataforma. Duas formas de ligação.</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-7 mt-10">
-              <div className="border-l-4 border-primary-500 pl-5">
-                <h3 className="text-xl font-extrabold mb-2">Encontros presenciais</h3>
-                <p className="text-ink-muted">Masterclasses, experiências práticas e momentos organizados para criar redes de contactos entre estudantes e profissionais experientes.</p>
-              </div>
-              <div className="border-l-4 border-primary-500 pl-5">
-                <h3 className="text-xl font-extrabold mb-2">Plataforma digital</h3>
-                <p className="text-ink-muted">Correspondência de perfis para identificar mentores e talentos e manter as ligações activas antes, durante e depois dos encontros.</p>
-              </div>
+          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-10">Uma plataforma. Duas formas de ligação.</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-7 mt-10">
+            <div className="border-l-4 border-primary-500 pl-5">
+              <h3 className="text-xl font-extrabold mb-2">Encontros presenciais</h3>
+              <p className="text-ink-muted">Masterclasses, experiências práticas e momentos organizados para criar redes de contactos entre estudantes e profissionais experientes.</p>
+            </div>
+            <div className="border-l-4 border-primary-500 pl-5">
+              <h3 className="text-xl font-extrabold mb-2">Plataforma digital</h3>
+              <p className="text-ink-muted">Correspondência de perfis para identificar mentores e talentos e manter as ligações activas antes, durante e depois dos encontros.</p>
             </div>
           </div>
         </section>
 
         {/* Desafios */}
         <section className="py-16 md:py-20">
-          <div className="max-w-[1080px] mx-auto px-[22px]">
-            <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-10">A que desafios responde o Career Connect.</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5.5 mt-10">
-            {[
-              { title: 'Acesso ao mercado', items: ['Dificuldade em conseguir o primeiro passo', 'Pouca experiência profissional', 'Preparação insuficiente para entrevistas'] },
-              { title: 'Competências e posicionamento', items: ['Dificuldade em comunicar competências', 'Marca pessoal e rede de contactos por construir', 'Dificuldade em demonstrar o seu valor'] },
-              { title: 'Integração e crescimento', items: ['Adaptação ao ambiente profissional', 'Gestão do desempenho', 'Planeamento de uma carreira sustentável'] },
-            ].map((card, i) => (
-              <div key={i} className="bg-surface-soft rounded-inner p-6.5">
-                <h3 className="text-[1.1rem] font-extrabold mb-3">{card.title}</h3>
-                <ul className="m-0 pl-4.5 text-ink-muted space-y-1.5">
-                  {card.items.map((item, j) => <li key={j}>{item}</li>)}
-                </ul>
-              </div>
-            ))}
+          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-10">A que desafios responde o Career Connect.</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5.5 mt-10">
+          {[
+            { title: 'Acesso ao mercado', items: ['Dificuldade em conseguir o primeiro passo', 'Pouca experiência profissional', 'Preparação insuficiente para entrevistas'] },
+            { title: 'Competências e posicionamento', items: ['Dificuldade em comunicar competências', 'Marca pessoal e rede de contactos por construir', 'Dificuldade em demonstrar o seu valor'] },
+            { title: 'Integração e crescimento', items: ['Adaptação ao ambiente profissional', 'Gestão do desempenho', 'Planeamento de uma carreira sustentável'] },
+          ].map((card, i) => (
+            <div key={i} className="bg-surface-soft rounded-inner p-6.5">
+              <h3 className="text-[1.1rem] font-extrabold mb-3">{card.title}</h3>
+              <ul className="m-0 pl-4.5 text-ink-muted space-y-1.5">
+                {card.items.map((item, j) => <li key={j}>{item}</li>)}
+              </ul>
             </div>
+          ))}
           </div>
         </section>
 
-        {/* Masterclasses (programa) */}
-        <section className="py-16 md:py-20 bg-navy-800 text-white">
-          <div className="max-w-[1080px] mx-auto px-[22px]">
+        {/* Masterclasses: full-width band */}
+        <section className="py-16 md:py-20 bg-navy-800 text-white w-full">
+          <Container>
             <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-3.5">Para cada desafio, uma masterclass.</h2>
             <p className="text-navy-100 mt-3.5 max-w-[56ch] mb-10">
               Cria a tua conta para ver o programa completo, enviar perguntas aos palestrantes e reservar lugar em cada sessão.
@@ -262,83 +263,80 @@ export default function Landingpage() {
                 </div>
               ))}
             </div>
-          </div>
+          </Container>
         </section>
 
         {/* Quem te vai orientar */}
         <section className="py-16 md:py-20">
-          <div className="max-w-[1080px] mx-auto px-[22px]">
-            <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-11">Quem te vai orientar.</h2>
-            <div className="mt-11 space-y-14">
-              {MASTERCLASSES.map((masterclass, index) => {
-                const isReversed = index % 2 === 1;
-                return (
-                  <div key={masterclass.id} className={`grid grid-cols-1 md:grid-cols-[200px_minmax(0,1fr)] gap-8 md:gap-10 items-center ${isReversed ? 'md:grid-cols-[minmax(0,1fr)_200px]' : ''}`}>
-                    <img src={IMAGES[index]} alt={masterclass.name} className={`w-[200px] h-[200px] rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-primary-500)] mx-auto md:mx-0 ${isReversed ? 'md:order-2 md:justify-self-end' : ''}`} />
-                    <div className={isReversed ? 'md:text-right' : ''}>
-                      <div className="text-[.78rem] font-semibold text-primary-500">{masterclass.theme}</div>
-                      <h3 className="text-2xl font-extrabold">{masterclass.name}</h3>
-                      <div className="text-primary-500 font-semibold text-[.92rem] my-1">{masterclass.role}</div>
-                      <p className="text-ink-muted">{BIOGRAPHIES[index].biography}</p>
-                      {BIOGRAPHIES[index].works && (<p className="mt-3 text-[.88rem] text-ink-muted">{BIOGRAPHIES[index].works}</p>)}
-                    </div>
+          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-11">Quem te vai orientar.</h2>
+          <div className="mt-11 space-y-14">
+            {MASTERCLASSES.map((masterclass, index) => {
+              const isReversed = index % 2 === 1;
+              return (
+                <div key={masterclass.id} className={`grid grid-cols-1 md:grid-cols-[200px_minmax(0,1fr)] gap-8 md:gap-10 items-center ${isReversed ? 'md:grid-cols-[minmax(0,1fr)_200px]' : ''}`}>
+                  <img src={IMAGES[index]} alt={masterclass.name} className={`w-[200px] h-[200px] rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-primary-500)] mx-auto md:mx-0 ${isReversed ? 'md:order-2 md:justify-self-end' : ''}`} />
+                  <div className={isReversed ? 'md:text-right' : ''}>
+                    <div className="text-[.78rem] font-semibold text-primary-500">{masterclass.theme}</div>
+                    <h3 className="text-2xl font-extrabold">{masterclass.name}</h3>
+                    <div className="text-primary-500 font-semibold text-[.92rem] my-1">{masterclass.role}</div>
+                    <p className="text-ink-muted">{BIOGRAPHIES[index].biography}</p>
+                    {BIOGRAPHIES[index].works && (<p className="mt-3 text-[.88rem] text-ink-muted">{BIOGRAPHIES[index].works}</p>)}
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* Os jovens tornam-se */}
-        <section className="py-16 md:py-20 bg-navy-800 text-white">
-          <div className="max-w-[1080px] mx-auto px-[22px]">
-            <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-11">Com o Career Connect, os jovens tornam-se…</h2>
-            <div className="relative grid grid-cols-2 md:grid-cols-4 gap-5 mt-11">
-              <div className="hidden md:block absolute left-0 right-0 top-[15px] border-t-[3px] border-primary-500" />
-              {[
-                { title: 'Posicionados', text: 'Sabem comunicar o seu valor e entram no mercado com confiança.' },
-                { title: 'Conectados', text: 'Têm contactos reais com profissionais, mentores e palestrantes.' },
-                { title: 'Destacados', text: 'Ganham uma presença digital que atrai e cria oportunidades.' },
-                { title: 'Impulsionados', text: 'Ligam-se a parceiros estratégicos e a relações que duram.' },
-              ].map((step, i) => (
-                <div key={i} className="relative pt-[42px]">
-                  <div className="absolute top-[6px] left-0 w-5 h-5 rounded-full bg-white border-[5px] border-navy-800" />
-                  <h3 className="text-[1.15rem] font-extrabold mb-1.5">{step.title}</h3>
-                  <p className="text-navy-100">{step.text}</p>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </section>
+      </Container>
 
+      {/* ── Os jovens tornam-se: full-width band ── */}
+      <section className="py-16 md:py-20 bg-navy-800 text-white w-full">
+        <Container>
+          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-11">Com o Career Connect, os jovens tornam-se…</h2>
+          <div className="relative grid grid-cols-2 md:grid-cols-4 gap-5 mt-11">
+            <div className="hidden md:block absolute left-0 right-0 top-[15px] border-t-[3px] border-primary-500" />
+            {[
+              { title: 'Posicionados', text: 'Sabem comunicar o seu valor e entram no mercado com confiança.' },
+              { title: 'Conectados', text: 'Têm contactos reais com profissionais, mentores e palestrantes.' },
+              { title: 'Destacados', text: 'Ganham uma presença digital que atrai e cria oportunidades.' },
+              { title: 'Impulsionados', text: 'Ligam-se a parceiros estratégicos e a relações que duram.' },
+            ].map((step, i) => (
+              <div key={i} className="relative pt-[42px]">
+                <div className="absolute top-[6px] left-0 w-5 h-5 rounded-full bg-white border-[5px] border-navy-800" />
+                <h3 className="text-[1.15rem] font-extrabold mb-1.5">{step.title}</h3>
+                <p className="text-navy-100">{step.text}</p>
+              </div>
+            ))}
+          </div>
+        </Container>
+      </section>
+
+      {/* ── Constrained ── */}
+      <Container>
         {/* F-06: Torna-te mentor banner */}
         <section className="py-16 md:py-20">
-          <div className="max-w-[1080px] mx-auto px-[22px]">
-            <div className="bg-primary-500 text-white rounded-card p-10 md:p-14 text-center">
-              <h2 className="text-[clamp(1.8rem,4.5vw,2.6rem)] font-extrabold mb-4">És profissional? Torna-te mentor.</h2>
-              <p className="text-primary-100 text-lg max-w-[45ch] mx-auto mb-6">Influencia a carreira de alguém. 40 min no dia, 1 a 3 mentorados depois do evento.</p>
-              <Link to="/mentor" className={BTN_BASE}>Registar como mentor</Link>
-            </div>
+          <div className="bg-primary-500 text-white rounded-card p-10 md:p-14 text-center">
+            <h2 className="text-[clamp(1.8rem,4.5vw,2.6rem)] font-extrabold mb-4">És profissional? Torna-te mentor.</h2>
+            <p className="text-primary-100 text-lg max-w-[45ch] mx-auto mb-6">Influencia a carreira de alguém. 40 min no dia, 1 a 3 mentorados depois do evento.</p>
+            <Link to="/mentor" className={BTN_BASE}>Registar como mentor</Link>
           </div>
         </section>
 
         {/* Partners */}
         <section className="py-16 md:py-20">
-          <div className="max-w-[1080px] mx-auto px-[22px]">
-            <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] text-center mx-auto mb-10">Os nossos parceiros.</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mt-10 items-center justify-items-center">
-              {PARTNERS.map((partner, i) => (
-                <div key={i} className="w-full max-w-[160px] h-24 flex items-center justify-center rounded-inner bg-white p-3 border border-line">
-                  <img src={partner.src} alt={partner.alt} className="max-h-full max-w-full object-contain" />
-                </div>
-              ))}
-            </div>
+          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] text-center mx-auto mb-10">Os nossos parceiros.</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mt-10 items-center justify-items-center">
+            {PARTNERS.map((partner, i) => (
+              <div key={i} className="w-full max-w-[160px] h-24 flex items-center justify-center rounded-inner bg-white p-3 border border-line">
+                <img src={partner.src} alt={partner.alt} className="max-h-full max-w-full object-contain" />
+              </div>
+            ))}
           </div>
         </section>
 
         {/* Venue + FAQ */}
         <section className="pt-5 pb-16 md:pb-20">
-          <div className="max-w-[1080px] mx-auto px-[22px] grid grid-cols-1 md:grid-cols-2 gap-9 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-9 items-start">
             <div>
               <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-7">Encontramo-nos no Hotel Cardoso.</h2>
               <div className="mt-7">
@@ -369,17 +367,15 @@ export default function Landingpage() {
         </section>
 
         {/* Footer */}
-        <footer className="pt-8 pb-12 text-ink-muted text-sm">
-          <div className="max-w-[1080px] mx-auto px-[22px]">Career Connect® · 4 de Dezembro de 2026 · 14H00 · Hotel Cardoso, Maputo</div>
-        </footer>
+        <footer className="pt-8 pb-12 text-ink-muted text-sm">Career Connect® · 4 de Dezembro de 2026 · 14H00 · Hotel Cardoso, Maputo</footer>
+      </Container>
 
-        {/* Toast for copy link */}
-        {shareOpen && (
-          <div className="fixed left-1/2 bottom-24 -translate-x-1/2 bg-ink text-surface px-5.5 py-3 rounded-full font-semibold pointer-events-none z-20 transition-all duration-300 opacity-100 translate-y-0" role="status">
-            Link copiado para a área de transferência
-          </div>
-        )}
-      </div>
+      {/* Toast for copy link */}
+      {shareOpen && (
+        <div className="fixed left-1/2 bottom-24 -translate-x-1/2 bg-ink text-surface px-5.5 py-3 rounded-full font-semibold pointer-events-none z-20 transition-all duration-300 opacity-100 translate-y-0" role="status">
+          Link copiado para a área de transferência
+        </div>
+      )}
     </div>
   );
 }

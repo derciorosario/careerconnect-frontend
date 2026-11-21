@@ -1,11 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   MENTEES, MENTORS, MASTERCLASSES, POLL_OPTIONS, MUTUAL_MATCHES,
   MY_MENTEE_INDEX, ROUNDS, getFirstName, compatibilityScore,
   formatTime, generateQrSvg,
 } from './data';
 import { Avatar, PersonRow, ProgressBar, ChecklistItem, Card, QuestionInput } from './ui';
-
 // ── HOME ─────────────────────────────────────
 export const MenteeHome = ({ wishedMentors, setWishedMentors, connections, mentorshipRequests, furthestRoundCompleted, masterclassesReserved, setMasterclassesReserved, showToast }) => {
   const myMentee = MENTEES[MY_MENTEE_INDEX];
@@ -375,3 +374,67 @@ export const MenteeConnections = ({ connections, mentorshipRequests, setMentorsh
     })}
   </>
 );
+
+// ── MESSAGES ─────────────────────────────────
+export const MenteeMessages = ({ connections, mentorshipRequests, showToast }) => {
+  const [msg, setMsg] = useState('');
+  const [conv, setConv] = useState({});
+
+  const myConnections = connections.map((mentorIndex) => MENTORS[mentorIndex]);
+  return (
+    <>
+      <h2 className="text-[1.45rem] font-extrabold tracking-tight">Mensagens</h2>
+      <p className="text-ink-muted text-[.85rem] mt-1 mb-4">
+        Escreve apenas a mentores com quem estás conectado.
+      </p>
+      {myConnections.length === 0 ? (
+        <Card>
+          <b>Sem conexões ainda.</b>
+          <p className="text-ink-muted text-[.85rem] mt-1.5">Marca interesse depois de cada conversa para desbloquear mensagens.</p>
+        </Card>
+      ) : (
+        <>
+          <div className="space-y-3 mb-5">
+            {myConnections.map((mentor) => {
+              const key = String(mentorIndexOf(mentor.name));
+              const msgs = conv[key] || [];
+              return (
+                <div key={mentor.name} className="border border-line rounded-[16px] p-3.5">
+                  <div className="flex justify-between items-center mb-2.5">
+                    <PersonRow name={mentor.name} subtitle={mentor.role} />
+                    <span className="text-[.72rem] font-bold px-2 py-0.5 rounded-full bg-surface2 text-ink-muted">{msgs.length}</span>
+                  </div>
+                  <div className="max-h-[140px] overflow-y-auto mb-2.5 space-y-1.5 text-[.85rem]">
+                    {msgs.length === 0 ? <p className="text-ink-muted">Sem mensagens ainda.</p> : msgs.map((m, i) => (
+                      <div key={i} className={`text-[.85rem] rounded-[10px] px-3 py-1.5 max-w-[80%] ${m.mine ? 'ml-auto bg-primary-500 text-white' : 'bg-surface-soft text-ink'}`}>
+                        {m.body}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="Escreve uma mensagem…" className="flex-1 bg-surface border-2 border-line rounded-[10px] px-3 py-2 text-base focus:border-primary-500 focus:outline-none" />
+                    <button
+                      onClick={() => {
+                        const key = String(mentorIndexOf(mentor.name));
+                        setConv((p) => ({ ...p, [key]: [...(p[key] || []), { body: msg, mine: true }] }));
+                        setMsg('');
+                        showToast('Mensagem enviada.');
+                      }}
+                      className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white"
+                    >
+                      Enviar
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </>
+  );
+};
+
+function mentorIndexOf(name) {
+  return MENTORS.findIndex((m) => m.name === name);
+}

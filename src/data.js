@@ -51,6 +51,8 @@ export const NAV_MENTEE = [
   { key: 'mentors', label: 'Mentores',   icon: '✦' },
   { key: 'met',     label: 'Conheci',    icon: '◍' },
   { key: 'conn',    label: 'Conexões',   icon: '◇' },
+  { key: 'msg',     label: 'Mensagens',  icon: '✉' },
+  { key: 'fecho',   label: 'Fecho',      icon: '✔' },
   { key: 'profile', label: 'Perfil',     icon: '○' },
 ];
 
@@ -59,6 +61,7 @@ export const NAV_MENTOR = [
   { key: 'live',    label: 'Mesa',      icon: '◈' },
   { key: 'req',     label: 'Pedidos',   icon: '✦' },
   { key: 'conn',    label: 'Conexões',  icon: '◇' },
+  { key: 'msg',     label: 'Mensagens',  icon: '✉' },
   { key: 'profile', label: 'Perfil',    icon: '○' },
 ];
 

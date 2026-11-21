@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   MENTEES, MENTORS, MY_MENTOR_INDEX, getFirstName, compatibilityScore,
   formatTime, generateQrSvg,
@@ -177,3 +177,68 @@ export const MentorConnections = ({ mentorshipRequests }) => {
     </>
   );
 };
+
+// ── MESSAGES ─────────────────────────────────
+export const MentorMessages = ({ mentorshipRequests, showToast }) => {
+  const [msg, setMsg] = useState('');
+  const [conv, setConv] = useState({});
+
+  const menteeIndices = [...new Set(mentorshipRequests.filter((r) => r.mentorIndex === MY_MENTOR_INDEX).map((r) => r.menteeIndex))];
+  const myMentees = menteeIndices.map((i) => MENTEES[i]);
+  return (
+    <>
+      <h2 className="text-[1.45rem] font-extrabold tracking-tight">Mensagens</h2>
+      <p className="text-ink-muted text-[.85rem] mt-1 mb-4">
+        Escreve apenas a mentorados com quem estás conectado.
+      </p>
+      {myMentees.length === 0 ? (
+        <Card>
+          <b>Sem conexões ainda.</b>
+          <p className="text-ink-muted text-[.85rem] mt-1.5">Aceita pedidos de mentoria para desbloquear mensagens.</p>
+        </Card>
+      ) : (
+        <>
+          <div className="space-y-3 mb-5">
+            {myMentees.map((mentee) => {
+              const key = String(menteeIndexOf(mentee.name));
+              const msgs = conv[key] || [];
+              return (
+                <div key={mentee.name} className="border border-line rounded-[16px] p-3.5">
+                  <div className="flex justify-between items-center mb-2.5">
+                    <PersonRow name={mentee.name} subtitle={mentee.course} />
+                    <span className="text-[.72rem] font-bold px-2 py-0.5 rounded-full bg-surface2 text-ink-muted">{msgs.length}</span>
+                  </div>
+                  <div className="max-h-[140px] overflow-y-auto mb-2.5 space-y-1.5 text-[.85rem]">
+                    {msgs.length === 0 ? <p className="text-ink-muted">Sem mensagens ainda.</p> : msgs.map((m, i) => (
+                      <div key={i} className={`text-[.85rem] rounded-[10px] px-3 py-1.5 max-w-[80%] ${m.mine ? 'ml-auto bg-primary-500 text-white' : 'bg-surface-soft text-ink'}`}>
+                        {m.body}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="Escreve uma mensagem…" className="flex-1 bg-surface border-2 border-line rounded-[10px] px-3 py-2 text-base focus:border-primary-500 focus:outline-none" />
+                    <button
+                      onClick={() => {
+                        const key = String(menteeIndexOf(mentee.name));
+                        setConv((p) => ({ ...p, [key]: [...(p[key] || []), { body: msg, mine: true }] }));
+                        setMsg('');
+                        showToast('Mensagem enviada.');
+                      }}
+                      className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white"
+                    >
+                      Enviar
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </>
+  );
+};
+
+function menteeIndexOf(name) {
+  return MENTEES.findIndex((m) => m.name === name);
+}

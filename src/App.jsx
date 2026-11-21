@@ -1,27 +1,41 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
+  BrowserRouter, Routes, Route, Link, Navigate,
+} from 'react-router-dom';
+import {
   MENTEES, MENTORS, MY_MENTEE_INDEX, MY_MENTOR_INDEX, INITIAL_QUESTIONS, ROUNDS,
-  NAV_MENTEE, NAV_MENTOR, ORGANIZER_TABS, generateQrSvg,
+  NAV_MENTEE, NAV_MENTOR, ORGANIZER_TABS,
 } from './data';
 import { Avatar, Toast } from './ui';
 import {
   MenteeHome, MenteeLive, MenteeMentors, MenteeMet, MenteeConnections,
+  MenteeMessages,
 } from './screens.mentee';
 import {
   MentorHome, MentorLive, MentorRequests, MentorConnections,
+  MentorMessages,
 } from './screens.mentor';
 import {
   OrganizerLive, OrganizerReg, OrganizerInteraction, OrganizerReports,
   ProfileScreen, TvScreen, OrganizerShell,
 } from './screens.organizer';
+import {
+  SurveyScreen, NextStepScreen, DailySummaryScreen,
+} from './screens.fecho';
+import Landingpage from './Landingpage';
+import MentorLanding from './MentorLanding';
+import Register from './Register';
+import Login from './Login';
 
-// ── LOGIN ────────────────────────────────────
+// ── SESSION HELPERS ──────────────────────────
+
+// ── LOGIN SCREEN (demo) ──────────────────────
 function LoginScreen({ setRole, setActiveTab }) {
   const accounts = [
-    { key: 'mentee', name: 'Ana Mondlane',          label: 'Mentorado',   description: 'Passaporte, rondas, mentores, conexões' },
-    { key: 'mentor', name: 'Carlos Tembe',           label: 'Mentor',      description: 'Mesa, mentorados, pedidos de mentoria' },
-    { key: 'org',    name: 'Equipa Career Connect',  label: 'Organizador', description: 'Fases, check-in, aprovações, relatórios' },
-    { key: 'tv',     name: 'Ecrã grande',            label: 'Projetor',    description: 'Contagem e quadro de mesas' },
+    { key: 'mentee', name: 'Ana Mondlane', label: 'Mentorado', description: 'Passaporte, rondas, mentores, conexões' },
+    { key: 'mentor', name: 'Carlos Tembe', label: 'Mentor', description: 'Mesa, mentorados, pedidos de mentoria' },
+    { key: 'org', name: 'Equipa Career Connect', label: 'Organizador', description: 'Fases, check-in, aprovações, relatórios' },
+    { key: 'tv', name: 'Ecrã grande', label: 'Projetor', description: 'Contagem e quadro de mesas' },
   ];
   return (
     <div className="max-w-[720px] mx-auto pt-[52px] px-[22px] pb-10">
@@ -72,10 +86,9 @@ function BottomNav({ items, activeTab, setActiveTab }) {
   );
 }
 
-// ── MAIN ─────────────────────────────────────
-export default function CareerConnectApp() {
-  // Session
-  const [role, setRole] = useState(null);
+// ── APP SHELL ────────────────────────────────
+export function CareerConnectApp({ initialRole }) {
+  const [role, setRole] = useState(initialRole || null);
   const [activeTab, setActiveTab] = useState('home');
 
   // Event / simulation
@@ -131,7 +144,6 @@ export default function CareerConnectApp() {
     return () => clearInterval(interval);
   }, [isRunning, isPaused, isRehearsal]);
 
-  // Derived
   const totalPollVotes = useMemo(() => pollVotes.reduce((sum, v) => sum + v, 0), [pollVotes]);
 
   const phaseLabel = () => {
@@ -214,6 +226,16 @@ export default function CareerConnectApp() {
         return <MenteeMet metMentorIndices={metMentorIndices} interestByMentor={interestByMentor} setInterestByMentor={setInterestByMentor} connectWithMentor={connectWithMentor} />;
       case 'conn':
         return <MenteeConnections {...common} connections={connections} mentorshipRequests={mentorshipRequests} setMentorshipRequests={setMentorshipRequests} />;
+      case 'msg':
+        return <MenteeMessages connections={connections} mentorshipRequests={mentorshipRequests} showToast={showToast} />;
+      case 'fecho':
+        return (
+          <>
+            <SurveyScreen showToast={showToast} />
+            <NextStepScreen showToast={showToast} />
+            <DailySummaryScreen conversations={furthestRoundCompleted || 0} connectionsCount={connections.length} questionsAsked={0} showToast={showToast} />
+          </>
+        );
       case 'profile':
         return <ProfileScreen asRole="mentee" setRole={setRole} showToast={showToast} />;
       default:
@@ -233,6 +255,8 @@ export default function CareerConnectApp() {
         return <MentorRequests {...common} mentorshipRequests={mentorshipRequests} setMentorshipRequests={setMentorshipRequests} maxMenteesPerMentor={maxMenteesPerMentor} />;
       case 'conn':
         return <MentorConnections mentorshipRequests={mentorshipRequests} />;
+      case 'msg':
+        return <MentorMessages mentorshipRequests={mentorshipRequests} showToast={showToast} />;
       case 'profile':
         return <ProfileScreen asRole="mentor" setRole={setRole} showToast={showToast} />;
       default:
@@ -257,7 +281,6 @@ export default function CareerConnectApp() {
     }
   };
 
-  // ── TOP-LEVEL ─────────────────────────────
   let content = null;
 
   if (!role) {
@@ -304,8 +327,8 @@ export default function CareerConnectApp() {
           {[
             { key: 'mentee', label: 'Mentorado' },
             { key: 'mentor', label: 'Mentor' },
-            { key: 'org',    label: 'Organizador' },
-            { key: 'tv',     label: 'Ecrã' },
+            { key: 'org', label: 'Organizador' },
+            { key: 'tv', label: 'Ecrã' },
           ].map((account) => (
             <button
               key={account.key}
@@ -322,3 +345,26 @@ export default function CareerConnectApp() {
     </div>
   );
 }
+
+// ── ROUTER ───────────────────────────────────
+export default function AppRouter() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Landingpage />} />
+        <Route path="/mentor" element={<MentorLanding />} />
+        <Route path="/registo" element={<Register />} />
+        <Route path="/registo/mentor" element={<Register />} />
+        <Route path="/entrar" element={<Login />} />
+        <Route path="/app/mentee" element={<CareerConnectApp initialRole="mentee" />} />
+        <Route path="/app/mentor" element={<CareerConnectApp initialRole="mentor" />} />
+        <Route path="/app/org" element={<CareerConnectApp initialRole="org" />} />
+        <Route path="/app/tv" element={<CareerConnectApp initialRole="tv" />} />
+        <Route path="/app" element={<Navigate to="/entrar" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+
+

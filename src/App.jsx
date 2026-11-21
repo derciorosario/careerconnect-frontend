@@ -16,7 +16,7 @@ const BIOGRAPHIES = [
 const MASTERCLASSES = [
   { id: 0, initials: 'VS', name: 'Vicente Sitoe', role: 'Director Geral da SDO Moçambique', theme: 'Acesso ao mercado', title: 'Estratégias para encontrar o primeiro emprego', topics: [['Preparar-se', 'Desenvolver competências técnicas e comportamentais e aprofundar o autoconhecimento.'], ['Procurar emprego', 'Utilizar plataformas de emprego, redes de contactos e preparar um currículo competitivo.'], ['Destacar-se', 'Preparar-se para entrevistas e comunicar as suas competências com confiança.']], question: 'Qual é o teu maior obstáculo na procura do primeiro emprego?' },
   { id: 1, initials: 'AC', name: 'Arafat Cossa', role: 'Director da Arafat Executive Academy', theme: 'Competências e posicionamento', title: 'A arte de criar redes de contactos e transformar ligações em oportunidades', topics: [['Rede estratégica', 'Criar relações genuínas, assentes na confiança e na partilha de valor.'], ['Comunicação e marca pessoal', 'Apresentar-se e comunicar o seu valor com confiança.'], ['Ligações que geram oportunidades', 'Utilizar o LinkedIn, procurar mentoria e aproximar-se do mercado de trabalho.']], question: 'O que gostavas de saber dizer sobre ti em 30 segundos?' },
-  { id: 2, initials: 'MC', name: 'Marlena Chambule', role: 'Directora Executiva da Salto Moçambique', theme: 'Integração e crescimento', title: 'Fui contratado. E agora? Como construir uma carreira de sucesso', topics: [['Adaptação', 'Compreender a cultura organizacional e integrar-se nas equipas.'], ['Postura e desempenho', 'Agir com ética, pontualidade e proactividade.'], ['Carreira sustentável', 'Definir objectivos, apostar na aprendizagem contínua e construir uma boa reputação.']], question: 'Que dúvida tens sobre os primeiros meses num emprego?' }
+  { id: 2, initials: 'MC', name: 'Marlena Chambule', role: 'Directora Executiva da Salto Moçambique', theme: 'Integração e crescimento', title: 'Fui contratado. E agora? Como construir uma carreira de sucesso', topics: [['Adaptação', 'Compreender a cultura organizacional e integrar-se nas equipas.'], ['Postura e desempenho', 'Agir com ética, pontualidade e proactividade.'], ['Carreira sustentável', 'Definir objectivos, apostar na aprendizagem contínua e construir uma boa reputação.']], question: 'Que dúvida tens sobre os primeiros meses num emprego?' },
 ];
 
 // --- Helper Functions ---
@@ -455,32 +455,52 @@ export default function CareerConnect() {
       </section>
 
       {/* Section: Speakers */}
+      
       <section className="py-16 md:py-20">
-        <div className="max-w-[1080px] mx-auto px-[22px]">
-          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch]">Quem te vai orientar.</h2>
-          <div className="mt-2">
-            {MASTERCLASSES.map((masterclass, index) => (
-              <div
-                key={masterclass.id}
-                className={`grid grid-cols-1 md:grid-cols-[200px_1fr] gap-8.5 items-center mt-11 ${index % 2 === 1 ? 'md:grid-cols-[1fr_200px]' : ''}`}
-              >
-                <img
-                  src={IMAGES[index]}
-                  alt={masterclass.name}
-                  className={`w-[200px] h-[200px] rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-primary-500)] ${index % 2 === 1 ? 'md:order-2' : ''}`}
-                />
-                <div>
-                  <div className="text-[.78rem] font-semibold text-primary-500">{masterclass.theme}</div>
-                  <h3 className="text-2xl font-extrabold">{masterclass.name}</h3>
-                  <div className="text-primary-500 font-semibold text-[.92rem] my-1">{masterclass.role}</div>
-                  <p className="text-ink-muted">{BIOGRAPHIES[index].biography}</p>
-                  {BIOGRAPHIES[index].works && <p className="mt-3 text-[.88rem] text-ink-muted">{BIOGRAPHIES[index].works}</p>}
-                </div>
+  <div className="max-w-[1080px] mx-auto px-[22px]">
+    <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch]">
+      Quem te vai orientar.
+    </h2>
+
+    <div className="mt-11 space-y-14">
+      {MASTERCLASSES.map((masterclass, index) => {
+        const isReversed = index % 2 === 1;
+        return (
+          <div
+            key={masterclass.id}
+            className={`grid grid-cols-1 md:grid-cols-[200px_minmax(0,1fr)] gap-8 md:gap-10 items-center ${
+              isReversed ? 'md:grid-cols-[minmax(0,1fr)_200px]' : ''
+            }`}
+          >
+            <img
+              src={IMAGES[index]}
+              alt={masterclass.name}
+              className={`w-[200px] h-[200px] rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-primary-500)] mx-auto md:mx-0 ${
+                isReversed ? 'md:order-2 md:justify-self-end' : ''
+              }`}
+            />
+
+            <div className={isReversed ? 'md:text-right' : ''}>
+              <div className="text-[.78rem] font-semibold text-primary-500">
+                {masterclass.theme}
               </div>
-            ))}
+              <h3 className="text-2xl font-extrabold">{masterclass.name}</h3>
+              <div className="text-primary-500 font-semibold text-[.92rem] my-1">
+                {masterclass.role}
+              </div>
+              <p className="text-ink-muted">{BIOGRAPHIES[index].biography}</p>
+              {BIOGRAPHIES[index].works && (
+                <p className="mt-3 text-[.88rem] text-ink-muted">
+                  {BIOGRAPHIES[index].works}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        );
+      })}
+    </div>
+  </div>
+</section>
 
       {/* Section: Steps (band) */}
       <section className="py-16 md:py-20 bg-navy-800 text-white">

@@ -3,7 +3,6 @@ import {
   BrowserRouter, Routes, Route, Link, Navigate,
 } from 'react-router-dom';
 import {
-  MENTEES, MENTORS, MY_MENTEE_INDEX, MY_MENTOR_INDEX, INITIAL_QUESTIONS, ROUNDS,
   NAV_MENTEE, NAV_MENTOR, ORGANIZER_TABS,
 } from './data';
 import { Avatar, Toast } from './ui';
@@ -26,45 +25,7 @@ import Landingpage from './Landingpage';
 import MentorLanding from './MentorLanding';
 import Register from './Register';
 import Login from './Login';
-
-// ── SESSION HELPERS ──────────────────────────
-
-// ── LOGIN SCREEN (demo) ──────────────────────
-function LoginScreen({ setRole, setActiveTab }) {
-  const accounts = [
-    { key: 'mentee', name: 'Ana Mondlane', label: 'Mentorado', description: 'Passaporte, rondas, mentores, conexões' },
-    { key: 'mentor', name: 'Carlos Tembe', label: 'Mentor', description: 'Mesa, mentorados, pedidos de mentoria' },
-    { key: 'org', name: 'Equipa Career Connect', label: 'Organizador', description: 'Fases, check-in, aprovações, relatórios' },
-    { key: 'tv', name: 'Ecrã grande', label: 'Projetor', description: 'Contagem e quadro de mesas' },
-  ];
-  return (
-    <div className="max-w-[720px] mx-auto pt-[52px] px-[22px] pb-10">
-      <div className="font-extrabold text-[1.35rem] italic tracking-tight leading-none">
-        Career<i className="text-primary-500 not-italic">Connect</i>
-      </div>
-      <h1 className="my-6 mb-3 max-w-[15ch] text-[clamp(1.9rem,6vw,2.8rem)] font-extrabold tracking-tight">
-        Entra na tua área pessoal.
-      </h1>
-      <p className="text-ink-muted">
-        Simulação sem servidor. Escolhe um perfil de demonstração e explora o que cada pessoa vê depois do login.
-      </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-[30px]">
-        {accounts.map((account) => (
-          <button
-            key={account.key}
-            onClick={() => { setRole(account.key); setActiveTab(account.key === 'org' ? 'live' : 'home'); window.scrollTo(0, 0); }}
-            className="text-left bg-surface-soft border-2 border-transparent hover:border-primary-500 rounded-3xl p-5 flex flex-col gap-0.5 text-ink transition active:scale-[.985]"
-          >
-            <Avatar name={account.name} />
-            <h3 className="text-[1.02rem] mt-3 mb-0.5 font-bold">{account.label}</h3>
-            <div className="text-ink-muted text-[.85rem]">{account.name}</div>
-            <p className="text-[.85rem] mt-2 text-ink-muted">{account.description}</p>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
+import { ccMe, setStoredToken, getStoredToken, getStoredRefreshToken, ccGetQuestions, ccGetPolls, ccGetPollResults } from './api/client';
 
 // ── NAV ──────────────────────────────────────
 function BottomNav({ items, activeTab, setActiveTab }) {
@@ -95,8 +56,9 @@ function BottomNav({ items, activeTab, setActiveTab }) {
 export function CareerConnectApp({ initialRole }) {
   const [role, setRole] = useState(initialRole || null);
   const [activeTab, setActiveTab] = useState('home');
+  const [user, setUser] = useState(null);
 
-  // Event / simulation
+  // Event / simulation state
   const [currentRound, setCurrentRound] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(300);
   const [isRunning, setIsRunning] = useState(false);
@@ -104,24 +66,13 @@ export function CareerConnectApp({ initialRole }) {
   const [isRehearsal, setIsRehearsal] = useState(false);
   const [furthestRoundCompleted, setFurthestRoundCompleted] = useState(0);
 
-  // Mentee
-  const [wishedMentors, setWishedMentors] = useState([1, 4]);
-  const [interestByMentor, setInterestByMentor] = useState({});
-  const [connections, setConnections] = useState([0]);
-  const [mentorshipRequests, setMentorshipRequests] = useState([
-    { mentorIndex: 2, menteeIndex: 1, status: 'pending', message: 'Olá Carlos, gostava de orientação sobre o meu primeiro estágio.' },
-  ]);
-  const [maxMenteesPerMentor] = useState(2);
-  const [masterclassesReserved, setMasterclassesReserved] = useState(false);
-
-  // Organizer
+  // Announcements
   const [announcements, setAnnouncements] = useState([]);
-  const [checkins, setCheckins] = useState({ m0: 1, m1: 1, m2: 1, m3: 1, m4: 1, m5: 1, e0: 1, e1: 1, e2: 1, e3: 1, e5: 1 });
-  const [hasPendingMentor, setHasPendingMentor] = useState(true);
 
-  // Shared interaction
-  const [questions, setQuestions] = useState(INITIAL_QUESTIONS);
-  const [pollVotes, setPollVotes] = useState([4, 9, 3, 2]);
+  // Questions / polls (shared interaction)
+  const [questions, setQuestions] = useState([]);
+  const [pollOptions, setPollOptions] = useState([]);
+  const [pollVotes, setPollVotes] = useState([0, 0, 0, 0]);
   const [votedOption, setVotedOption] = useState(-1);
 
   // UI
@@ -134,13 +85,47 @@ export function CareerConnectApp({ initialRole }) {
     toastTimer.current = setTimeout(() => setToastMessage(''), 2600);
   };
 
+  // Load questions and polls when role is mentee
+  useEffect(() => {
+    if (role !== 'mentee') return;
+    let active = true;
+    const loadInteraction = async () => {
+      try {
+        const [qResp, pResp, prResp] = await Promise.all([
+          ccGetQuestions({}),
+          ccGetPolls({}),
+          ccGetPollResults({}),
+        ]);
+        if (active) {
+          setQuestions(qResp.data?.questions || []);
+          const pollData = pResp.data?.poll || pResp.data?.polls?.[0] || null;
+          if (pollData) {
+            setPollOptions(Array.isArray(pollData.options) ? pollData.options : []);
+            setPollVotes(pollData.votes || [0, 0, 0, 0]);
+          } else {
+            setPollOptions([]);
+          }
+          const results = prResp.data?.results || prResp.data?.poll_results || [];
+          // Merge results into pollVotes if available
+          if (results.length > 0 && active) {
+            const merged = results.map((r, i) => r.vote_count || r.count || 0);
+            if (merged.length === 4) setPollVotes(merged);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load interaction data:', err);
+      }
+    };
+    loadInteraction();
+    return () => { active = false; };
+  }, [role]);
+
   // Countdown
   useEffect(() => {
     if (!isRunning || isPaused) return;
     const interval = setInterval(() => {
       setSecondsLeft((previous) => {
         if (previous <= 1) {
-          advanceRound();
           return isRehearsal ? 30 : 300;
         }
         return previous - 1;
@@ -182,67 +167,33 @@ export function CareerConnectApp({ initialRole }) {
     setSecondsLeft(isRehearsal ? 30 : 300);
   };
 
-  const menteeForRound = (mentorIndex) => {
-    if (currentRound < 1 || currentRound > 4) return null;
-    const pair = ROUNDS[(currentRound - 1 + mentorIndex) % ROUNDS.length];
-    return pair.fromMentee;
-  };
+  const common = { showToast };
 
-  const mentorForMenteeRound = (menteeIndex) => {
-    if (currentRound < 1 || currentRound > 4) return null;
-    const pair = ROUNDS[(currentRound - 1 + menteeIndex) % ROUNDS.length];
-    return pair.toMentor;
-  };
-
-  const metMentorIndices = useMemo(() => {
-    const list = [];
-    const upTo = Math.min(furthestRoundCompleted || 0, 4);
-    for (let r = 1; r <= upTo; r++) {
-      const index = mentorForMenteeRound(MY_MENTEE_INDEX);
-      if (index !== null && !list.includes(index)) list.push(index);
-    }
-    if (currentRound >= 1 && currentRound <= 4) {
-      const liveIndex = mentorForMenteeRound(MY_MENTEE_INDEX);
-      if (liveIndex !== null && !list.includes(liveIndex)) list.push(liveIndex);
-    }
-    return list;
-  }, [currentRound, furthestRoundCompleted]);
-
-  const connectWithMentor = (mentorIndex) => {
-    setConnections((previous) => {
-      if (previous.includes(mentorIndex)) return previous;
-      showToast(`Nova conexão com ${MENTORS[mentorIndex].name}!`);
-      return [...previous, mentorIndex];
-    });
-  };
-
-  // ── RENDER ROUTER ─────────────────────────
   const renderMenteeContent = () => {
     const activeMenteeTab = NAV_MENTEE.find((t) => t.key === activeTab) ? activeTab : 'home';
-    const common = { showToast };
     switch (activeMenteeTab) {
       case 'home':
-        return <MenteeHome {...common} wishedMentors={wishedMentors} setWishedMentors={setWishedMentors} connections={connections} mentorshipRequests={mentorshipRequests} furthestRoundCompleted={furthestRoundCompleted} masterclassesReserved={masterclassesReserved} setMasterclassesReserved={setMasterclassesReserved} />;
+        return <MenteeHome {...common} />;
       case 'live':
-        return <MenteeLive {...common} currentRound={currentRound} secondsLeft={secondsLeft} isRehearsal={isRehearsal} announcements={announcements} phaseLabel={phaseLabel} mentorForMenteeRound={mentorForMenteeRound} interestByMentor={interestByMentor} setInterestByMentor={setInterestByMentor} connectWithMentor={connectWithMentor} questions={questions} setQuestions={setQuestions} pollVotes={pollVotes} setPollVotes={setPollVotes} votedOption={votedOption} setVotedOption={setVotedOption} totalPollVotes={totalPollVotes} setActiveTab={setActiveTab} />;
+        return <MenteeLive {...common} currentRound={currentRound} secondsLeft={secondsLeft} isRehearsal={isRehearsal} announcements={announcements} phaseLabel={phaseLabel} setActiveTab={setActiveTab} questions={questions} setQuestions={setQuestions} pollOptions={pollOptions} pollVotes={pollVotes} setPollVotes={setPollVotes} votedOption={votedOption} setVotedOption={setVotedOption} totalPollVotes={totalPollVotes} />;
       case 'mentors':
-        return <MenteeMentors {...common} wishedMentors={wishedMentors} setWishedMentors={setWishedMentors} />;
+        return <MenteeMentors {...common} />;
       case 'met':
-        return <MenteeMet metMentorIndices={metMentorIndices} interestByMentor={interestByMentor} setInterestByMentor={setInterestByMentor} connectWithMentor={connectWithMentor} />;
+        return <MenteeMet {...common} />;
       case 'conn':
-        return <MenteeConnections {...common} connections={connections} mentorshipRequests={mentorshipRequests} setMentorshipRequests={setMentorshipRequests} />;
+        return <MenteeConnections {...common} />;
       case 'msg':
-        return <MenteeMessages connections={connections} mentorshipRequests={mentorshipRequests} showToast={showToast} />;
+        return <MenteeMessages {...common} />;
       case 'fecho':
         return (
           <>
-            <SurveyScreen showToast={showToast} />
-            <NextStepScreen showToast={showToast} />
-            <DailySummaryScreen conversations={furthestRoundCompleted || 0} connectionsCount={connections.length} questionsAsked={0} showToast={showToast} />
+            <SurveyScreen {...common} />
+            <NextStepScreen {...common} />
+            <DailySummaryScreen {...common} conversations={furthestRoundCompleted || 0} connectionsCount={0} questionsAsked={0} />
           </>
         );
       case 'profile':
-        return <ProfileScreen asRole="mentee" setRole={setRole} showToast={showToast} />;
+        return <ProfileScreen asRole="mentee" setRole={setRole} {...common} />;
       default:
         return null;
     }
@@ -250,20 +201,19 @@ export function CareerConnectApp({ initialRole }) {
 
   const renderMentorContent = () => {
     const activeMentorTab = NAV_MENTOR.find((t) => t.key === activeTab) ? activeTab : 'home';
-    const common = { showToast };
     switch (activeMentorTab) {
       case 'home':
-        return <MentorHome mentorshipRequests={mentorshipRequests} maxMenteesPerMentor={maxMenteesPerMentor} />;
+        return <MentorHome {...common} />;
       case 'live':
-        return <MentorLive {...common} currentRound={currentRound} secondsLeft={secondsLeft} phaseLabel={phaseLabel} menteeForRound={menteeForRound} />;
+        return <MentorLive {...common} currentRound={currentRound} secondsLeft={secondsLeft} phaseLabel={phaseLabel} />;
       case 'req':
-        return <MentorRequests {...common} mentorshipRequests={mentorshipRequests} setMentorshipRequests={setMentorshipRequests} maxMenteesPerMentor={maxMenteesPerMentor} />;
+        return <MentorRequests {...common} />;
       case 'conn':
-        return <MentorConnections mentorshipRequests={mentorshipRequests} />;
+        return <MentorConnections {...common} />;
       case 'msg':
-        return <MentorMessages mentorshipRequests={mentorshipRequests} showToast={showToast} />;
+        return <MentorMessages {...common} />;
       case 'profile':
-        return <ProfileScreen asRole="mentor" setRole={setRole} showToast={showToast} />;
+        return <ProfileScreen asRole="mentor" setRole={setRole} {...common} />;
       default:
         return null;
     }
@@ -271,16 +221,15 @@ export function CareerConnectApp({ initialRole }) {
 
   const renderOrganizerContent = () => {
     const activeOrgTab = ORGANIZER_TABS.find((t) => t.key === activeTab) ? activeTab : 'live';
-    const common = { showToast };
     switch (activeOrgTab) {
       case 'live':
-        return <OrganizerLive {...common} phaseLabel={phaseLabel} secondsLeft={secondsLeft} currentRound={currentRound} isPaused={isPaused} isRehearsal={isRehearsal} setIsRehearsal={setIsRehearsal} setSecondsLeft={setSecondsLeft} setIsPaused={setIsPaused} advanceRound={advanceRound} restartSimulation={restartSimulation} menteeForRound={menteeForRound} />;
+        return <OrganizerLive {...common} phaseLabel={phaseLabel} secondsLeft={secondsLeft} currentRound={currentRound} isPaused={isPaused} isRehearsal={isRehearsal} setIsRehearsal={setIsRehearsal} setSecondsLeft={setSecondsLeft} setIsPaused={setIsPaused} advanceRound={advanceRound} restartSimulation={restartSimulation} />;
       case 'reg':
-        return <OrganizerReg {...common} hasPendingMentor={hasPendingMentor} setHasPendingMentor={setHasPendingMentor} checkins={checkins} setCheckins={setCheckins} />;
+        return <OrganizerReg {...common} />;
       case 'int':
         return <OrganizerInteraction {...common} announcements={announcements} setAnnouncements={setAnnouncements} questions={questions} pollVotes={pollVotes} totalPollVotes={totalPollVotes} />;
       case 'rep':
-        return <OrganizerReports {...common} furthestRoundCompleted={furthestRoundCompleted} connections={connections} checkins={checkins} mentorshipRequests={mentorshipRequests} />;
+        return <OrganizerReports {...common} furthestRoundCompleted={furthestRoundCompleted} connections={[]} checkins={{}} mentorshipRequests={[]} />;
       default:
         return null;
     }
@@ -289,13 +238,59 @@ export function CareerConnectApp({ initialRole }) {
   let content = null;
 
   if (!role) {
-    content = <LoginScreen setRole={setRole} setActiveTab={setActiveTab} />;
+    content = (
+      <div className="max-w-[720px] mx-auto pt-[52px] px-[22px] pb-10">
+        <div className="font-extrabold text-[1.35rem] italic tracking-tight leading-none">
+          Career<i className="text-primary-500 not-italic">Connect</i>
+        </div>
+        <h1 className="my-6 mb-3 max-w-[15ch] text-[clamp(1.9rem,6vw,2.8rem)] font-extrabold tracking-tight">
+          Entra na tua área pessoal.
+        </h1>
+        <p className="text-ink-muted">
+          Escolhe um perfil para entrar ou cria uma conta nova.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-[30px]">
+          <button
+            onClick={() => { setRole('mentee'); setActiveTab('home'); window.scrollTo(0, 0); }}
+            className="text-left bg-surface-soft border-2 border-transparent hover:border-primary-500 rounded-3xl p-5 flex flex-col gap-0.5 text-ink transition active:scale-[.985]"
+          >
+            <Avatar name="Mentorado" />
+            <h3 className="text-[1.02rem] mt-3 mb-0.5 font-bold">Mentorado</h3>
+            <div className="text-ink-muted text-[.85rem]">A tua área pessoal</div>
+          </button>
+          <button
+            onClick={() => { setRole('mentor'); setActiveTab('home'); window.scrollTo(0, 0); }}
+            className="text-left bg-surface-soft border-2 border-transparent hover:border-primary-500 rounded-3xl p-5 flex flex-col gap-0.5 text-ink transition active:scale-[.985]"
+          >
+            <Avatar name="Mentor" />
+            <h3 className="text-[1.02rem] mt-3 mb-0.5 font-bold">Mentor</h3>
+            <div className="text-ink-muted text-[.85rem]">Mesa, mentorados, pedidos</div>
+          </button>
+          <button
+            onClick={() => { setRole('org'); setActiveTab('live'); window.scrollTo(0, 0); }}
+            className="text-left bg-surface-soft border-2 border-transparent hover:border-primary-500 rounded-3xl p-5 flex flex-col gap-0.5 text-ink transition active:scale-[.985]"
+          >
+            <Avatar name="Organizador" />
+            <h3 className="text-[1.02rem] mt-3 mb-0.5 font-bold">Organizador</h3>
+            <div className="text-ink-muted text-[.85rem]">Painel de controlo</div>
+          </button>
+          <button
+            onClick={() => { setRole('tv'); setActiveTab('live'); window.scrollTo(0, 0); }}
+            className="text-left bg-surface-soft border-2 border-transparent hover:border-primary-500 rounded-3xl p-5 flex flex-col gap-0.5 text-ink transition active:scale-[.985]"
+          >
+            <Avatar name="Ecrã" />
+            <h3 className="text-[1.02rem] mt-3 mb-0.5 font-bold">Ecrã grande</h3>
+            <div className="text-ink-muted text-[.85rem]">Projetor do evento</div>
+          </button>
+        </div>
+      </div>
+    );
   } else if (role === 'tv') {
     content = (
       <TvScreen
         announcements={announcements} phaseLabel={phaseLabel} currentRound={currentRound}
         secondsLeft={secondsLeft} furthestRoundCompleted={furthestRoundCompleted}
-        connections={connections} menteeForRound={menteeForRound} setRole={setRole}
+        connections={[]} setRole={setRole}
       />
     );
   } else if (role === 'org') {
@@ -328,7 +323,7 @@ export function CareerConnectApp({ initialRole }) {
     <div className="min-h-screen bg-surface text-ink font-sans antialiased pb-[env(safe-area-inset-bottom,0px)]">
       {role && (
         <div className="sticky top-0 z-30 flex gap-1.5 items-center overflow-x-auto bg-navy-900 text-white px-3.5 pt-[calc(env(safe-area-inset-top,0px)+8px)] pb-2 text-[.78rem]">
-          <b className="mr-auto font-bold tracking-wide whitespace-nowrap opacity-85 text-[.74rem] uppercase">Simulação</b>
+          <b className="mr-auto font-bold tracking-wide whitespace-nowrap opacity-85 text-[.74rem] uppercase">Career Connect</b>
           {[
             { key: 'mentee', label: 'Mentorado' },
             { key: 'mentor', label: 'Mentor' },
@@ -353,23 +348,55 @@ export function CareerConnectApp({ initialRole }) {
 
 // ── ROUTER ───────────────────────────────────
 export default function AppRouter() {
+  const [authChecked, setAuthChecked] = useState(false);
+  const [authRole, setAuthRole] = useState(null);
+
+  const checkAuth = async () => {
+    const token = getStoredToken();
+    if (!token) {
+      setAuthChecked(true);
+      setAuthRole(null);
+      return;
+    }
+    setAuthChecked(false);
+    try {
+      const response = await ccMe();
+      if (response.data?.user) {
+        setAuthRole(response.data.user.role);
+      }
+    } catch (err) {
+      setStoredToken(null);
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('userRole');
+      setAuthRole(null);
+    }
+    setAuthChecked(true);
+  };
+
+  useEffect(() => {
+    checkAuth();
+    window.addEventListener('storage', checkAuth);
+    return () => window.removeEventListener('storage', checkAuth);
+  }, []);
+
+  if (!authChecked) {
+    return null;
+  }
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Landingpage />} />
+        <Route path="/" element={authRole === 'mentee' ? <Navigate to="/app/mentee" replace /> : authRole === 'mentor' ? <Navigate to="/app/mentor" replace /> : authRole === 'org' ? <Navigate to="/app/org" replace /> : authRole === 'tv' ? <Navigate to="/app/tv" replace /> : <Landingpage />} />
         <Route path="/mentor" element={<MentorLanding />} />
         <Route path="/registo" element={<Register />} />
         <Route path="/registo/mentor" element={<Register />} />
-        <Route path="/entrar" element={<Login />} />
-        <Route path="/app/mentee" element={<CareerConnectApp initialRole="mentee" />} />
-        <Route path="/app/mentor" element={<CareerConnectApp initialRole="mentor" />} />
-        <Route path="/app/org" element={<CareerConnectApp initialRole="org" />} />
-        <Route path="/app/tv" element={<CareerConnectApp initialRole="tv" />} />
+        <Route path="/entrar" element={authRole ? <Navigate to={authRole === 'organizer' ? '/app/org' : `/app/${authRole}`} replace /> : <Login />} />
+        <Route path="/app/mentee" element={authRole === 'mentee' ? <CareerConnectApp initialRole="mentee" /> : (authChecked ? <Navigate to="/entrar" replace /> : null)} />
+        <Route path="/app/mentor" element={authRole === 'mentor' ? <CareerConnectApp initialRole="mentor" /> : (authChecked ? <Navigate to="/entrar" replace /> : null)} />
+        <Route path="/app/org" element={authRole === 'org' ? <CareerConnectApp initialRole="org" /> : (authChecked ? <Navigate to="/entrar" replace /> : null)} />
+        <Route path="/app/tv" element={authRole === 'tv' ? <CareerConnectApp initialRole="tv" /> : (authChecked ? <Navigate to="/entrar" replace /> : null)} />
         <Route path="/app" element={<Navigate to="/entrar" replace />} />
       </Routes>
     </BrowserRouter>
   );
 }
-
-
-

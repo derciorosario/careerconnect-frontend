@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
-import { MENTEES, MY_MENTEE_INDEX } from './data';
+import React, { useState, useEffect } from 'react';
+import {
+  ccSubmitSurvey, ccGetSurveyResults,
+  ccCreateNextStep, ccGetMyNextStep,
+  ccGetBadges,
+} from './api/client';
 import { Card, ProgressBar } from './ui';
 
 const BTN_BASE = 'inline-block rounded-full bg-primary-500 text-white font-semibold text-base px-7 py-3.5 cursor-pointer no-underline hover:brightness-110 transition';
+const FIELD_BASE = 'w-full font-normal text-base text-ink bg-surface border-2 border-line rounded-field px-3.5 py-3 focus:border-primary-500 focus:outline-none';
 
 // ── SURVEY (F-53) ────────────────────────────
 export const SurveyScreen = ({ showToast }) => {
@@ -10,6 +15,7 @@ export const SurveyScreen = ({ showToast }) => {
   const [nps, setNps] = useState(null);
   const [comment, setComment] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   if (submitted) {
     return (
@@ -70,11 +76,22 @@ export const SurveyScreen = ({ showToast }) => {
       </Card>
 
       <button
-        onClick={() => { setSubmitted(true); showToast('Inquérito submetido.'); }}
-        disabled={rating === null || nps === null}
+        onClick={async () => {
+          setLoading(true);
+          try {
+            await ccSubmitSurvey({ event_id: 'current', rating, nps, comment });
+            setSubmitted(true);
+            showToast('Inquérito submetido.');
+          } catch (err) {
+            showToast('Erro ao submeter inquérito.');
+          } finally {
+            setLoading(false);
+          }
+        }}
+        disabled={rating === null || nps === null || loading}
         className={`${BTN_BASE} w-full mt-6 ${rating === null || nps === null ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
-        Submeter inquérito
+        {loading ? 'A submeter...' : 'Submeter inquérito'}
       </button>
     </>
   );
@@ -85,6 +102,23 @@ export const NextStepScreen = ({ showToast }) => {
   const [text, setText] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const resp = await ccGetMyNextStep();
+        if (resp.data?.nextStep) {
+          setText(resp.data.nextStep.text);
+          setDueDate(resp.data.nextStep.due_date);
+          setSaved(true);
+        }
+      } catch (err) {
+        console.error('Failed to load next step:', err);
+      }
+    };
+    load();
+  }, [showToast]);
 
   if (saved) {
     return (
@@ -121,24 +155,58 @@ export const NextStepScreen = ({ showToast }) => {
       </Card>
 
       <button
-        onClick={() => { setSaved(true); showToast('Compromisso guardado com lembrete.'); }}
-        disabled={!text || !dueDate}
+        onClick={async () => {
+          setLoading(true);
+          try {
+            await ccCreateNextStep({ text, due_date: dueDate });
+            setSaved(true);
+            showToast('Compromisso guardado com lembrete.');
+          } catch (err) {
+            showToast('Erro ao guardar compromisso.');
+          } finally {
+            setLoading(false);
+          }
+        }}
+        disabled={!text || !dueDate || loading}
         className={`${BTN_BASE} w-full mt-6 ${(!text || !dueDate) ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
-        Guardar compromisso
+        {loading ? 'A guardar...' : 'Guardar compromisso'}
       </button>
     </>
   );
 };
 
 // ── DAILY SUMMARY (F-51) ─────────────────────
-export const DailySummaryScreen = ({ conversations, connectionsCount, questionsAsked, showToast }) => {
+export const DailySummaryScreen = ({ showToast }) => {
+  const [stats, setStats] = useState({ conversations: 0, connectionsCount: 0, questionsAsked: 0, badges: [] });
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [feedbackResp, connResp, badgeResp] = await Promise.all([
+          ccGetSurveyResults({}),
+          ccGetConnections({}),
+          ccGetBadges({ user_id: localStorage.getItem('userId') || '' }),
+        ]);
+        setStats({
+          conversations: feedbackResp.data?.total || 0,
+          connectionsCount: (connResp.data?.connections || []).length,
+          questionsAsked: 0,
+          badges: badgeResp.data?.badges || [],
+        });
+      } catch (err) {
+        console.error('Failed to load daily summary:', err);
+      }
+    };
+    load();
+  }, [showToast]);
+
   const badges = [
-    { label: 'Primeira ligação', earned: conversations >= 1 },
-    { label: 'Meio caminho', earned: conversations >= 4 },
-    { label: 'Passaporte completo', earned: conversations >= 8 },
-    { label: 'Primeira conexão', earned: connectionsCount > 0 },
-    { label: 'Voz ativa', earned: questionsAsked > 0 },
+    { label: 'Primeira ligação', earned: stats.conversations >= 1 },
+    { label: 'Meio caminho', earned: stats.conversations >= 4 },
+    { label: 'Passaporte completo', earned: stats.conversations >= 8 },
+    { label: 'Primeira conexão', earned: stats.connectionsCount > 0 },
+    { label: 'Voz ativa', earned: stats.questionsAsked > 0 },
   ];
 
   return (
@@ -149,17 +217,17 @@ export const DailySummaryScreen = ({ conversations, connectionsCount, questionsA
       <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3 mb-6">
         <Card variant="navy">
           <span className="text-primary-300 text-[.8rem] font-semibold block">Conversas</span>
-          <b className="block text-[2rem] font-extrabold">{conversations}</b>
+          <b className="block text-[2rem] font-extrabold">{stats.conversations}</b>
           <p className="text-navy-100 text-[.8rem] mt-1">de 8 possíveis</p>
         </Card>
         <Card variant="navy">
           <span className="text-primary-300 text-[.8rem] font-semibold block">Conexões</span>
-          <b className="block text-[2rem] font-extrabold">{connectionsCount}</b>
+          <b className="block text-[2rem] font-extrabold">{stats.connectionsCount}</b>
           <p className="text-navy-100 text-[.8rem] mt-1">interesse mútuo</p>
         </Card>
         <Card variant="navy">
           <span className="text-primary-300 text-[.8rem] font-semibold block">Perguntas</span>
-          <b className="block text-[2rem] font-extrabold">{questionsAsked}</b>
+          <b className="block text-[2rem] font-extrabold">{stats.questionsAsked}</b>
           <p className="text-navy-100 text-[.8rem] mt-1">aos oradores</p>
         </Card>
       </div>
@@ -184,5 +252,3 @@ export const DailySummaryScreen = ({ conversations, connectionsCount, questionsA
     </>
   );
 };
-
-const FIELD_BASE = 'w-full font-normal text-base text-ink bg-surface border-2 border-line rounded-field px-3.5 py-3 focus:border-primary-500 focus:outline-none';

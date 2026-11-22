@@ -1,43 +1,130 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  MENTEES, MENTORS, MASTERCLASSES, POLL_OPTIONS, MUTUAL_MATCHES,
-  MY_MENTEE_INDEX, ROUNDS, getFirstName, compatibilityScore,
-  formatTime, generateQrSvg,
+  getFirstName, formatTime,
+  generateQrSvg,
 } from './data';
+import {
+  ccGetProfile, ccUpdateProfile,
+  ccGetEvent, ccGetProgram,
+  ccGetMyMatch, ccGetMentorDirectory, ccAddWish, ccGetMyWishes,
+  ccGetCurrentRound,
+  ccSubmitFeedback, ccGetMyFeedback,
+  ccGetConnections,
+  ccCreateMentorshipRequest, ccGetMyMentorshipRequests,
+  ccGetMessages, ccSendMessage,
+  ccGetQuestions, ccCreateQuestion, ccVoteQuestion,
+  ccGetPolls, ccVotePoll, ccGetPollResults,
+  ccGetAnnouncements,
+  ccSubmitSurvey, ccGetSurveyResults,
+  ccCreateNextStep, ccGetMyNextStep,
+  ccBookSession, ccGetMyBookings,
+  ccGetBadges,
+  setStoredToken,
+} from './api/client';
 import { Avatar, PersonRow, ProgressBar, ChecklistItem, Card, QuestionInput } from './ui';
+
+const AREAS = [
+  'Tecnologia e TI',
+  'Finanças e Banca',
+  'Engenharia',
+  'Saúde',
+  'Direito',
+  'Marketing e Comunicação',
+  'Gestão e Empreendedorismo',
+  'Recursos Humanos',
+  'Energia e Recursos Naturais',
+  'Educação',
+  'Agricultura',
+  'Logística',
+];
+
+const GOALS = [
+  'Escolher a minha área',
+  'Preparar o primeiro estágio',
+  'Construir a minha marca pessoal',
+  'Desenvolver competências',
+  'Mudar de percurso',
+  'Criar o meu negócio',
+];
+
+const ROUNDS = [
+  { fromMentee: 0, toMentor: 2 },
+  { fromMentee: 1, toMentor: 0 },
+  { fromMentee: 2, toMentor: 5 },
+  { fromMentee: 3, toMentor: 3 },
+];
+
 // ── HOME ─────────────────────────────────────
-export const MenteeHome = ({ wishedMentors, setWishedMentors, connections, mentorshipRequests, furthestRoundCompleted, masterclassesReserved, setMasterclassesReserved, showToast }) => {
-  const myMentee = MENTEES[MY_MENTEE_INDEX];
-  const conversationsDone = furthestRoundCompleted || 0;
-  const prepChecklist = [
-    { label: 'Perfil completo', done: true },
-    { label: 'Pitch escrito', done: true },
-    { label: '3 mentores marcados', done: wishedMentors.length >= 3 },
-    { label: 'Masterclasses reservadas', done: masterclassesReserved },
-  ];
+export const MenteeHome = ({ showToast }) => {
+  const [profile, setProfile] = useState(null);
+  const [conversationsDone, setConversationsDone] = useState(0);
+  const [connections, setConnections] = useState([]);
+  const [badgeData, setBadgeData] = useState([]);
+  const [masterclasses, setMasterclasses] = useState([]);
+  const [ticketCode, setTicketCode] = useState(null);
+  const [bookings, setBookings] = useState([]);
+  const [wishes, setWishes] = useState([]);
+  const [bookingLoading, setBookingLoading] = useState({});
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [profResp, connResp, feedbackResp, badgeResp, progResp, bookingResp, wishResp] = await Promise.all([
+          ccGetProfile(),
+          ccGetConnections(),
+          ccGetMyFeedback(),
+          ccGetBadges({ user_id: localStorage.getItem('userId') || '' }),
+          ccGetProgram(),
+          ccGetMyBookings(),
+          ccGetMyWishes(),
+        ]);
+        setProfile(profResp.data?.user || null);
+        setConnections(connResp.data?.connections || []);
+        const done = (feedbackResp.data?.feedback || []).length;
+        setConversationsDone(done);
+        setBadgeData(badgeResp.data?.badges || []);
+        setMasterclasses(progResp.data?.event?.sessions || []);
+        setBookings(bookingResp.data?.bookings || []);
+        setWishes(wishResp.data?.wishes || []);
+        // Use actual ticket code from registration
+        const reg = profResp.data?.user?.registrations?.[0];
+        setTicketCode(reg?.ticket_code || null);
+      } catch (err) {
+        console.error('Failed to load mentee home data:', err);
+      }
+    };
+    loadData();
+  }, [showToast]);
+
+  const bookedSessionIds = new Set(bookings.map((b) => b.session_id));
+  const wishedMentorIds = new Set(wishes.map((w) => w.mentor_id));
+
+  const myName = profile?.name || 'Utilizador';
+  const myCourse = profile?.menteeProfile?.course || '';
+  const connectionsCount = connections.length;
   const badges = [
     { label: 'Primeira ligação',  earned: conversationsDone >= 1 },
     { label: 'Meio caminho',      earned: conversationsDone >= 4 },
     { label: 'Passaporte completo', earned: conversationsDone >= 8 },
-    { label: 'Primeira conexão',  earned: connections.length > 0 },
-    { label: 'Mentoria ativa',    earned: mentorshipRequests.some((r) => r.menteeIndex === MY_MENTEE_INDEX && r.status === 'accepted') },
+    { label: 'Primeira conexão',  earned: connectionsCount > 0 },
+    { label: 'Mentoria ativa',    earned: badgeData.some((b) => b.code === 'MENTORIA_ATIVA') },
   ];
 
   return (
     <>
-      <h2 className="text-[1.45rem] font-extrabold tracking-tight">Olá, {getFirstName(myMentee.name)}.</h2>
+      <h2 className="text-[1.45rem] font-extrabold tracking-tight">Olá, {getFirstName(myName)}.</h2>
       <p className="text-ink-muted text-[.85rem] mt-1 mb-4">4 Dez 2026 · 14H00 · Hotel Cardoso</p>
 
       <Card variant="navy">
         <div className="flex gap-3 items-center">
           <div className="flex-1 min-w-0">
             <div className="text-[.76rem] font-bold text-primary-300 uppercase tracking-wide">Bilhete</div>
-            <h3 className="mt-1 text-[1.08rem] font-extrabold">{myMentee.name}</h3>
-            <p className="text-[.85rem] text-navy-100">Mentorado · {myMentee.course}</p>
-            <p className="font-extrabold text-[1.05rem] mt-3 tracking-widest">CC-7K2QF</p>
+            <h3 className="mt-1 text-[1.08rem] font-extrabold">{myName}</h3>
+            <p className="text-[.85rem] text-navy-100">Mentorado · {myCourse}</p>
+            <p className="font-extrabold text-[1.05rem] mt-3 tracking-widest">{ticketCode || 'CC-....'}</p>
             <p className="text-[.76rem] text-navy-100 mt-0.5">Disponível sem rede</p>
           </div>
-          <div dangerouslySetInnerHTML={{ __html: generateQrSvg('CC-7K2QF') }} />
+          <div dangerouslySetInnerHTML={{ __html: generateQrSvg(ticketCode || 'CC-7K2QF') }} />
         </div>
       </Card>
 
@@ -56,16 +143,19 @@ export const MenteeHome = ({ wishedMentors, setWishedMentors, connections, mento
           />
           <div>
             <b>Passaporte</b>
-            <p className="text-[.85rem] text-navy-100">{conversationsDone} de 8 conversas · {connections.length} conexões</p>
+            <p className="text-[.85rem] text-navy-100">{conversationsDone} de 8 conversas · {connectionsCount} conexões</p>
           </div>
         </div>
       </Card>
 
       <Card>
         <div className="flex items-center justify-between mb-3.5"><b>Prepara-te</b></div>
-        {prepChecklist.map((item) => (
-          <ChecklistItem key={item.label} label={item.label} done={item.done} />
-        ))}
+        <div className="flex gap-1.5 flex-wrap mt-2.5">
+          <ChecklistItem label="Perfil completo" done={!!profile} />
+          <ChecklistItem label="Pitch escrito" done={!!(profile?.menteeProfile?.pitch)} />
+          <ChecklistItem label="3 mentores marcados" done={wishedMentorIds.size >= 3} />
+          <ChecklistItem label="Masterclasses reservadas" done={bookings.length > 0} />
+        </div>
       </Card>
 
       <Card>
@@ -87,22 +177,37 @@ export const MenteeHome = ({ wishedMentors, setWishedMentors, connections, mento
       <Card>
         <div className="flex items-center justify-between mb-3.5"><b>Reservar masterclasses</b></div>
         <p className="text-ink-muted text-[.85rem] mb-2.5">Sem custo.</p>
-        {MASTERCLASSES.map((title, index) => (
-          <div key={index} className="flex justify-between items-center mt-2.5 gap-2.5">
-            <span className="text-[.85rem] flex-1">{title}</span>
-            <button
-              onClick={() => {
-                setMasterclassesReserved((previous) => !previous);
-                showToast(!masterclassesReserved ? 'Lugares reservados.' : 'Reservas canceladas.');
-              }}
-              className={`rounded-full font-bold text-[.76rem] h-[34px] px-3.5 ${
-                masterclassesReserved ? 'bg-surface2 text-ink' : 'bg-primary-500 text-white'
-              }`}
-            >
-              {masterclassesReserved ? 'Reservado' : 'Reservar'}
-            </button>
-          </div>
-        ))}
+        {masterclasses.length > 0 ? (
+          masterclasses.map((s) => {
+            const isBooked = bookedSessionIds.has(s.id);
+            return (
+              <div key={s.id} className="flex justify-between items-center mt-2.5 gap-2.5">
+                <span className="text-[.85rem] flex-1">{s.title}</span>
+                <button
+                  onClick={async () => {
+                    setBookingLoading((p) => ({ ...p, [s.id]: true }));
+                    try {
+                      await ccBookSession({ session_id: s.id });
+                      setBookings((prev) => [...prev, { session_id: s.id }]);
+                      bookedSessionIds.add(s.id);
+                      showToast('Masterclass reservada.');
+                    } catch (err) {
+                      showToast(err.response?.data?.message || 'Erro ao reservar.');
+                    } finally {
+                      setBookingLoading((p) => { const { [s.id]: _, ...rest } = p; return rest; });
+                    }
+                  }}
+                  className={`rounded-full font-bold text-[.76rem] h-[34px] px-3.5 ${isBooked || bookingLoading[s.id] ? 'bg-surface2 text-ink-muted' : 'bg-primary-500 text-white'}`}
+                  disabled={isBooked || bookingLoading[s.id]}
+                >
+                  {isBooked ? 'Reservado' : bookingLoading[s.id] ? 'A reservar...' : 'Reservar'}
+                </button>
+              </div>
+            );
+          })
+        ) : (
+          <p className="text-ink-muted text-[.85rem] mt-2">Sem masterclasses disponíveis.</p>
+        )}
       </Card>
     </>
   );
@@ -111,11 +216,31 @@ export const MenteeHome = ({ wishedMentors, setWishedMentors, connections, mento
 // ── LIVE ─────────────────────────────────────
 export const MenteeLive = ({
   currentRound, secondsLeft, isRehearsal, announcements, phaseLabel,
-  mentorForMenteeRound, interestByMentor, setInterestByMentor,
-  connectWithMentor, showToast, questions, setQuestions,
-  pollVotes, setPollVotes, votedOption, setVotedOption, totalPollVotes,
-  setActiveTab,
+  mentorForMenteeRound, setActiveTab, showToast,
+  questions, setQuestions, pollOptions, pollVotes, setPollVotes, votedOption, setVotedOption, totalPollVotes,
 }) => {
+  const [roundData, setRoundData] = useState(null);
+  const [mentorDirectory, setMentorDirectory] = useState([]);
+  const [myMatches, setMyMatches] = useState(null);
+
+  useEffect(() => {
+    const loadRound = async () => {
+      if (currentRound >= 1 && currentRound <= 4) {
+        try {
+          const [roundResp, matchResp] = await Promise.all([
+            ccGetCurrentRound({}),
+            ccGetMyMatch({}),
+          ]);
+          setRoundData(roundResp.data?.round || null);
+          setMyMatches(matchResp.data?.match || null);
+        } catch (err) {
+          console.error('Failed to load round data:', err);
+        }
+      }
+    };
+    loadRound();
+  }, [currentRound]);
+
   let body = null;
 
   if (currentRound === 0) {
@@ -135,65 +260,79 @@ export const MenteeLive = ({
       </Card>
     );
   } else {
-    const mentorIndex = mentorForMenteeRound(MY_MENTEE_INDEX);
-    const mentor = MENTORS[mentorIndex];
-    const interest = interestByMentor[mentorIndex];
-    body = (
-      <>
+    const match = roundData?.matches?.[0];
+    const mentor = match?.mentor;
+    const menteeIds = match?.mentee_ids || [];
+    const isMatched = !!mentor;
+
+    if (!isMatched) {
+      body = (
         <Card variant="navy">
           <div className="flex justify-between items-center">
             <span className="text-[.76rem] font-bold text-primary-300 uppercase tracking-wide">Ronda {currentRound} de 4</span>
             <span className="font-extrabold text-[1.7rem]">{formatTime(secondsLeft)}</span>
           </div>
           <div className="my-3 mb-4"><ProgressBar value={(secondsLeft / (isRehearsal ? 30 : 300)) * 100} /></div>
-          <div className="flex gap-3 items-center">
-            <div className="inline-grid place-items-center w-16 h-16 rounded-[18px] bg-primary-500 text-white text-[1.8rem] font-extrabold shrink-0">
-              {mentorIndex + 1}
+          <div className="text-center py-6">
+            <p className="text-ink-muted text-[.85rem] mb-2">À espera de atribuição de mesa…</p>
+            <p className="text-[.85rem] text-ink-muted">O organizador ainda não atribuiu um mentor para esta ronda.</p>
+          </div>
+        </Card>
+      );
+    } else {
+      body = (
+        <>
+          <Card variant="navy">
+            <div className="flex justify-between items-center">
+              <span className="text-[.76rem] font-bold text-primary-300 uppercase tracking-wide">Ronda {currentRound} de 4</span>
+              <span className="font-extrabold text-[1.7rem]">{formatTime(secondsLeft)}</span>
             </div>
-            <div>
-              <p className="text-[.76rem] text-navy-100">Mesa</p>
-              <h3 className="text-[1.08rem] font-extrabold">{mentor.name}</h3>
-              <p className="text-[.85rem] text-navy-100">{mentor.role}, {mentor.company}</p>
+            <div className="my-3 mb-4"><ProgressBar value={(secondsLeft / (isRehearsal ? 30 : 300)) * 100} /></div>
+            <div className="flex gap-3 items-center">
+              <div className="inline-grid place-items-center w-16 h-16 rounded-[18px] bg-primary-500 text-white text-[1.8rem] font-extrabold shrink-0">
+                {match.table_no || currentRound}
+              </div>
+              <div>
+                <p className="text-[.76rem] text-navy-100">Mesa</p>
+                <h3 className="text-[1.08rem] font-extrabold">{mentor.name}</h3>
+                <p className="text-[.85rem] text-navy-100">{mentor.profile?.job_title || ''}, {mentor.profile?.company || ''}</p>
+              </div>
             </div>
-          </div>
-          <div className="flex gap-1.5 flex-wrap mt-2.5">
-            <span className="bg-white/10 text-white rounded-full px-3 py-[5px] text-[.74rem] font-semibold">{mentor.area}</span>
-            <span className="bg-white/10 text-white rounded-full px-3 py-[5px] text-[.74rem] font-semibold">{compatibilityScore(MY_MENTEE_INDEX, mentorIndex)}% compatível</span>
-          </div>
-        </Card>
+            <div className="flex gap-1.5 flex-wrap mt-2.5">
+              <span className="bg-white/10 text-white rounded-full px-3 py-[5px] text-[.74rem] font-semibold">{mentor.profile?.sector || 'Área'}</span>
+              <span className="bg-white/10 text-white rounded-full px-3 py-[5px] text-[.74rem] font-semibold">compatível</span>
+            </div>
+          </Card>
 
-        <Card>
-          <div className="flex items-center justify-between mb-3.5"><b>Quebra-gelos</b></div>
-          <ol className="text-[.85rem] pl-[18px] mt-1 leading-[1.7]">
-            <li>Como chegaste à tua área?</li>
-            <li>Que erro evitarias no primeiro estágio?</li>
-            <li>O que devo aprender já este ano?</li>
-          </ol>
-        </Card>
+          <Card>
+            <div className="flex items-center justify-between mb-3.5"><b>Quebra-gelos</b></div>
+            <ol className="text-[.85rem] pl-[18px] mt-1 leading-[1.7]">
+              <li>Como chegaste à tua área?</li>
+              <li>Que erro evitarias no primeiro estágio?</li>
+              <li>O que devo aprender já este ano?</li>
+            </ol>
+          </Card>
 
-        <Card>
-          <b>Queres continuar esta conversa?</b>
-          <div className="flex gap-3 mt-3">
-            <button
-              onClick={() => {
-                setInterestByMentor((previous) => ({ ...previous, [mentorIndex]: true }));
-                if (MUTUAL_MATCHES.includes(mentorIndex)) connectWithMentor(mentorIndex);
-                else showToast('Interesse guardado.');
-              }}
-              className={`rounded-full font-bold text-[.82rem] h-10 px-4 ${interest === true ? 'bg-primary-500 text-white' : 'bg-surface2 text-ink'}`}
-            >
-              Quero continuar
-            </button>
-            <button
-              onClick={() => { setInterestByMentor((previous) => ({ ...previous, [mentorIndex]: false })); showToast('Ok, sem interesse.'); }}
-              className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-surface2 text-ink"
-            >
-              Agora não
-            </button>
-          </div>
-        </Card>
-      </>
-    );
+          <Card>
+            <b>Queres continuar esta conversa?</b>
+            <div className="flex gap-3 mt-3">
+              <button
+                onClick={() => showToast('Interesse guardado.')}
+                className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white"
+              >
+                Quero continuar
+              </button>
+              <button
+                onClick={() => showToast('Ok, sem interesse.')}
+                className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-surface2 text-ink"
+              >
+                Agora não
+              </button>
+            </div>
+          </Card>
+        </>
+      );
+    }
   }
 
   return (
@@ -213,14 +352,17 @@ export const MenteeLive = ({
           <div key={index} className="flex justify-between items-center mt-3 gap-2.5">
             <span className="text-[.85rem] flex-1">{question.text}</span>
             <button
-              onClick={() => setQuestions((previous) => previous.map((q, i) => (i === index ? { ...q, votes: q.votes + 1 } : q)))}
-              className="rounded-full font-bold text-[.76rem] h-[34px] px-3.5 bg-surface2 text-ink"
+              onClick={() => { ccVoteQuestion({ question_id: question.id }); setQuestions((previous) => previous.map((q, i) => (i === index ? { ...q, votes: q.votes + 1 } : q))); }} className="rounded-full font-bold text-[.76rem] h-[34px] px-3.5 bg-surface2 text-ink"
             >
               ▲ {question.votes}
             </button>
           </div>
         ))}
-        <QuestionInput onSubmit={(text) => { setQuestions((previous) => [...previous, { text, votes: 1, mine: true }]); showToast('Pergunta enviada.'); }} />
+        <QuestionInput onSubmit={(text) => {
+          ccCreateQuestion({ session_id: 'current', body: text });
+          setQuestions((previous) => [...previous, { text, votes: 1, mine: true }]);
+          showToast('Pergunta enviada.');
+        }} />
       </Card>
 
       <Card>
@@ -228,7 +370,7 @@ export const MenteeLive = ({
           <b>Sondagem</b>
           <span className="text-[.76rem] text-ink-muted">Maior obstáculo</span>
         </div>
-        {POLL_OPTIONS.map((option, index) => {
+        {pollOptions.map((option, index) => {
           const percentage = totalPollVotes ? Math.round((pollVotes[index] / totalPollVotes) * 100) : 0;
           return (
             <div key={option} className="mt-3">
@@ -240,7 +382,7 @@ export const MenteeLive = ({
               {votedOption < 0 && (
                 <button
                   onClick={() => {
-                    setPollVotes((previous) => previous.map((v, i) => (i === index ? v + 1 : v)));
+                    ccVotePoll({ poll_id: 'current', option_index: index });
                     setVotedOption(index);
                     showToast('Voto registado.');
                   }}
@@ -258,136 +400,217 @@ export const MenteeLive = ({
 };
 
 // ── MENTORS ──────────────────────────────────
-export const MenteeMentors = ({ wishedMentors, setWishedMentors, showToast }) => (
-  <>
-    <h2 className="text-[1.45rem] font-extrabold tracking-tight">Mentores</h2>
-    <p className="text-ink-muted text-[.85rem] mt-1 mb-4">
-      Marca até 5. Os marcados ganham bónus no matching. Marcados: {wishedMentors.length}/5
-    </p>
-    {MENTORS.map((mentor, index) => {
-      const isWished = wishedMentors.includes(index);
-      return (
-        <Card key={index}>
-          <PersonRow
-            name={mentor.name}
-            subtitle={`${mentor.role}, ${mentor.company}`}
-            extra={
-              <button
-                onClick={() => {
-                  if (isWished) setWishedMentors((previous) => previous.filter((i) => i !== index));
-                  else if (wishedMentors.length >= 5) return showToast('Máximo de 5 mentores.');
-                  else setWishedMentors((previous) => [...previous, index]);
-                }}
-                className={`rounded-full font-bold text-[.76rem] h-[34px] px-3.5 ${isWished ? 'bg-primary-500 text-white' : 'bg-surface2 text-ink'}`}
-              >
-                {isWished ? 'Marcado' : 'Quero'}
-              </button>
-            }
-          />
-          <div className="flex gap-1.5 flex-wrap mt-2.5">
-            <span className="bg-surface text-ink-muted border border-line rounded-full px-3 py-[5px] text-[.74rem] font-semibold">{mentor.area}</span>
-            <span className="bg-surface text-ink-muted border border-line rounded-full px-3 py-[5px] text-[.74rem] font-semibold">
-              {compatibilityScore(MY_MENTEE_INDEX, index)}% compatível
-            </span>
-          </div>
-        </Card>
-      );
-    })}
-  </>
-);
+export const MenteeMentors = ({ showToast }) => {
+  const [mentors, setMentors] = useState([]);
+  const [wished, setWished] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [dirResp, wishResp] = await Promise.all([
+          ccGetMentorDirectory({}),
+          ccGetMyWishes(),
+        ]);
+        setMentors(dirResp.data?.mentors || []);
+        setWished((wishResp.data?.wishes || []).map((w) => w.mentor_id));
+      } catch (err) {
+        console.error('Failed to load mentors:', err);
+      }
+    };
+    load();
+  }, [showToast]);
+
+  return (
+    <>
+      <h2 className="text-[1.45rem] font-extrabold tracking-tight">Mentores</h2>
+      <p className="text-ink-muted text-[.85rem] mt-1 mb-4">
+        Marca até 5. Os marcados ganham bónus no matching. Marcados: {wished.length}/5
+      </p>
+      {mentors.map((mentor, index) => {
+        const isWished = wished.includes(mentor.id);
+        return (
+          <Card key={mentor.id}>
+            <PersonRow
+              name={mentor.name}
+              subtitle={`${mentor.phone ? mentor.phone.split('@')[0] : 'Mentor'}, ${mentor.company || 'Empresa'}`}
+              extra={
+                <button
+                  onClick={() => {
+                    if (isWished) return;
+                    if (wished.length >= 5) return showToast('Máximo de 5 mentores.');
+                    ccAddWish({ mentor_id: mentor.id });
+                    setWished([...wished, mentor.id]);
+                    showToast(`Interesse em ${mentor.name} guardado.`);
+                  }}
+                  className={`rounded-full font-bold text-[.76rem] h-[34px] px-3.5 ${isWished ? 'bg-primary-500 text-white' : 'bg-surface2 text-ink'}`}
+                >
+                  {isWished ? 'Marcado' : 'Quero'}
+                </button>
+              }
+            />
+            <div className="flex gap-1.5 flex-wrap mt-2.5">
+              <span className="bg-surface text-ink-muted border border-line rounded-full px-3 py-[5px] text-[.74rem] font-semibold">{mentor.mentorProfile?.sector || 'Área'}</span>
+              <span className="bg-surface text-ink-muted border border-line rounded-full px-3 py-[5px] text-[.74rem] font-semibold">compatível</span>
+            </div>
+          </Card>
+        );
+      })}
+    </>
+  );
+};
 
 // ── MET ──────────────────────────────────────
-export const MenteeMet = ({ metMentorIndices, interestByMentor, setInterestByMentor, connectWithMentor }) => (
-  <>
-    <h2 className="text-[1.45rem] font-extrabold tracking-tight">Quem conheci</h2>
-    <p className="text-ink-muted text-[.85rem] mt-1 mb-4">Podes alterar o interesse até 7 dias depois do evento.</p>
-    {metMentorIndices.length === 0 ? (
-      <Card>
-        <b>Ainda sem conversas.</b>
-        <p className="text-ink-muted text-[.85rem] mt-1.5">Quando o intervalo começar, as pessoas aparecem aqui.</p>
-      </Card>
-    ) : metMentorIndices.map((mentorIndex) => {
-      const mentor = MENTORS[mentorIndex];
-      const interest = interestByMentor[mentorIndex];
-      return (
-        <Card key={mentorIndex}>
-          <PersonRow name={mentor.name} subtitle={`${mentor.role}, ${mentor.company}`} />
-          <textarea rows="2" placeholder="Nota privada, só tu vês" className="w-full mt-3 mb-0 text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none" />
-          <div className="flex items-center gap-2.5 mt-3">
-            <button
-              onClick={() => {
-                setInterestByMentor((previous) => ({ ...previous, [mentorIndex]: true }));
-                if (MUTUAL_MATCHES.includes(mentorIndex)) connectWithMentor(mentorIndex);
-              }}
-              className={`rounded-full font-bold text-[.82rem] h-10 px-4 ${interest === true ? 'bg-primary-500 text-white' : 'bg-surface2 text-ink'}`}
-            >
-              Quero continuar
-            </button>
-            <span className="text-[.85rem] text-ink-muted">
-              {interest === true ? (MUTUAL_MATCHES.includes(mentorIndex) ? 'Interesse mútuo' : 'À espera do mentor') : ''}
-            </span>
-          </div>
+export const MenteeMet = ({ showToast }) => {
+  const [connections, setConnections] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const resp = await ccGetConnections();
+        setConnections(resp.data?.connections || []);
+      } catch (err) {
+        console.error('Failed to load connections:', err);
+      }
+    };
+    load();
+  }, [showToast]);
+
+  if (connections.length === 0) {
+    return (
+      <>
+        <h2 className="text-[1.45rem] font-extrabold tracking-tight">Quem conheci</h2>
+        <p className="text-ink-muted text-[.85rem] mt-1 mb-4">Podes alterar o interesse até 7 dias depois do evento.</p>
+        <Card>
+          <b>Ainda sem conversas.</b>
+          <p className="text-ink-muted text-[.85rem] mt-1.5">Quando o intervalo começar, as pessoas aparecem aqui.</p>
         </Card>
-      );
-    })}
-  </>
-);
+      </>
+    );
+  }
+
+  return (
+    <>
+      <h2 className="text-[1.45rem] font-extrabold tracking-tight">Quem conheci</h2>
+      <p className="text-ink-muted text-[.85rem] mt-1 mb-4">Podes alterar o interesse até 7 dias depois do evento.</p>
+      {connections.map((c) => {
+        const contact = c.contact;
+        return (
+          <Card key={c.id}>
+            <PersonRow name={contact.name} subtitle={contact.role || ''} />
+            <textarea rows="2" placeholder="Nota privada, só tu vês" className="w-full mt-3 mb-0 text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none" />
+            <div className="flex items-center gap-2.5 mt-3">
+              <button
+                onClick={() => showToast('Interesse guardado.')}
+                className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white"
+              >
+                Quero continuar
+              </button>
+              <span className="text-[.85rem] text-ink-muted">À espera do mentor</span>
+            </div>
+          </Card>
+        );
+      })}
+    </>
+  );
+};
 
 // ── CONNECTIONS ──────────────────────────────
-export const MenteeConnections = ({ connections, mentorshipRequests, setMentorshipRequests, showToast }) => (
-  <>
-    <h2 className="text-[1.45rem] font-extrabold tracking-tight">Conexões</h2>
-    <p className="text-ink-muted text-[.85rem] mt-1 mb-4">Telemóvel e e-mail só aparecem aqui.</p>
-    {connections.length === 0 ? (
-      <Card>
-        <b>Sem conexões ainda.</b>
-        <p className="text-ink-muted text-[.85rem] mt-1.5">Marca interesse depois de cada conversa.</p>
-      </Card>
-    ) : connections.map((mentorIndex) => {
-      const mentor = MENTORS[mentorIndex];
-      const request = mentorshipRequests.find((r) => r.mentorIndex === mentorIndex && r.menteeIndex === MY_MENTEE_INDEX);
-      return (
-        <Card key={mentorIndex}>
-          <PersonRow name={mentor.name} subtitle={mentor.role} />
-          <p className="text-[.85rem] mt-3 mb-2.5">
-            +258 84 000 00{mentorIndex}0 · {getFirstName(mentor.name).toLowerCase()}@exemplo.co.mz
-          </p>
-          {request ? (
-            <span className={`text-[.72rem] font-bold px-3 py-1 rounded-full ${
-              request.status === 'accepted' ? 'bg-success/15 text-success' : 'bg-surface2 text-ink-muted'
-            }`}>
-              {{ pending: 'Pedido enviado', accepted: 'Mentoria ativa', declined: 'Pedido recusado' }[request.status]}
-            </span>
-          ) : (
-            <button
-              onClick={() => {
-                setMentorshipRequests((previous) => [...previous, { mentorIndex, menteeIndex: MY_MENTEE_INDEX, status: 'pending', message: 'Olá, gostava de ter o teu apoio como mentor.' }]);
-                showToast('Pedido enviado.');
-              }}
-              className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white"
-            >
-              Pedir mentoria
-            </button>
-          )}
+export const MenteeConnections = ({ showToast }) => {
+  const [connections, setConnections] = useState([]);
+  const [requests, setRequests] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [connResp, reqResp] = await Promise.all([
+          ccGetConnections(),
+          ccGetMyMentorshipRequests(),
+        ]);
+        setConnections(connResp.data?.connections || []);
+        setRequests(reqResp.data?.requests || []);
+      } catch (err) {
+        console.error('Failed to load connections:', err);
+      }
+    };
+    load();
+  }, [showToast]);
+
+  if (connections.length === 0) {
+    return (
+      <>
+        <h2 className="text-[1.45rem] font-extrabold tracking-tight">Conexões</h2>
+        <p className="text-ink-muted text-[.85rem] mt-1 mb-4">Telemóvel e e-mail só aparecem aqui.</p>
+        <Card>
+          <b>Sem conexões ainda.</b>
+          <p className="text-ink-muted text-[.85rem] mt-1.5">Marca interesse depois de cada conversa.</p>
         </Card>
-      );
-    })}
-  </>
-);
+      </>
+    );
+  }
+
+  return (
+    <>
+      <h2 className="text-[1.45rem] font-extrabold tracking-tight">Conexões</h2>
+      <p className="text-ink-muted text-[.85rem] mt-1 mb-4">Telemóvel e e-mail só aparecem aqui.</p>
+      {connections.map((c) => {
+        const contact = c.contact;
+        const req = requests.find((r) => r.mentor_id === contact.id);
+        return (
+          <Card key={c.id}>
+            <PersonRow name={contact.name} subtitle={contact.role || ''} />
+            <p className="text-[.85rem] mt-3 mb-2.5">
+              {contact.phone || '+258 84 000 0000'} · {contact.email || ''}
+            </p>
+            {req ? (
+              <span className={`text-[.72rem] font-bold px-3 py-1 rounded-full ${
+                req.status === 'accepted' ? 'bg-success/15 text-success' : 'bg-surface2 text-ink-muted'
+              }`}>
+                {{ pending: 'Pedido enviado', accepted: 'Mentoria ativa', declined: 'Pedido recusado' }[req.status] || req.status}
+              </span>
+            ) : (
+              <button
+                onClick={() => {
+                  ccCreateMentorshipRequest({ mentor_id: contact.id, message: 'Olá, gostava de ter o teu apoio como mentor.' });
+                  setRequests([...requests, { mentor_id: contact.id, status: 'pending', message: 'Olá, gostava de ter o teu apoio como mentor.' }]);
+                  showToast('Pedido enviado.');
+                }}
+                className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white"
+              >
+                Pedir mentoria
+              </button>
+            )}
+          </Card>
+        );
+      })}
+    </>
+  );
+};
 
 // ── MESSAGES ─────────────────────────────────
-export const MenteeMessages = ({ connections, mentorshipRequests, showToast }) => {
+export const MenteeMessages = ({ showToast }) => {
   const [msg, setMsg] = useState('');
   const [conv, setConv] = useState({});
+  const [connections, setConnections] = useState([]);
 
-  const myConnections = connections.map((mentorIndex) => MENTORS[mentorIndex]);
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const resp = await ccGetConnections();
+        setConnections(resp.data?.connections || []);
+      } catch (err) {
+        console.error('Failed to load connections:', err);
+      }
+    };
+    load();
+  }, [showToast]);
+
   return (
     <>
       <h2 className="text-[1.45rem] font-extrabold tracking-tight">Mensagens</h2>
       <p className="text-ink-muted text-[.85rem] mt-1 mb-4">
         Escreve apenas a mentores com quem estás conectado.
       </p>
-      {myConnections.length === 0 ? (
+      {connections.length === 0 ? (
         <Card>
           <b>Sem conexões ainda.</b>
           <p className="text-ink-muted text-[.85rem] mt-1.5">Marca interesse depois de cada conversa para desbloquear mensagens.</p>
@@ -395,13 +618,14 @@ export const MenteeMessages = ({ connections, mentorshipRequests, showToast }) =
       ) : (
         <>
           <div className="space-y-3 mb-5">
-            {myConnections.map((mentor) => {
-              const key = String(mentorIndexOf(mentor.name));
+            {connections.map((c) => {
+              const contact = c.contact;
+              const key = String(c.id);
               const msgs = conv[key] || [];
               return (
-                <div key={mentor.name} className="border border-line rounded-[16px] p-3.5">
+                <div key={c.id} className="border border-line rounded-[16px] p-3.5">
                   <div className="flex justify-between items-center mb-2.5">
-                    <PersonRow name={mentor.name} subtitle={mentor.role} />
+                    <PersonRow name={contact.name} subtitle={contact.role || ''} />
                     <span className="text-[.72rem] font-bold px-2 py-0.5 rounded-full bg-surface2 text-ink-muted">{msgs.length}</span>
                   </div>
                   <div className="max-h-[140px] overflow-y-auto mb-2.5 space-y-1.5 text-[.85rem]">
@@ -415,7 +639,7 @@ export const MenteeMessages = ({ connections, mentorshipRequests, showToast }) =
                     <input value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="Escreve uma mensagem…" className="flex-1 bg-surface border-2 border-line rounded-[10px] px-3 py-2 text-base focus:border-primary-500 focus:outline-none" />
                     <button
                       onClick={() => {
-                        const key = String(mentorIndexOf(mentor.name));
+                        ccSendMessage({ connection_id: c.id, body: msg });
                         setConv((p) => ({ ...p, [key]: [...(p[key] || []), { body: msg, mine: true }] }));
                         setMsg('');
                         showToast('Mensagem enviada.');
@@ -434,7 +658,3 @@ export const MenteeMessages = ({ connections, mentorshipRequests, showToast }) =
     </>
   );
 };
-
-function mentorIndexOf(name) {
-  return MENTORS.findIndex((m) => m.name === name);
-}

@@ -1,17 +1,15 @@
 import axios from "axios";
-export const env = "pro";
+export const env = "dev";
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 export const isNative = Capacitor.isNativePlatform();
 export const APP_VERSION="1.6"
 export const FRONTEND_URL = "https://jrmultiservicos.co.mz"
 export const API_URL = 
  env == "dev" ? isNative ? "http://192.168.18.3:5001/api" : "http://localhost:5001/api" :
-  // env == "dev" ? true ? "https://api.jrmultiservicos.co.mz/api" : "http://localhost:5001/api" :
-   env == "test" ? "https://api.jrmultiservicos.co.mz/api" :
-                  "https://api.jrmultiservicos.co.mz/api";
+  "https://api.jrmultiservicos.co.mz/api";
 
 export const DEFAULT_ANDROID_DOWNLOAD_URL = `${API_URL.replace(/\/api$/, '')}/download/android/app-debug.apk`;
-export const APK_DOWNLOAD_URL = DEFAULT_ANDROID_DOWNLOAD_URL; // fallback; prefer getAndroidDownloadUrl() for backend-configured link
+export const APK_DOWNLOAD_URL = DEFAULT_ANDROID_DOWNLOAD_URL;
 
 export const getAndroidDownloadUrl = async () => {
   try {
@@ -31,7 +29,6 @@ const uploadClient = axios.create({
   baseURL: API_URL,
 });
 
-// TOKEN HELPERS
 export function getStoredToken() {
   return (
     localStorage.getItem("accessToken") ||
@@ -69,7 +66,6 @@ if (bootToken) {
   client.defaults.headers.common.Authorization = `Bearer ${bootToken}`;
 }
 
-// Queue for requests that need to wait for token refresh
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -81,7 +77,6 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
-// AXIOS INTERCEPTORS - Request
 client.interceptors.request.use((config) => {
   const t = getStoredToken();
   if (t) config.headers.Authorization = `Bearer ${t}`;
@@ -94,27 +89,19 @@ uploadClient.interceptors.request.use((config) => {
   return config;
 });
 
-// AXIOS INTERCEPTORS - Response with automatic token refresh
 client.interceptors.response.use(
   (res) => res,
   async (err) => {
     const originalRequest = err.config;
-    
-    // If 401 and not already retried
     if (err.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
       const refreshToken = getStoredRefreshToken();
-      
-      // No refresh token available, trigger logout
       if (!refreshToken) {
         setStoredToken(null);
         setStoredRefreshToken(null);
         window.dispatchEvent(new Event("auth:unauthorized"));
         return Promise.reject(err);
       }
-      
-      // If already refreshing, queue this request
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -123,54 +110,33 @@ client.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${token}`;
             return client(originalRequest);
           })
-          .catch(err => {
-            return Promise.reject(err);
-          });
+          .catch(err => Promise.reject(err));
       }
-      
-      // Start refresh process
       isRefreshing = true;
-      
       try {
         const response = await axios.post(`${API_URL}/auth/refresh-token`, {
           refreshToken
         });
-        
         const { accessToken } = response.data;
-        
-        // Update stored tokens
         setStoredToken(accessToken);
-        
-        // Update Authorization header for current request
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        
-        // Process queued requests
         processQueue(null, accessToken);
-        
-        // Retry original request
         return client(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, process queue with error
         processQueue(refreshError, null);
-        
-        // Clear tokens and trigger logout
         setStoredToken(null);
         setStoredRefreshToken(null);
         window.dispatchEvent(new Event("auth:unauthorized"));
-        
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
     }
-    
-    // Handle 401 for other cases (no refresh token, invalid, etc.)
     if (err.response?.status === 401) {
       setStoredToken(null);
       setStoredRefreshToken(null);
       window.dispatchEvent(new Event("auth:unauthorized"));
     }
-    
     return Promise.reject(err);
   }
 );
@@ -187,283 +153,135 @@ uploadClient.interceptors.response.use(
   }
 );
 
-// ---- Capacitor Native Bridge ---- //
 async function nativeRequest(method, url, data = null, headers = {}) {
   const response = await CapacitorHttp.request({
-    url,
-    method,
-    headers,
-    data,
+    url, method, headers, data,
   });
-
-  return {
-    status: response.status,
-    data: response.data,
-    headers: response.headers,
-  };
+  return { status: response.status, data: response.data, headers: response.headers };
 }
 
 if (isNative) {
   client.request = async function (config) {
     const token = getStoredToken();
-    const headers = {
-      ...(config.headers || {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-
-    return nativeRequest(
-      config.method.toUpperCase(),
-      API_URL + config.url,
-      config.data,
-      headers
-    );
+    const headers = { ...(config.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+    return nativeRequest(config.method.toUpperCase(), API_URL + config.url, config.data, headers);
   };
-
   uploadClient.request = async function (config) {
-
     const token = getStoredToken();
-    const headers = {
-      ...(config.headers || {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-
-    return nativeRequest(
-      config.method.toUpperCase(),
-      API_URL + config.url,
-      config.data,
-      headers
-    ); 
-
+    const headers = { ...(config.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+    return nativeRequest(config.method.toUpperCase(), API_URL + config.url, config.data, headers);
   };
-
-
 }
 
 export { uploadClient };
 export default client;
 
-// ==================== API ====================
-
-// ==================== ADMIN API ====================
-
-// Get admin dashboard
-export const getAdminDashboard = () => client.get('/profile/admin/dashboard');
-
-// Get/update platform settings from the Admin Settings page only
-export const getPlatformSettings = () => client.get('/settings');
-export const getPublicSettings = () => client.get('/settings/public');
-export const updatePlatformSettings = (settings) => client.put('/settings', { settings });
-
-// ==================== MANAGERS API ====================
-
-// Get all managers
-export const getManagers = () => client.get('/users/managers');
-
-// Create manager
-export const createManager = (data) => client.post('/users/managers', data);
-
-// Update manager
-export const updateManager = (id, data) => client.put(`/users/managers/${id}`, data);
-
-// Delete manager
-export const deleteManager = (id) => client.delete(`/users/managers/${id}`);
-
-// ==================== DRIVERS API ====================
-
-// Get all drivers
-export const getDrivers = (params) => client.get('/drivers', { params });
-
-// Get driver by ID
-export const getDriver = (id) => client.get(`/drivers/${id}`);
-
-// Create driver
-export const createDriver = (formData) => uploadClient.post('/drivers', formData);
-
-// Update driver
-export const updateDriver = (id, formData) => uploadClient.put(`/drivers/${id}`, formData);
-
-// Delete driver
-export const deleteDriver = (id) => client.delete(`/drivers/${id}`);
-
-// Driver profile
-export const getDriverProfile = () => client.get('/profile/driver');
-export const updateDriverProfile = (data) => client.put('/profile/driver', data);
-export const changeProfilePassword = (data) => client.post('/profile/change-password', data);
-export const getDriverPerformance = () => client.get('/profile/driver/performance');
-export const getDriverReports = (params) => client.get('/profile/driver/reports', { params });
-
-// Get driver operational report with stats and date filter
-export const getDriverOperationalReport = (params) => client.get('/financial/driver-operational', { params });
-export const getDriverDashboard = () => client.get('/profile/driver/dashboard');
-
-// Get operational report
-export const getOperationalReport = (params) => {
-  return client.get('/financial/operational', { params });
-};
-
-// Get performance report
-export const getPerformanceReport = (params) => {
-  return client.get('/financial/performance', { params });
-};
-
-// Find available drivers for order assignment
-export const getAvailableDrivers = (params) => client.get('/drivers/available', { params });
-
-// ==================== CUSTOMERS API ====================
-
-// Get all customers
-export const getCustomers = () => client.get('/customers');
-
-// Get customer by ID
-export const getCustomer = (id) => client.get(`/customers/${id}`);
-
-// Get orders for a specific customer (admin)
-export const getCustomerOrdersByAdmin = (customerId, params) => client.get(`/customers/${customerId}/orders`, { params });
-
-// Create customer
-export const createCustomer = (formData) => uploadClient.post('/customers', formData);
-
-// Update customer
-export const updateCustomer = (id, formData) => uploadClient.put(`/customers/${id}`, formData);
-
-// Delete customer
-export const deleteCustomer = (id) => client.delete(`/customers/${id}`);
-
-// Customer dashboard
-export const getCustomerDashboard = () => client.get('/profile/customer/dashboard');
-
-// Customer profile
-export const getCustomerProfile = () => client.get('/profile/customer');
-export const updateCustomerProfile = (data) => client.put('/profile/customer', data);
-export const changeCustomerPassword = (data) => client.post('/profile/change-password', data);
-export const getCustomerAddresses = () => client.get('/profile/customer/addresses');
-export const createCustomerAddress = (data) => client.post('/profile/customer/addresses', data);
-export const updateCustomerAddress = (id, data) => client.put(`/profile/customer/addresses/${id}`, data);
-export const deleteCustomerAddress = (id) => client.delete(`/profile/customer/addresses/${id}`);
-export const getCustomerPaymentMethods = () => client.get('/profile/customer/payment-methods');
-export const createCustomerPaymentMethod = (data) => client.post('/profile/customer/payment-methods', data);
-export const updateCustomerPaymentMethod = (id, data) => client.put(`/profile/customer/payment-methods/${id}`, data);
-export const deleteCustomerPaymentMethod = (id) => client.delete(`/profile/customer/payment-methods/${id}`);
-export const getProfilePreferences = () => client.get('/profile/preferences');
-export const updateProfilePreferences = (data) => client.put('/profile/preferences', data);
-export const createSupportTicket = (data) => client.post('/profile/support-ticket', data);
-export const getSupportTickets = () => client.get('/profile/support-tickets');
-export const requestAccountDeletion = (data) => client.post('/profile/account-deletion-request', data);
-
-// ==================== ORDERS API ====================
-
-export const getOrders = (params) => client.get('/orders',{ params });
-
-export const getOrder = (id) => client.get(`/orders/${id}`);
-
-export const createOrder = (data) => client.post('/orders', data);
-
-export const updateOrder = (id, data) => client.put(`/orders/${id}`, data);
-
-export const cancelOrder = (id, data) => client.post(`/orders/${id}/cancel`, data);
-
-export const deleteOrder = (id) => client.delete(`/orders/${id}`);
-
-export const getCustomerOrders = (params) => client.get('/orders/mine', { params });
-
-export const getDriverOrders = (params) => client.get('/orders/driver',{ params });
-
-// Get urgent orders count for the authenticated driver
-export const getUrgentCount = () => client.get('/orders/urgent-count');
-
-export const getDriverStatuses = () => client.get('/drivers/statuses');
-
-// FEEDBACKS
-export const getFeedbacks = (params) => client.get('/feedbacks', { params });
-export const getOrderFeedbacks = (orderId) => client.get(`/feedbacks/order/${orderId}`);
-export const createFeedback = (data) => client.post('/feedbacks', data);
-export const updateFeedback = (id, data) => client.patch(`/feedbacks/${id}`, data);
-export const deleteFeedback = (id) => client.delete(`/feedbacks/${id}`);
-export const getDriverFeedbackStats = (driverId) => client.get(`/feedbacks/driver/${driverId}/stats`);
-
-// ==================== INCIDENTS API ====================
-
-export const getIncidents = (params) => client.get('/incidents', { params });
-export const getIncident = (id) => client.get(`/incidents/${id}`);
-export const getOrderIncidents = (orderId) => client.get(`/incidents/order/${orderId}`);
-export const createIncident = (formData) => uploadClient.post('/incidents', formData);
-export const updateIncident = (id, data) => client.put(`/incidents/${id}`, data);
-export const updateIncidentWithFiles = (id, formData) => uploadClient.put(`/incidents/${id}`, formData);
-export const deleteIncident = (id) => client.delete(`/incidents/${id}`);
-
-// ==================== ORDER TAXES API ====================
-
-export const getOrderTaxes = (orderId) => client.get(`/order-taxes/order/${orderId}`);
-export const createOrderTax = (data) => client.post('/order-taxes', data);
-export const updateOrderTax = (id, data) => client.put(`/order-taxes/${id}`, data);
-export const deleteOrderTax = (id) => client.delete(`/order-taxes/${id}`);
-
-// ==================== NOTIFICATIONS API ====================
-
-export const getNotifications = (params) => client.get('/notifications', { params });
-export const markNotificationRead = (id) => client.patch(`/notifications/${id}/read`);
-export const markAllNotificationsRead = () => client.patch('/notifications/read-all');
-export const getUnreadNotificationCount = () => client.get('/notifications/unread-count');
-export const deleteNotification = (id) => client.delete(`/notifications/${id}`);
-export const deleteNotifications = (ids) => client.post('/notifications/delete-many', { ids });
-
-// ==================== PAYMENTS API ====================
-
-export const createPayment = (data) => client.post('/payments', data);
-export const getPayment = (id) => client.get(`/payments/${id}`);
-export const getOrderPayments = (orderId) => client.get(`/payments/order/${orderId}`);
-export const getPayments = (params) => client.get('/payments', { params });
-
-// ==================== FINANCIAL API ====================
-
-export const getFinancialCategories = (params) => client.get('/financial/categories', { params });
-export const createFinancialCategory = (data) => client.post('/financial/categories', data);
-export const updateFinancialCategory = (id, data) => client.put(`/financial/categories/${id}`, data);
-export const deleteFinancialCategory = (id) => client.delete(`/financial/categories/${id}`);
-
-export const getFinancialTransactions = (params) => client.get('/financial/transactions', { params });
-export const getFinancialTransaction = (id) => client.get(`/financial/transactions/${id}`);
-export const createFinancialTransaction = (data) => client.post('/financial/transactions', data);
-export const updateFinancialTransaction = (id, data) => client.put(`/financial/transactions/${id}`, data);
-export const deleteFinancialTransaction = (id) => client.delete(`/financial/transactions/${id}`);
-export const markTransactionAsPaid = (id) => client.patch(`/financial/transactions/${id}/mark-paid`);
-export const getFinancialStats = (params) => client.get('/financial/stats', { params });
-
-// ==================== AUDIT LOGS API ====================
-
-// Get all audit logs with filters
-export const getAuditLogs = (params) => client.get('/audit-logs', { params });
-
-// Get audit log by ID
-export const getAuditLog = (id) => client.get(`/audit-logs/${id}`);
-
-// Get audit logs for a specific entity
-export const getEntityAuditLogs = (entityType, entityId, params) =>
-  client.get(`/audit-logs/entity/${entityType}/${entityId}`, { params });
-
-// Get audit logs for a specific user
-export const getUserAuditLogs = (userId, params) =>
-  client.get(`/audit-logs/user/${userId}`, { params });
-
-// Get audit statistics
-export const getAuditStats = (params) => client.get('/audit-logs/stats/summary', { params });
-
-// Get available filter options
-export const getAuditFilterOptions = () => client.get('/audit-logs/meta/options');
-
-export const getAvailableDriversForReassignment = (orderId, params) => client.get(`/orders/${orderId}/available-drivers`, { params });
-
-export const rejectOrder = (orderId, data) => client.post(`/orders/${orderId}/reject`, data);
-
-export const getVersion = () => client.get('/version');
-
-// ==================== WHATSAPP BOT API ====================
-
-export const getWhatsAppStatus = () => client.get('/whatsapp/status');
-export const getWhatsAppQr = () => client.get('/whatsapp/qr');
-export const sendWhatsAppTest = (chatId, message) =>
-  client.post('/whatsapp/send', { chatId, message });
-export const logoutWhatsApp = () =>
-  client.post('/whatsapp/logout');
-
-export const markWelcomeSeen = () => client.post('/auth/welcome-seen');
+// ==================== CAREER CONNECT API ====================
+
+// AUTH
+export const ccRegister = (data) => client.post('/auth/register', data);
+export const ccLogin = (data) => client.post('/auth/login', data);
+export const ccRequestOTP = (data) => client.post('/auth/request-otp', data);
+export const ccVerifyOTP = (data) => client.post('/auth/verify-otp', data);
+export const ccVerifyEmail = (data) => client.post('/auth/verify-email', data);
+export const ccResendEmailOTP = (data) => client.post('/auth/resend-email-otp', data);
+export const ccForgotPassword = (data) => client.post('/auth/forgot-password', data);
+export const ccResetPassword = (data) => client.post('/auth/reset-password', data);
+export const ccRefreshToken = (data) => client.post('/auth/refresh-token', data);
+export const ccMe = () => client.get('/auth/me');
+
+// USERS
+export const ccGetProfile = () => client.get('/users/profile');
+export const ccUpdateProfile = (data) => client.put('/users/profile', data);
+export const ccGetAllUsers = () => client.get('/users/');
+export const ccGetMenteeDashboard = () => client.get('/users/mentee/dashboard');
+export const ccGetMentorDashboard = () => client.get('/users/mentor/dashboard');
+
+// EVENTS
+export const ccGetEvent = () => client.get('/events/');
+export const ccGetProgram = () => client.get('/events/program');
+export const ccConfigureEvent = (data) => client.put('/events/configure', data);
+
+// REGISTRATIONS
+export const ccRegisterForEvent = (data) => client.post('/registrations/', data);
+export const ccCheckIn = (data) => client.post('/registrations/checkin', data);
+export const ccWalkIn = (data) => client.post('/registrations/walkin', data);
+export const ccCancelCheckIn = (data) => client.post('/registrations/cancel-checkin', data);
+export const ccGetRegistrations = () => client.get('/registrations/');
+
+// ROUNDS
+export const ccGetRounds = (params) => client.get('/rounds/', { params });
+export const ccAdvanceRound = (data) => client.post('/rounds/advance', data);
+export const ccPauseRound = (data) => client.post('/rounds/pause', data);
+export const ccResumeRound = (data) => client.post('/rounds/resume', data);
+export const ccGetCurrentRound = (params) => client.get('/rounds/current', { params });
+
+// MATCHES
+export const ccGetMyMatch = (params) => client.get('/matches/my', { params });
+export const ccGetMentorMatch = (params) => client.get('/matches/mentor', { params });
+export const ccGetAllMatches = (params) => client.get('/matches/', { params });
+
+// MENTORS / WISHES
+export const ccGetMentorDirectory = (params) => client.get('/mentors/', { params });
+export const ccAddWish = (data) => client.post('/mentors/wish', data);
+export const ccGetMyWishes = () => client.get('/mentors/wish/my');
+export const ccGetWishCount = (params) => client.get('/mentors/wish/count', { params });
+
+// FEEDBACK
+export const ccSubmitFeedback = (data) => client.post('/feedback/', data);
+export const ccGetMyFeedback = () => client.get('/feedback/my');
+
+// CONNECTIONS
+export const ccGetConnections = () => client.get('/connections/');
+
+// MENTORSHIP REQUESTS
+export const ccCreateMentorshipRequest = (data) => client.post('/mentorship-requests/', data);
+export const ccGetMyMentorshipRequests = () => client.get('/mentorship-requests/my');
+export const ccGetMentorshipRequestsForMentor = () => client.get('/mentorship-requests/for-mentor');
+export const ccRespondMentorshipRequest = (data) => client.post('/mentorship-requests/respond', data);
+
+// MESSAGES
+export const ccGetMessages = (params) => client.get('/messages/', { params });
+export const ccSendMessage = (data) => client.post('/messages/', data);
+
+// QUESTIONS
+export const ccGetQuestions = (params) => client.get('/questions/', { params });
+export const ccCreateQuestion = (data) => client.post('/questions/', data);
+export const ccVoteQuestion = (data) => client.post('/questions/vote', data);
+export const ccModerateQuestion = (data) => client.post('/questions/moderate', data);
+
+// POLLS
+export const ccGetPolls = (params) => client.get('/polls/', { params });
+export const ccCreatePoll = (data) => client.post('/polls/', data);
+export const ccVotePoll = (data) => client.post('/polls/vote', data);
+export const ccGetPollResults = (params) => client.get('/polls/results', { params });
+
+// ANNOUNCEMENTS
+export const ccGetAnnouncements = (params) => client.get('/announcements/', { params });
+export const ccCreateAnnouncement = (data) => client.post('/announcements/', data);
+
+// SURVEY
+export const ccSubmitSurvey = (data) => client.post('/survey/', data);
+export const ccGetSurveyResults = (params) => client.get('/survey/', { params });
+
+// NEXT STEPS
+export const ccCreateNextStep = (data) => client.post('/next-steps/', data);
+export const ccGetMyNextStep = () => client.get('/next-steps/my');
+
+// BOOKINGS
+export const ccBookSession = (data) => client.post('/bookings/', data);
+export const ccGetMyBookings = () => client.get('/bookings/my');
+
+// BADGES
+export const ccGetBadges = (params) => client.get('/badges/', { params });
+export const ccAwardBadge = (data) => client.post('/badges/', data);
+
+// ORGANIZER
+export const ccGetOrganizerDashboard = () => client.get('/organizer/dashboard');
+export const ccGetOrganizerRegistrations = (params) => client.get('/organizer/registrations', { params });
+export const ccApproveMentor = (data) => client.post('/organizer/approve-mentor', data);
+export const ccGetOrganizerRounds = () => client.get('/organizer/rounds');
+export const ccGetOrganizerReports = () => client.get('/organizer/reports');
+
+// TV
+export const ccGetTVData = (params) => client.get('/tv/', { params });

@@ -1,12 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { load, save, generateTicketCode, AREAS, GOALS, MENTEES, MENTORS } from './seed';
-import { hashString } from './data';
+import { ccRegister, ccVerifyEmail, ccResendEmailOTP } from './api/client';
 
 const BTN_BASE   = 'inline-block rounded-full bg-primary-500 text-white font-semibold text-base px-7 py-3.5 cursor-pointer no-underline hover:brightness-110 transition';
 const BTN_GHOST  = 'bg-transparent text-ink shadow-[inset_0_0_0_2px_var(--color-line)]';
-const BTN_SM     = 'px-[18px] py-[9px] text-sm';
 const FIELD_BASE = 'w-full font-normal text-base text-ink bg-surface border-2 border-line rounded-field px-3.5 py-3 focus:border-primary-500 focus:outline-none';
+
+const AREAS = [
+  'Tecnologia e TI',
+  'Finanças e Banca',
+  'Engenharia',
+  'Saúde',
+  'Direito',
+  'Marketing e Comunicação',
+  'Gestão e Empreendedorismo',
+  'Recursos Humanos',
+  'Energia e Recursos Naturais',
+  'Educação',
+  'Agricultura',
+  'Logística',
+];
+
+const GOALS = [
+  'Escolher a minha área',
+  'Preparar o primeiro estágio',
+  'Construir a minha marca pessoal',
+  'Desenvolver competências',
+  'Mudar de percurso',
+  'Criar o meu negócio',
+];
 
 const LEVELS = ['Estudante', 'Recém-graduado'];
 const SUPPORT_TYPES = ['Mentor', 'Coach', 'Orientação pontual'];
@@ -25,9 +47,8 @@ export default function Register() {
   const location = useLocation();
   const isMentor = location.pathname.includes('mentor');
 
-  const [state, setState] = useState(() => load());
   const [step, setStep] = useState(1);
-  const [screen2, setScreen2] = useState('');
+  const [dialog, setDialog] = useState(null); // null | 'mentee-success' | 'mentor-pending'
   const [form, setForm] = useState({
     name: '', email: '', phone: '', password: '', role: isMentor ? 'mentor' : 'mentee',
     level: '', course: '', institution: '', interests: [], goal: '', pitch: '',
@@ -35,13 +56,8 @@ export default function Register() {
     photo: '', linkedin: '',
   });
   const [error, setError] = useState('');
-  const [otpMode, setOtpMode] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
-
-  useEffect(() => {
-    setScreen2(isMentor ? 'mentor' : 'mentee');
-  }, [isMentor]);
+  const [loading, setLoading] = useState(false);
 
   const setField = (k, v) => setForm((p) => ({ ...p, [k]: v }));
   const toggleInterest = (arr, val) => setForm((p) => {
@@ -53,70 +69,113 @@ export default function Register() {
   const handleScreen1 = (e) => {
     e.preventDefault();
     setError('');
-    if (!form.name || !form.email || !form.phone || !form.password) return setError('Preencha todos os campos.');
+
+    if (!form.name || !form.email || !form.phone || !form.password || !form.role) {
+      return setError('Preencha todos os campos obrigatórios.');
+    }
     if (!/^\S+@\S+\.\S+$/.test(form.email)) return setError('Email inválido.');
     if (form.password.length < 6) return setError('A palavra-passe precisa de pelo menos 6 caracteres.');
-    const existing = Object.values(state.users).find((u) => u.email === form.email);
-    if (existing) return setError('Já existe uma conta com este e-mail. Vá para Entrar.');
 
-    const ticket = generateTicketCode();
-    const newUsers = { ...state.users, [form.email]: { email: form.email, name: form.name, phone: form.phone, role: form.role, password: form.password, ticket, createdAt: new Date().toISOString() } };
-    const newReg = { ...state.registrations, [ticket]: { event_id: 'cc26', user_id: form.email, ticket_code: ticket, status: form.role === 'mentor' ? 'pending' : 'registered', checked_in_at: null, walk_in: false } };
-    setState((s) => ({ ...s, users: newUsers, registrations: newReg }));
-    save({ ...state, users: newUsers, registrations: newReg });
     setStep(2);
   };
 
-  const handleScreen2 = (e) => {
+  const handleScreen2 = async (e) => {
     e.preventDefault();
     setError('');
+
     if (form.role === 'mentee') {
-      if (!form.level || !form.course || !form.institution || form.interests.length === 0 || !form.goal || !form.pitch) return setError('Preencha todos os campos obrigatórios.');
+      if (!form.level || !form.course || !form.institution || form.interests.length === 0 || !form.goal || !form.pitch) {
+        return setError('Preencha todos os campos obrigatórios.');
+      }
       if (form.pitch.length > 120) return setError('O pitch deve ter no máximo 120 caracteres.');
     } else {
-      if (!form.jobTitle || !form.company || !form.sector || form.mentorInterests.length === 0 || form.canHelpGoals.length === 0 || !form.supportType) return setError('Preencha todos os campos obrigatórios.');
+      if (!form.jobTitle || !form.company || !form.sector || form.mentorInterests.length === 0 || form.canHelpGoals.length === 0 || !form.supportType) {
+        return setError('Preencha todos os campos obrigatórios.');
+      }
     }
-    const email = form.email;
-    const user = state.users[email];
-    const profile = form.role === 'mentee'
-      ? { user_id: email, level: form.level, course: form.course, institution: form.institution, interests: form.interests, goal: form.goal, pitch: form.pitch, photo: form.photo }
-      : { user_id: email, job_title: form.jobTitle, company: form.company, sector: form.sector, years: form.years, interests: form.mentorInterests, can_help_goals: form.canHelpGoals, support_type: form.supportType, approval: 'pending', approved_by: null, approved_at: null, photo: form.photo };
-    setState((s) => {
-      const next = { ...s };
-      if (form.role === 'mentee') next.menteeProfiles[email] = profile;
-      else next.mentorProfiles[email] = { ...profile };
-      return next;
-    });
-    save(state);
-    const reg = state.registrations[Object.keys(state.registrations).find((k) => state.registrations[k].user_id === email)];
-    const msg = form.role === 'mentor' ? 'Candidatura enviada. Fica pendente até à aprovação do organizador.' : `Registo concluído. Código do bilhete: ${reg.ticket_code}`;
-    setError(msg);
-    setTimeout(() => navigate(`/entrar?email=${encodeURIComponent(email)}`), 1500);
+
+    setLoading(true);
+    try {
+      const response = await ccRegister({
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        password: form.password,
+        role: form.role,
+        level: form.level,
+        course: form.course,
+        institution: form.institution,
+        interests: form.interests,
+        goal: form.goal,
+        pitch: form.pitch,
+        jobTitle: form.jobTitle,
+        company: form.company,
+        sector: form.sector,
+        years: form.years,
+        mentorInterests: form.mentorInterests,
+        canHelpGoals: form.canHelpGoals,
+        supportType: form.supportType,
+        photo: form.photo,
+        linkedin: form.linkedin,
+      });
+
+      if (response.data.requiresEmailVerification) {
+        setStep(3);
+        setError('Foi enviado um código de verificação para o seu email.');
+      } else {
+        setError(response.data.message || 'Registo concluído.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Erro no registo. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleOtp = (e) => {
+  const handleVerifyEmail = async (e) => {
     e.preventDefault();
     setError('');
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    setOtpSent(true);
-    setTimeout(() => setError(`Código OTP (simulação): ${code}`), 300);
+    if (!otp) return setError('Insira o código de verificação.');
+
+    setLoading(true);
+    try {
+      const response = await ccVerifyEmail({ email: form.email, otp });
+      if (response.data.accessToken) {
+        localStorage.setItem('accessToken', response.data.accessToken);
+        localStorage.setItem('token', response.data.accessToken);
+        localStorage.setItem('refresh_token', response.data.refreshToken);
+        localStorage.setItem('userRole', response.data.user.role);
+      }
+
+      if (form.role === 'mentor') {
+        setDialog('mentor-pending');
+      } else {
+        setDialog('mentee-success');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Código de verificação inválido.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const verifyOtp = (e) => {
-    e.preventDefault();
-    setError('');
-    if (otp === '123456') {
-      navigate(`/entrar?email=${encodeURIComponent(form.email)}`);
-    } else {
-      setError('Código inválido. Use 123456 para entrar na simulação.');
+  const resendOTP = async () => {
+    setLoading(true);
+    try {
+      await ccResendEmailOTP({ email: form.email });
+      setError('Código reenviado por email.');
+    } catch {
+      setError('Erro ao reenviar código.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const renderScreen1 = () => (
     <>
-      <Progress step={1} total={2} />
+      <Progress step={1} total={3} />
       <h2 className="text-[1.5rem] font-extrabold tracking-tight mb-2">Cria a tua conta</h2>
-      <p className="text-ink-muted mb-6">Ecrã 1 de 2 — dados de acesso</p>
+      <p className="text-ink-muted mb-6">Ecrã 1 de 3 — dados de acesso</p>
       <form onSubmit={handleScreen1} noValidate className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
@@ -143,18 +202,6 @@ export default function Register() {
             <option value="mentor">Mentor (profissional)</option>
           </select>
         </div>
-        <div className="pt-4 border-t border-line">
-          <p className="text-[.8rem] text-ink-muted mb-3">Ou entrar sem palavra-passe por código OTP</p>
-          <button type="button" onClick={handleOtp} className="w-full rounded-full font-bold text-[.82rem] h-10 bg-surface2 text-ink">Enviar código OTP por email</button>
-          {otpSent && (
-            <div className="mt-3">
-              <label className="text-[.85rem] font-semibold block mb-1.5">Código de 6 dígitos</label>
-              <input id="otp" value={otp} onChange={(e) => setOtp(e.target.value)} className={FIELD_BASE} />
-              <button onClick={verifyOtp} className="w-full mt-2 rounded-full font-bold text-[.82rem] h-10 bg-primary-500 text-white">Verificar código</button>
-            </div>
-          )}
-        </div>
-
         <div className="flex flex-col gap-1.5">
           <label className="text-[.85rem] font-semibold">Foto (opcional)</label>
           <input type="file" accept="image/*" onChange={(e) => {
@@ -166,8 +213,19 @@ export default function Register() {
             }
           }} className="block w-full text-sm text-ink-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-500 file:text-white hover:file:bg-primary-600" />
         </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[.85rem] font-semibold">LinkedIn (opcional)</label>
+          <input value={form.linkedin} onChange={(e) => setField('linkedin', e.target.value)} placeholder="https://linkedin.com/in/..." className={FIELD_BASE} />
+        </div>
         <div className="text-danger text-sm font-semibold mt-2">{error}</div>
-        <button className={`${BTN_BASE} w-full mt-4`} type="submit">Continuar para o perfil</button>
+        <div className="flex gap-3 mt-4">
+          <Link to="/" className={`flex-1 ${BTN_GHOST} text-center py-3.5 rounded-full border-line text-ink hover:bg-surface2`}>
+            Cancelar
+          </Link>
+          <button className={`flex-1 ${BTN_BASE}`} type="submit" disabled={loading}>
+            {loading ? 'A carregar...' : 'Seguinte'}
+          </button>
+        </div>
         <p className="text-center text-[.85rem] text-ink-muted mt-4">Já tem conta? <Link to="/entrar" className="text-primary-500 font-semibold">Entrar</Link></p>
       </form>
     </>
@@ -177,9 +235,9 @@ export default function Register() {
     const isMentorRole = form.role === 'mentor';
     return (
       <>
-        <Progress step={2} total={2} />
+        <Progress step={2} total={3} />
         <h2 className="text-[1.5rem] font-extrabold tracking-tight mb-2">{isMentorRole ? 'Perfil de mentor' : 'Perfil de mentorado'}</h2>
-        <p className="text-ink-muted mb-6">Ecrã 2 de 2 — informações para o matching</p>
+        <p className="text-ink-muted mb-6">Ecrã 2 de 3 — informações para o matching</p>
         <form onSubmit={handleScreen2} noValidate className="space-y-4">
           {isMentorRole ? (
             <>
@@ -269,10 +327,94 @@ export default function Register() {
             <label className="text-[.85rem] font-semibold leading-snug">Concordo em partilhar o meu perfil com os pares sugeridos.</label>
           </div>
           <div className="text-danger text-sm font-semibold mt-2">{error}</div>
-          <button className={`${BTN_BASE} w-full mt-4`} type="submit">Concluir registo</button>
+          <div className="flex gap-3 mt-4">
+            <button type="button" onClick={() => setStep(1)} className={`flex-1 ${BTN_GHOST} text-center py-3.5 rounded-full border-line text-ink hover:bg-surface2`}>
+              Voltar
+            </button>
+            <button className={`flex-1 ${BTN_BASE}`} type="submit" disabled={loading}>
+              {loading ? 'A criar conta...' : 'Criar conta'}
+            </button>
+          </div>
           <p className="text-center text-[.85rem] text-ink-muted mt-4">Voltar atrás? <Link to="/" className="text-primary-500 font-semibold">Página inicial</Link></p>
         </form>
       </>
+    );
+  };
+
+  const renderScreen3 = () => (
+    <>
+      <Progress step={3} total={3} />
+      <h2 className="text-[1.5rem] font-extrabold tracking-tight mb-2">Verifique o seu email</h2>
+      <p className="text-ink-muted mb-6">
+        Enviamos um código de 6 dígitos para <strong>{form.email}</strong>. Insira-o aqui para concluir o registo.
+      </p>
+      <form onSubmit={handleVerifyEmail} noValidate className="space-y-4">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[.85rem] font-semibold">Código de verificação</label>
+          <input id="otp" maxLength="6" value={otp} onChange={(e) => setOtp(e.target.value)} className={FIELD_BASE} />
+        </div>
+        <div className="text-danger text-sm font-semibold mt-2">{error}</div>
+        <div className="flex gap-3 mt-4">
+          <button type="button" onClick={() => setStep(2)} className={`flex-1 ${BTN_GHOST} text-center py-3.5 rounded-full border-line text-ink hover:bg-surface2`}>
+            Voltar
+          </button>
+          <button className={`flex-1 ${BTN_BASE}`} type="submit" disabled={loading || !otp}>
+            {loading ? 'A verificar...' : 'Verificar email'}
+          </button>
+        </div>
+        <p className="text-center text-[.85rem] text-ink-muted mt-3">
+          Não recebeu o código?{' '}
+          <button type="button" onClick={resendOTP} className="text-primary-500 font-semibold underline">Reenviar código</button>
+        </p>
+        <p className="text-center text-[.85rem] text-ink-muted mt-4">Voltar atrás? <Link to="/" className="text-primary-500 font-semibold">Página inicial</Link></p>
+      </form>
+    </>
+  );
+
+  const closeDialog = () => {
+    if (dialog === 'mentee-success') {
+      window.location.href='/app/mentee';
+    } else {
+      window.location.href='/entrar';
+    }
+    setDialog(null);
+  };
+
+  const renderDialog = () => {
+    if (!dialog) return null;
+    const isMentee = dialog === 'mentee-success';
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="bg-surface p-8 rounded-xl max-w-sm w-full mx-4 shadow-2xl border border-line">
+          <div className="flex items-center gap-3 mb-4">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isMentee ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'}`}>
+              {isMentee ? '✓' : '⏳'}
+            </div>
+            <h2 className="text-xl font-extrabold text-ink">
+              {isMentee ? 'Registo concluído!' : 'Candidatura enviada'}
+            </h2>
+          </div>
+          <p className="text-ink-muted mb-6 leading-relaxed">
+            {isMentee
+              ? 'A sua conta foi verificada com sucesso.'
+              : 'A sua candidatura de mentor foi enviada e está pendente de aprovação da equipa. Só poderá entrar após a aprovação.'}
+          </p>
+          {isMentee && (
+            <div className="bg-surface2 rounded-lg p-4 mb-6 border border-line">
+              <p className="text-[.85rem] font-semibold text-ink mb-2">Bilhete digital</p>
+              <p className="text-[.85rem] text-ink-muted">O seu bilhete com QR Code e código curto foi enviado por e-mail.</p>
+            </div>
+          )}
+          <div className="text-danger text-sm font-semibold">{error}</div>
+          <button
+            onClick={closeDialog}
+            className={`${BTN_BASE} w-full py-3`}
+            disabled={loading}
+          >
+            {loading ? 'A processar...' : isMentee ? 'Aceder à plataforma' : 'Entender'}
+          </button>
+        </div>
+      </div>
     );
   };
 
@@ -282,8 +424,9 @@ export default function Register() {
         <div className="font-extrabold text-[1.35rem] italic tracking-tight leading-none mb-6">
           Career<i className="text-primary-500 not-italic">Connect</i>
         </div>
-        {step === 1 ? renderScreen1() : renderScreen2()}
+        {step === 1 ? renderScreen1() : step === 2 ? renderScreen2() : renderScreen3()}
       </div>
+      {renderDialog()}
     </div>
   );
 }

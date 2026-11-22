@@ -25,7 +25,7 @@ import Landingpage from './Landingpage';
 import MentorLanding from './MentorLanding';
 import Register from './Register';
 import Login from './Login';
-import { ccMe, setStoredToken, getStoredToken, getStoredRefreshToken, ccGetQuestions, ccGetPolls, ccGetPollResults } from './api/client';
+import { ccMe, setStoredToken, getStoredToken, getStoredRefreshToken, ccGetQuestions, ccGetPolls, ccGetPollResults, ccAdvanceRound, ccPauseRound, ccResumeRound, ccGetCurrentRound } from './api/client';
 
 // ── NAV ──────────────────────────────────────
 function BottomNav({ items, activeTab, setActiveTab }) {
@@ -108,9 +108,12 @@ export function CareerConnectApp({ initialRole }) {
           const results = prResp.data?.results || prResp.data?.poll_results || [];
           // Merge results into pollVotes if available
           if (results.length > 0 && active) {
-            const merged = results.map((r, i) => r.vote_count || r.count || 0);
-            if (merged.length === 4) setPollVotes(merged);
+            const merged = results.map((r, i) => r.vote_count || r.count || r.votes || 0);
+            if (merged.length > 0) setPollVotes(merged);
           }
+          // Set the user's vote from backend
+          const votedIdx = prResp.data?.voted_index;
+          if (typeof votedIdx === 'number') setVotedOption(votedIdx);
         }
       } catch (err) {
         console.error('Failed to load interaction data:', err);
@@ -118,6 +121,44 @@ export function CareerConnectApp({ initialRole }) {
     };
     loadInteraction();
     return () => { active = false; };
+  }, [role]);
+
+  // Sync current round from backend (organizer, mentee, mentor)
+  useEffect(() => {
+    if (role === 'org' || role === 'mentee' || role === 'mentor') {
+      let active = true;
+      const syncRound = async () => {
+        try {
+          const resp = await ccGetCurrentRound({});
+          if (!active) return;
+          const round = resp.data?.round;
+          if (round) {
+            const breakNo = round.break_no || 0;
+            const roundNo = round.round_no || 0;
+            const mapped = breakNo > 0 ? roundNo : 0;
+            setCurrentRound(mapped);
+            setIsRunning(true);
+            setIsPaused(round.status === 'paused');
+            // Compute seconds left from round ends_at if available
+            if (round.ends_at) {
+              const remaining = Math.max(0, Math.floor((new Date(round.ends_at) - Date.now()) / 1000));
+              if (remaining > 0) setSecondsLeft(remaining);
+            } else if (round.duration_minutes) {
+              setSecondsLeft(round.duration_minutes * 60);
+            }
+          } else {
+            // No running round — check if all done
+            setCurrentRound((prev) => (prev > 0 && prev <= 4 ? prev : 0));
+            setIsRunning(false);
+          }
+        } catch (err) {
+          // Non-blocking
+        }
+      };
+      syncRound();
+      const interval = setInterval(syncRound, 10000);
+      return () => { active = false; clearInterval(interval); };
+    }
   }, [role]);
 
   // Countdown
@@ -142,21 +183,47 @@ export function CareerConnectApp({ initialRole }) {
     return `Intervalo 1 · ronda ${currentRound} de 4`;
   };
 
-  const advanceRound = () => {
-    setCurrentRound((previous) => {
-      if (previous > 0 && previous <= 4) {
-        setFurthestRoundCompleted((f) => Math.max(f, previous));
-      }
-      if (previous < 4) {
+  const advanceRound = async () => {
+    try {
+      await ccAdvanceRound({});
+      // Re-fetch current round from backend
+      const resp = await ccGetCurrentRound({});
+      const round = resp.data?.round;
+      if (round) {
+        const breakNo = round.break_no || 0;
+        const roundNo = round.round_no || 0;
+        // Map to local currentRound: break 1 => rounds 1-4, break 0 => round 0
+        const mapped = breakNo > 0 ? roundNo : 0;
+        setCurrentRound(mapped);
+        setFurthestRoundCompleted((f) => Math.max(f, mapped > 0 ? mapped - 1 : 0));
         setIsRunning(true);
         setIsPaused(false);
         setSecondsLeft(isRehearsal ? 30 : 300);
-        return previous + 1;
+      } else {
+        // No more rounds
+        setCurrentRound(5);
+        setIsRunning(false);
+        setFurthestRoundCompleted(4);
       }
-      setIsRunning(false);
-      setFurthestRoundCompleted(4);
-      return 5;
-    });
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao avançar ronda.');
+    }
+  };
+
+  const handlePause = async () => {
+    try {
+      if (isPaused) {
+        await ccResumeRound({});
+        setIsPaused(false);
+        showToast('Ronda retomada.');
+      } else {
+        await ccPauseRound({});
+        setIsPaused(true);
+        showToast('Ronda em pausa para todos.');
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao pausar.');
+    }
   };
 
   const restartSimulation = () => {
@@ -223,7 +290,7 @@ export function CareerConnectApp({ initialRole }) {
     const activeOrgTab = ORGANIZER_TABS.find((t) => t.key === activeTab) ? activeTab : 'live';
     switch (activeOrgTab) {
       case 'live':
-        return <OrganizerLive {...common} phaseLabel={phaseLabel} secondsLeft={secondsLeft} currentRound={currentRound} isPaused={isPaused} isRehearsal={isRehearsal} setIsRehearsal={setIsRehearsal} setSecondsLeft={setSecondsLeft} setIsPaused={setIsPaused} advanceRound={advanceRound} restartSimulation={restartSimulation} />;
+        return <OrganizerLive {...common} phaseLabel={phaseLabel} secondsLeft={secondsLeft} currentRound={currentRound} isPaused={isPaused} isRehearsal={isRehearsal} setIsRehearsal={setIsRehearsal} setSecondsLeft={setSecondsLeft} setIsPaused={setIsPaused} advanceRound={advanceRound} handlePause={handlePause} restartSimulation={restartSimulation} />;
       case 'reg':
         return <OrganizerReg {...common} />;
       case 'int':
@@ -362,7 +429,9 @@ export default function AppRouter() {
     try {
       const response = await ccMe();
       if (response.data?.user) {
-        setAuthRole(response.data.user.role);
+        const rawRole = response.data.user.role;
+        // Normalise backend 'organizer' to app route key 'org'
+        setAuthRole(rawRole === 'organizer' ? 'org' : rawRole);
       }
     } catch (err) {
       setStoredToken(null);

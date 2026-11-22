@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   ccSubmitSurvey, ccGetSurveyResults,
   ccCreateNextStep, ccGetMyNextStep,
-  ccGetBadges,
+  ccGetBadges, ccGetMyFeedback, ccGetConnections,
 } from './api/client';
 import { Card, ProgressBar } from './ui';
 
@@ -184,12 +184,13 @@ export const DailySummaryScreen = ({ showToast }) => {
     const load = async () => {
       try {
         const [feedbackResp, connResp, badgeResp] = await Promise.all([
-          ccGetSurveyResults({}),
-          ccGetConnections({}),
+          ccGetMyFeedback(),
+          ccGetConnections(),
           ccGetBadges({ user_id: localStorage.getItem('userId') || '' }),
         ]);
+        const feedbacks = feedbackResp.data?.feedback || [];
         setStats({
-          conversations: feedbackResp.data?.total || 0,
+          conversations: feedbacks.length,
           connectionsCount: (connResp.data?.connections || []).length,
           questionsAsked: 0,
           badges: badgeResp.data?.badges || [],

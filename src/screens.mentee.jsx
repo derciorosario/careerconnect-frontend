@@ -6,7 +6,7 @@ import {
 import {
   ccGetProfile, ccUpdateProfile,
   ccGetEvent, ccGetProgram,
-  ccGetMyMatch, ccGetMentorDirectory, ccAddWish, ccGetMyWishes,
+  ccGetMyMatch, ccGetMentorDirectory, ccAddWish, ccRemoveWish, ccGetMyWishes,
   ccGetCurrentRound,
   ccSubmitFeedback, ccGetMyFeedback,
   ccGetConnections,
@@ -80,7 +80,8 @@ export const MenteeHome = ({ showToast }) => {
         ]);
         setProfile(profResp.data?.user || null);
         setConnections(connResp.data?.connections || []);
-        const done = (feedbackResp.data?.feedback || []).length;
+        const feedbacks = feedbackResp.data?.feedback || [];
+        const done = feedbacks.filter((f) => f.wants_to_continue).length;
         setConversationsDone(done);
         setBadgeData(badgeResp.data?.badges || []);
         setMasterclasses(progResp.data?.event?.sessions || []);
@@ -317,13 +318,35 @@ export const MenteeLive = ({
             <b>Queres continuar esta conversa?</b>
             <div className="flex gap-3 mt-3">
               <button
-                onClick={() => showToast('Interesse guardado.')}
+                onClick={async () => {
+                  try {
+                    await ccSubmitFeedback({
+                      match_id: match.id,
+                      to_user_id: mentor.id,
+                      wants_to_continue: true,
+                    });
+                    showToast('Interesse guardado.');
+                  } catch (err) {
+                    showToast(err.response?.data?.message || 'Erro ao guardar interesse.');
+                  }
+                }}
                 className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white"
               >
                 Quero continuar
               </button>
               <button
-                onClick={() => showToast('Ok, sem interesse.')}
+                onClick={async () => {
+                  try {
+                    await ccSubmitFeedback({
+                      match_id: match.id,
+                      to_user_id: mentor.id,
+                      wants_to_continue: false,
+                    });
+                    showToast('Ok, sem interesse.');
+                  } catch (err) {
+                    showToast(err.response?.data?.message || 'Erro ao guardar.');
+                  }
+                }}
                 className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-surface2 text-ink"
               >
                 Agora não
@@ -348,20 +371,36 @@ export const MenteeLive = ({
 
       <Card>
         <div className="flex items-center justify-between mb-3.5"><b>Perguntas ao orador</b></div>
+        {questions.length === 0 && (
+          <p className="text-ink-muted text-[.85rem] mt-2">Sem perguntas ainda. Envia a primeira.</p>
+        )}
         {questions.map((question, index) => (
-          <div key={index} className="flex justify-between items-center mt-3 gap-2.5">
-            <span className="text-[.85rem] flex-1">{question.text}</span>
+          <div key={question.id || index} className="flex justify-between items-center mt-3 gap-2.5">
+            <span className="text-[.85rem] flex-1">{question.body || question.text}</span>
             <button
-              onClick={() => { ccVoteQuestion({ question_id: question.id }); setQuestions((previous) => previous.map((q, i) => (i === index ? { ...q, votes: q.votes + 1 } : q))); }} className="rounded-full font-bold text-[.76rem] h-[34px] px-3.5 bg-surface2 text-ink"
+              onClick={async () => {
+                try {
+                  const resp = await ccVoteQuestion({ question_id: question.id });
+                  setQuestions((previous) => previous.map((q, i) => (i === index ? { ...q, votes: resp.data?.votes ?? q.votes, voted: resp.data?.voted } : q)));
+                } catch (err) {
+                  showToast(err.response?.data?.message || 'Erro ao votar.');
+                }
+              }}
+              className={`rounded-full font-bold text-[.76rem] h-[34px] px-3.5 ${question.voted ? 'bg-primary-500 text-white' : 'bg-surface2 text-ink'}`}
             >
-              ▲ {question.votes}
+              ▲ {question.votes || 0}
             </button>
           </div>
         ))}
-        <QuestionInput onSubmit={(text) => {
-          ccCreateQuestion({ session_id: 'current', body: text });
-          setQuestions((previous) => [...previous, { text, votes: 1, mine: true }]);
-          showToast('Pergunta enviada.');
+        <QuestionInput onSubmit={async (text) => {
+          try {
+            const resp = await ccCreateQuestion({ session_id: 'current', body: text });
+            const created = resp.data?.question;
+            setQuestions((previous) => [...previous, { ...created, votes: 0, mine: true }]);
+            showToast('Pergunta enviada.');
+          } catch (err) {
+            showToast(err.response?.data?.message || 'Erro ao enviar pergunta.');
+          }
         }} />
       </Card>
 
@@ -372,6 +411,7 @@ export const MenteeLive = ({
         </div>
         {pollOptions.map((option, index) => {
           const percentage = totalPollVotes ? Math.round((pollVotes[index] / totalPollVotes) * 100) : 0;
+          const isVoted = votedOption === index;
           return (
             <div key={option} className="mt-3">
               <div className="flex justify-between text-[.85rem]">
@@ -379,18 +419,27 @@ export const MenteeLive = ({
                 <span className="text-ink-muted">{percentage}%</span>
               </div>
               <div className="mt-1.5"><ProgressBar value={percentage} /></div>
-              {votedOption < 0 && (
-                <button
-                  onClick={() => {
-                    ccVotePoll({ poll_id: 'current', option_index: index });
-                    setVotedOption(index);
-                    showToast('Voto registado.');
-                  }}
-                  className="mt-2 rounded-full font-bold text-[.76rem] h-[34px] px-3.5 bg-surface2 text-ink"
-                >
-                  Votar
-                </button>
-              )}
+              <button
+                onClick={async () => {
+                  try {
+                    const resp = await ccVotePoll({ poll_id: 'current', option_index: index });
+                    setVotedOption(resp.data?.option_index ?? index);
+                    showToast(resp.data?.voted ? (resp.data?.message === 'Vote changed' ? 'Voto alterado.' : 'Voto registado.') : 'Voto removido.');
+                    // Refresh poll results
+                    const prResp = await ccGetPollResults({});
+                    const results = prResp.data?.results || [];
+                    if (results.length > 0) {
+                      const merged = results.map((r) => r.votes || 0);
+                      if (merged.length > 0) setPollVotes(merged);
+                    }
+                  } catch (err) {
+                    showToast(err.response?.data?.message || 'Erro ao votar.');
+                  }
+                }}
+                className={`mt-2 rounded-full font-bold text-[.76rem] h-[34px] px-3.5 ${isVoted ? 'bg-primary-500 text-white' : 'bg-surface2 text-ink'}`}
+              >
+                {isVoted ? 'Votado ✓' : 'Votar'}
+              </button>
             </div>
           );
         })}
@@ -432,19 +481,32 @@ export const MenteeMentors = ({ showToast }) => {
           <Card key={mentor.id}>
             <PersonRow
               name={mentor.name}
-              subtitle={`${mentor.phone ? mentor.phone.split('@')[0] : 'Mentor'}, ${mentor.company || 'Empresa'}`}
+              subtitle={[mentor.mentorProfile?.job_title, mentor.mentorProfile?.company].filter(Boolean).join(', ') || 'Mentor'}
               extra={
                 <button
-                  onClick={() => {
-                    if (isWished) return;
+                  onClick={async () => {
+                    if (isWished) {
+                      try {
+                        await ccRemoveWish({ mentor_id: mentor.id });
+                        setWished((prev) => prev.filter((id) => id !== mentor.id));
+                        showToast(`Interesse em ${mentor.name} removido.`);
+                      } catch (err) {
+                        showToast(err.response?.data?.message || 'Erro ao remover.');
+                      }
+                      return;
+                    }
                     if (wished.length >= 5) return showToast('Máximo de 5 mentores.');
-                    ccAddWish({ mentor_id: mentor.id });
-                    setWished([...wished, mentor.id]);
-                    showToast(`Interesse em ${mentor.name} guardado.`);
+                    try {
+                      await ccAddWish({ mentor_id: mentor.id });
+                      setWished([...wished, mentor.id]);
+                      showToast(`Interesse em ${mentor.name} guardado.`);
+                    } catch (err) {
+                      showToast(err.response?.data?.message || 'Erro ao guardar.');
+                    }
                   }}
                   className={`rounded-full font-bold text-[.76rem] h-[34px] px-3.5 ${isWished ? 'bg-primary-500 text-white' : 'bg-surface2 text-ink'}`}
                 >
-                  {isWished ? 'Marcado' : 'Quero'}
+                  {isWished ? 'Marcado ✓' : 'Quero'}
                 </button>
               }
             />
@@ -500,12 +562,18 @@ export const MenteeMet = ({ showToast }) => {
             <textarea rows="2" placeholder="Nota privada, só tu vês" className="w-full mt-3 mb-0 text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none" />
             <div className="flex items-center gap-2.5 mt-3">
               <button
-                onClick={() => showToast('Interesse guardado.')}
+                onClick={async () => {
+                  try {
+                    await ccCreateMentorshipRequest({ mentor_id: contact.id, message: 'Olá, gostava de ter o teu apoio como mentor.' });
+                    showToast('Pedido de mentoria enviado.');
+                  } catch (err) {
+                    showToast(err.response?.data?.message || 'Erro ao enviar pedido.');
+                  }
+                }}
                 className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white"
               >
-                Quero continuar
+                Pedir mentoria
               </button>
-              <span className="text-[.85rem] text-ink-muted">À espera do mentor</span>
             </div>
           </Card>
         );
@@ -591,12 +659,30 @@ export const MenteeMessages = ({ showToast }) => {
   const [msg, setMsg] = useState('');
   const [conv, setConv] = useState({});
   const [connections, setConnections] = useState([]);
+  const [sending, setSending] = useState({});
 
   useEffect(() => {
     const load = async () => {
       try {
         const resp = await ccGetConnections();
-        setConnections(resp.data?.connections || []);
+        const conns = resp.data?.connections || [];
+        setConnections(conns);
+        // Load messages for each connection
+        const entries = await Promise.all(
+          conns.map(async (c) => {
+            try {
+              const mResp = await ccGetMessages({ connection_id: c.id });
+              const msgs = (mResp.data?.messages || []).map((m) => ({
+                body: m.body,
+                mine: m.from_user_id !== c.contact?.id,
+              }));
+              return [String(c.id), msgs];
+            } catch {
+              return [String(c.id), []];
+            }
+          })
+        );
+        setConv(Object.fromEntries(entries));
       } catch (err) {
         console.error('Failed to load connections:', err);
       }
@@ -638,15 +724,25 @@ export const MenteeMessages = ({ showToast }) => {
                   <div className="flex gap-2">
                     <input value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="Escreve uma mensagem…" className="flex-1 bg-surface border-2 border-line rounded-[10px] px-3 py-2 text-base focus:border-primary-500 focus:outline-none" />
                     <button
-                      onClick={() => {
-                        ccSendMessage({ connection_id: c.id, body: msg });
-                        setConv((p) => ({ ...p, [key]: [...(p[key] || []), { body: msg, mine: true }] }));
-                        setMsg('');
-                        showToast('Mensagem enviada.');
+                      onClick={async () => {
+                        if (!msg.trim() || sending[c.id]) return;
+                        setSending((p) => ({ ...p, [c.id]: true }));
+                        try {
+                          const resp = await ccSendMessage({ connection_id: c.id, body: msg });
+                          const sent = resp.data?.message;
+                          setConv((p) => ({ ...p, [key]: [...(p[key] || []), { body: sent?.body || msg, mine: true }] }));
+                          setMsg('');
+                          showToast('Mensagem enviada.');
+                        } catch (err) {
+                          showToast(err.response?.data?.message || 'Erro ao enviar.');
+                        } finally {
+                          setSending((p) => { const { [c.id]: _, ...rest } = p; return rest; });
+                        }
                       }}
-                      className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white"
+                      disabled={sending[c.id]}
+                      className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white disabled:opacity-50"
                     >
-                      Enviar
+                      {sending[c.id] ? '...' : 'Enviar'}
                     </button>
                   </div>
                 </div>

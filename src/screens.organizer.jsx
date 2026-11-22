@@ -6,6 +6,11 @@ import {
   ccGetOrganizerDashboard, ccGetOrganizerRegistrations, ccApproveMentor,
   ccGetOrganizerRounds, ccGetOrganizerReports, ccGetAnnouncements,
   ccCreateAnnouncement, ccGetQuestions, ccGetPolls, ccGetBadges,
+  ccGetProfile, ccUpdateProfile,
+  ccCheckIn, ccCancelCheckIn, ccWalkIn,
+  ccCreatePoll, ccModerateQuestion,
+  ccGetTVData,
+  setStoredToken,
 } from './api/client';
 import { PersonRow, ProgressBar, Card, AnnouncementInput } from './ui';
 
@@ -31,7 +36,7 @@ const MENTEES = [
 export const OrganizerLive = ({
   phaseLabel, secondsLeft, currentRound, isPaused, isRehearsal,
   setIsRehearsal, setSecondsLeft, setIsPaused, showToast,
-  advanceRound, restartSimulation,
+  advanceRound, handlePause, restartSimulation,
 }) => {
   const [rounds, setRounds] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
@@ -72,7 +77,7 @@ export const OrganizerLive = ({
               {currentRound === 0 ? 'Iniciar intervalo 1' : currentRound < 4 ? `Avançar ronda ${currentRound + 1}` : currentRound === 4 ? 'Terminar intervalo' : 'Reiniciar'}
             </button>
             <button
-              onClick={() => { setIsPaused((p) => !p); showToast(!isPaused ? 'Ronda em pausa para todos.' : 'Ronda retomada.'); }}
+              onClick={handlePause}
               disabled={currentRound < 1 || currentRound > 4}
               className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-surface2 text-ink disabled:opacity-40"
             >
@@ -92,23 +97,26 @@ export const OrganizerLive = ({
             <tr>
               <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Mesa</th>
               <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Mentor</th>
-              <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Mentorado</th>
+              <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Mentorados</th>
               <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Compat.</th>
             </tr>
           </thead>
           <tbody>
-            {MENTORS.map((mentor, mentorIndex) => {
-              const match = current?.matches?.[mentorIndex];
-              const mentee = match?.mentees?.[0];
-              return (
-                <tr key={mentorIndex} className="border-b border-line last:border-0">
-                  <td className="py-[11px] px-2"><b>{mentorIndex + 1}</b></td>
-                  <td className="py-[11px] px-2">{mentor.name}</td>
-                  <td className="py-[11px] px-2">{mentee?.name || '–'}</td>
-                  <td className="py-[11px] px-2">{mentee ? '85%' : '–'}</td>
-                </tr>
-              );
-            })}
+            {current?.matches?.length > 0 ? (
+              current.matches.map((match, matchIndex) => {
+                const menteeCount = Array.isArray(match.mentee_ids) ? match.mentee_ids.length : 0;
+                return (
+                  <tr key={match.id || matchIndex} className="border-b border-line last:border-0">
+                    <td className="py-[11px] px-2"><b>{match.table_no || matchIndex + 1}</b></td>
+                    <td className="py-[11px] px-2">{match.mentor?.name || '–'}</td>
+                    <td className="py-[11px] px-2">{menteeCount}</td>
+                    <td className="py-[11px] px-2">{menteeCount > 0 ? `${match.score || 85}%` : '–'}</td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr><td colSpan="4" className="py-3 text-center text-ink-muted text-[.85rem]">Sem pares nesta ronda.</td></tr>
+            )}
           </tbody>
         </table>
         <p className="text-[.85rem] text-ink-muted mt-3">Rácio 1:1 neste ensaio. O alerta dispara acima de 1:3.</p>
@@ -121,6 +129,7 @@ export const OrganizerLive = ({
 export const OrganizerReg = ({ showToast }) => {
   const [registrations, setRegistrations] = useState([]);
   const [pendingMentors, setPendingMentors] = useState([]);
+  const [actionLoading, setActionLoading] = useState({});
 
   useEffect(() => {
     const load = async () => {
@@ -128,8 +137,9 @@ export const OrganizerReg = ({ showToast }) => {
         const [regResp] = await Promise.all([
           ccGetOrganizerRegistrations({}),
         ]);
-        setRegistrations(regResp.data?.registrations || []);
-        setPendingMentors((regResp.data?.registrations || []).filter((r) => r.user?.role === 'mentor' && r.status === 'registered'));
+        const regs = regResp.data?.registrations || [];
+        setRegistrations(regs);
+        setPendingMentors(regs.filter((r) => r.user?.role === 'mentor' && r.status === 'registered'));
       } catch (err) {
         console.error('Failed to load registrations:', err);
       }
@@ -137,10 +147,39 @@ export const OrganizerReg = ({ showToast }) => {
     load();
   }, [showToast]);
 
-  const rows = [
-    ...MENTEES.map((m, i) => ({ id: `e${i}`, name: m.name, type: 'Mentorado' })),
-    ...MENTORS.map((m, i) => ({ id: `m${i}`, name: m.name, type: 'Mentor' })),
-  ];
+  const handleCheckIn = async (reg) => {
+    if (!reg) return;
+    setActionLoading((p) => ({ ...p, [reg.id]: true }));
+    try {
+      if (reg.status === 'present') {
+        await ccCancelCheckIn({ registration_id: reg.id });
+        setRegistrations((prev) => prev.map((r) => r.id === reg.id ? { ...r, status: 'cancelled' } : r));
+        showToast('Check-in cancelado.');
+      } else {
+        await ccCheckIn({ user_id: reg.user_id });
+        setRegistrations((prev) => prev.map((r) => r.id === reg.id ? { ...r, status: 'present' } : r));
+        showToast('Check-in efetuado.');
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro no check-in.');
+    } finally {
+      setActionLoading((p) => { const { [reg.id]: _, ...rest } = p; return rest; });
+    }
+  };
+
+  const handleWalkIn = async () => {
+    const name = window.prompt('Nome do walk-in:');
+    if (!name) return;
+    const role = window.prompt('Perfil (mentee/mentor):', 'mentee') || 'mentee';
+    try {
+      await ccWalkIn({ name, role });
+      showToast('Walk-in registado e presente.');
+      const regResp = await ccGetOrganizerRegistrations({});
+      setRegistrations(regResp.data?.registrations || []);
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao registar walk-in.');
+    }
+  };
 
   return (
     <>
@@ -150,7 +189,15 @@ export const OrganizerReg = ({ showToast }) => {
           pendingMentors.map((r) => (
             <div key={r.id} className="flex justify-between items-center mt-3">
               <PersonRow name={r.user?.name || 'Mentor'} subtitle={r.user?.mentorProfile?.company || 'Empresa'} />
-              <button onClick={() => { ccApproveMentor({ mentor_id: r.user_id, action: 'approve' }); showToast('Mentor aprovado. Recebe e-mail e WhatsApp.'); }} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white">Aprovar</button>
+              <button onClick={async () => {
+                try {
+                  await ccApproveMentor({ mentor_id: r.user_id, action: 'approve' });
+                  setPendingMentors((prev) => prev.filter((x) => x.id !== r.id));
+                  showToast('Mentor aprovado.');
+                } catch (err) {
+                  showToast(err.response?.data?.message || 'Erro ao aprovar.');
+                }
+              }} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white">Aprovar</button>
             </div>
           ))
         ) : (
@@ -159,28 +206,29 @@ export const OrganizerReg = ({ showToast }) => {
       </Card>
       <Card>
         <div className="flex items-center justify-between mb-3.5">
-          <b>Check-in ({registrations.filter((r) => r.status === 'present').length}/{rows.length})</b>
-          <button onClick={() => showToast('Walk-in registado e presente.')} className="rounded-full font-bold text-[.76rem] h-[34px] px-3.5 bg-surface2 text-ink">+ Walk-in</button>
+          <b>Check-in ({registrations.filter((r) => r.status === 'present').length}/{registrations.length})</b>
+          <button onClick={handleWalkIn} className="rounded-full font-bold text-[.76rem] h-[34px] px-3.5 bg-surface2 text-ink">+ Walk-in</button>
         </div>
         <table className="w-full text-[.88rem] border-collapse mt-1">
           <tbody>
-            {rows.map((row) => {
-              const reg = registrations.find((r) => r.user?.name === row.name);
-              return (
-                <tr key={row.id} className="border-b border-line last:border-0">
-                  <td className="py-[11px] px-2">{row.name}</td>
-                  <td className="py-[11px] px-2 text-ink-muted text-[.85rem]">{row.type}</td>
-                  <td className="py-[11px] px-2 text-right">
-                    <button
-                      onClick={() => showToast(reg ? 'Check-in cancelado' : 'Check-in efetuado')}
-                      className={`rounded-full font-bold text-[.76rem] h-[34px] px-3.5 ${reg?.status === 'present' ? 'bg-surface2 text-ink' : 'bg-primary-500 text-white'}`}
-                    >
-                      {reg?.status === 'present' ? 'Presente ✓' : 'Check-in'}
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+            {registrations.map((reg) => (
+              <tr key={reg.id} className="border-b border-line last:border-0">
+                <td className="py-[11px] px-2">{reg.user?.name || '–'}</td>
+                <td className="py-[11px] px-2 text-ink-muted text-[.85rem]">{reg.user?.role === 'mentor' ? 'Mentor' : 'Mentorado'}</td>
+                <td className="py-[11px] px-2 text-right">
+                  <button
+                    onClick={() => handleCheckIn(reg)}
+                    disabled={actionLoading[reg.id]}
+                    className={`rounded-full font-bold text-[.76rem] h-[34px] px-3.5 ${reg.status === 'present' ? 'bg-surface2 text-ink' : 'bg-primary-500 text-white'} disabled:opacity-50`}
+                  >
+                    {actionLoading[reg.id] ? '...' : reg.status === 'present' ? 'Presente ✓' : 'Check-in'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {registrations.length === 0 && (
+              <tr><td colSpan="3" className="py-3 text-center text-ink-muted text-[.85rem]">Sem registos.</td></tr>
+            )}
           </tbody>
         </table>
       </Card>
@@ -193,6 +241,9 @@ export const OrganizerInteraction = ({ showToast }) => {
   const [announcements, setAnnouncements] = useState([]);
   const [questions, setQuestions] = useState([]);
   const [polls, setPolls] = useState([]);
+  const [newPollQuestion, setNewPollQuestion] = useState('');
+  const [newPollOptions, setNewPollOptions] = useState('');
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -219,17 +270,59 @@ export const OrganizerInteraction = ({ showToast }) => {
       <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
         <Card>
           <b>Anúncio a todos</b>
-          <AnnouncementInput onSubmit={(text) => {
-            ccCreateAnnouncement({ event_id: 'current', body: text });
-            setAnnouncements([...announcements, text]);
-            showToast('Anúncio enviado a todos.');
+          <AnnouncementInput onSubmit={async (text) => {
+            try {
+              const resp = await ccCreateAnnouncement({ event_id: 'current', body: text });
+              const ann = resp.data?.announcement;
+              setAnnouncements([...(ann ? [ann] : []), ...announcements]);
+              showToast('Anúncio enviado a todos.');
+            } catch (err) {
+              showToast(err.response?.data?.message || 'Erro ao enviar anúncio.');
+            }
           }} />
         </Card>
         <Card>
           <b>Perguntas para moderar</b>
           {questions.map((question, index) => (
-            <p key={question.id || index} className="text-[.85rem] mt-2.5">▲ {question.votes || 0} · {question.body || question.text}</p>
+            <div key={question.id || index} className="flex justify-between items-center mt-2.5 gap-2.5">
+              <p className="text-[.85rem] flex-1">▲ {question.votes || 0} · {question.body || question.text}</p>
+              {question.status !== 'visible' && (
+                <button
+                  onClick={async () => {
+                    try {
+                      await ccModerateQuestion({ question_id: question.id, status: 'visible' });
+                      setQuestions((prev) => prev.map((q, i) => i === index ? { ...q, status: 'visible' } : q));
+                      showToast('Pergunta visível.');
+                    } catch (err) {
+                      showToast(err.response?.data?.message || 'Erro ao moderar.');
+                    }
+                  }}
+                  className="rounded-full font-bold text-[.72rem] h-[30px] px-3 bg-primary-500 text-white"
+                >
+                  Mostrar
+                </button>
+              )}
+              {question.status === 'visible' && (
+                <button
+                  onClick={async () => {
+                    try {
+                      await ccModerateQuestion({ question_id: question.id, status: 'hidden' });
+                      setQuestions((prev) => prev.map((q, i) => i === index ? { ...q, status: 'hidden' } : q));
+                      showToast('Pergunta oculta.');
+                    } catch (err) {
+                      showToast(err.response?.data?.message || 'Erro ao moderar.');
+                    }
+                  }}
+                  className="rounded-full font-bold text-[.72rem] h-[30px] px-3 bg-surface2 text-ink"
+                >
+                  Ocultar
+                </button>
+              )}
+            </div>
           ))}
+          {questions.length === 0 && (
+            <p className="text-[.85rem] text-ink-muted mt-2">Sem perguntas ainda.</p>
+          )}
         </Card>
       </div>
       <Card>
@@ -258,6 +351,36 @@ export const OrganizerInteraction = ({ showToast }) => {
             </div>
           ))
         )}
+        <div className="mt-4 pt-3 border-t border-line">
+          <b className="text-[.85rem] block mb-2">Criar sondagem</b>
+          <input value={newPollQuestion} onChange={(e) => setNewPollQuestion(e.target.value)} placeholder="Pergunta da sondagem" className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-2.5 mb-2 focus:border-primary-500 focus:outline-none" />
+          <input value={newPollOptions} onChange={(e) => setNewPollOptions(e.target.value)} placeholder="Opções separadas por vírgula" className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-2.5 mb-2 focus:border-primary-500 focus:outline-none" />
+          <button
+            onClick={async () => {
+              if (!newPollQuestion.trim() || !newPollOptions.trim()) {
+                showToast('Preenche a pergunta e as opções.');
+                return;
+              }
+              setCreating(true);
+              try {
+                const options = newPollOptions.split(',').map((o) => o.trim()).filter(Boolean);
+                const resp = await ccCreatePoll({ question: newPollQuestion.trim(), options });
+                setPolls((prev) => [resp.data?.poll, ...prev]);
+                setNewPollQuestion('');
+                setNewPollOptions('');
+                showToast('Sondagem criada.');
+              } catch (err) {
+                showToast(err.response?.data?.message || 'Erro ao criar sondagem.');
+              } finally {
+                setCreating(false);
+              }
+            }}
+            disabled={creating}
+            className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white disabled:opacity-50"
+          >
+            {creating ? 'A criar...' : 'Criar sondagem'}
+          </button>
+        </div>
       </Card>
     </>
   );
@@ -323,33 +446,193 @@ export const OrganizerReports = ({ showToast }) => {
 };
 
 // ── PROFILE (shared) ─────────────────────────
+const EMPTY_MENTOR = {
+  name: '', phone: '', job_title: '', company: '', sector: '', years: '',
+  support_type: '', interests: '', can_help_goals: '', linkedin_url: '',
+};
+const EMPTY_MENTEE = {
+  name: '', phone: '', course: '', institution: '', goal: '', pitch: '',
+};
+
 export const ProfileScreen = ({ asRole, setRole, showToast }) => {
+  const isMentor = asRole === 'mentor';
   const [profile, setProfile] = useState(null);
+  const [form, setForm] = useState(isMentor ? EMPTY_MENTOR : EMPTY_MENTEE);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       try {
         const resp = await ccGetProfile();
-        setProfile(resp.data?.user || null);
+        const user = resp.data?.user || null;
+        setProfile(user);
+        if (isMentor) {
+          const mp = user?.mentorProfile || {};
+          setForm({
+            name: user?.name || '',
+            phone: user?.phone || '',
+            job_title: mp.job_title || '',
+            company: mp.company || '',
+            sector: mp.sector || '',
+            years: mp.years != null ? String(mp.years) : '',
+            support_type: mp.support_type || '',
+            interests: Array.isArray(mp.interests) ? mp.interests.join(', ') : (mp.interests || ''),
+            can_help_goals: Array.isArray(mp.can_help_goals) ? mp.can_help_goals.join(', ') : (mp.can_help_goals || ''),
+            linkedin_url: user?.linkedin_url || '',
+          });
+        } else {
+          const mp = user?.menteeProfile || {};
+          setForm({
+            name: user?.name || '',
+            phone: user?.phone || '',
+            course: mp.course || '',
+            institution: mp.institution || '',
+            goal: mp.goal || '',
+            pitch: mp.pitch || '',
+          });
+        }
       } catch (err) {
         console.error('Failed to load profile:', err);
       }
     };
     load();
-  }, [showToast, asRole]);
+  }, [showToast, asRole, isMentor]);
 
-  const person = profile || {};
-  const subtitle = asRole === 'mentor' ? `${person.phone || person.mentorProfile?.job_title || ''}, ${person.mentorProfile?.company || ''}` : person.menteeProfile?.course || '';
-  const fieldLabel = asRole === 'mentor' ? 'Áreas em que ajudas' : 'Pitch (120 caracteres)';
-  const fieldValue = asRole === 'mentor' ? person.mentorProfile?.sector || '' : person.menteeProfile?.pitch || '';
+  const set = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
+  const toList = (s) => s.split(',').map((x) => x.trim()).filter(Boolean);
+
+  const subtitle = isMentor
+    ? [form.job_title, form.company].filter(Boolean).join(', ') || form.name || 'Utilizador'
+    : [form.course, form.institution].filter(Boolean).join(' · ') || form.name || 'Utilizador';
+
+  const inputCls = 'w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none';
+  const labelCls = 'block text-[.85rem] font-semibold mb-1.5';
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      let payload;
+      if (isMentor) {
+        payload = {
+          name: form.name,
+          phone: form.phone,
+          linkedin_url: form.linkedin_url,
+          mentorProfile: {
+            job_title: form.job_title,
+            company: form.company,
+            sector: form.sector,
+            years: form.years ? Number(form.years) : null,
+            support_type: form.support_type,
+            interests: toList(form.interests),
+            can_help_goals: toList(form.can_help_goals),
+          },
+        };
+      } else {
+        payload = {
+          name: form.name,
+          phone: form.phone,
+          menteeProfile: {
+            course: form.course,
+            institution: form.institution,
+            goal: form.goal,
+            pitch: form.pitch,
+          },
+        };
+      }
+      await ccUpdateProfile(payload);
+      showToast('Alterações guardadas.');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao guardar.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <>
       <h2 className="text-[1.45rem] font-extrabold tracking-tight">Perfil</h2>
       <Card className="mt-4">
-        <PersonRow name={person.name || 'Utilizador'} subtitle={subtitle} />
-        <label className="block text-[.85rem] font-semibold mt-4 mb-1.5">{fieldLabel}</label>
-        <input defaultValue={fieldValue} maxLength={120} className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none" />
-        <button onClick={() => showToast('Alterações guardadas. Valem a partir da próxima ronda.')} className="mt-3.5 rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white">Guardar</button>
+        <PersonRow name={profile?.name || 'Utilizador'} subtitle={subtitle} />
+
+        {isMentor ? (
+          <div className="mt-4 space-y-3">
+            <div>
+              <label className={labelCls}>Nome</label>
+              <input value={form.name} onChange={set('name')} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Telemóvel</label>
+              <input value={form.phone} onChange={set('phone')} placeholder="+258 84 000 0000" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Cargo</label>
+              <input value={form.job_title} onChange={set('job_title')} placeholder="Ex.: Engenheiro de Software" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Empresa</label>
+              <input value={form.company} onChange={set('company')} placeholder="Ex.: Vodacom" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Área / Setor</label>
+              <input value={form.sector} onChange={set('sector')} placeholder="Ex.: Tecnologia e TI" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Anos de experiência</label>
+              <input type="number" min="0" value={form.years} onChange={set('years')} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Tipo de apoio</label>
+              <input value={form.support_type} onChange={set('support_type')} placeholder="Ex.: Mentor, Coach, Orientação pontual" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Interesses (separados por vírgula)</label>
+              <input value={form.interests} onChange={set('interests')} placeholder="Ex.: Tecnologia e TI, Engenharia" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Objetivos em que ajudas (separados por vírgula)</label>
+              <input value={form.can_help_goals} onChange={set('can_help_goals')} placeholder="Ex.: Escolher a minha área, Desenvolver competências" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>LinkedIn</label>
+              <input value={form.linkedin_url} onChange={set('linkedin_url')} placeholder="https://linkedin.com/in/..." className={inputCls} />
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 space-y-3">
+            <div>
+              <label className={labelCls}>Nome</label>
+              <input value={form.name} onChange={set('name')} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Telemóvel</label>
+              <input value={form.phone} onChange={set('phone')} placeholder="+258 84 000 0000" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Curso</label>
+              <input value={form.course} onChange={set('course')} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Instituição</label>
+              <input value={form.institution} onChange={set('institution')} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Objetivo</label>
+              <input value={form.goal} onChange={set('goal')} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Pitch (120 caracteres)</label>
+              <textarea value={form.pitch} onChange={set('pitch')} maxLength={120} rows="3" className={inputCls} />
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="mt-4 rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white disabled:opacity-50"
+        >
+          {saving ? 'A guardar...' : 'Guardar'}
+        </button>
       </Card>
       <button onClick={() => { setStoredToken(null); localStorage.removeItem('refresh_token'); localStorage.removeItem('userRole'); setRole(null); window.scrollTo(0, 0); }} className="w-full rounded-full font-bold text-[.92rem] h-12 bg-surface2 text-ink">Sair</button>
     </>
@@ -358,21 +641,28 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
 
 // ── TV / PROJECTOR ───────────────────────────
 export const TvScreen = ({ announcements, phaseLabel, currentRound, secondsLeft, showToast, setRole }) => {
-  const [announcementsData, setAnnouncementsData] = useState([]);
+  const [tvData, setTvData] = useState(null);
 
   useEffect(() => {
+    let active = true;
     const load = async () => {
       try {
-        const resp = await ccGetAnnouncements({});
-        setAnnouncementsData(resp.data?.announcements || []);
+        const resp = await ccGetTVData({});
+        if (active) setTvData(resp.data || null);
       } catch (err) {
-        console.error('Failed to load TV announcements:', err);
+        console.error('Failed to load TV data:', err);
       }
     };
     load();
-  }, [showToast]);
+    const interval = setInterval(load, 5000);
+    return () => { active = false; clearInterval(interval); };
+  }, []);
 
-  const anns = announcementsData.length > 0 ? announcementsData : announcements;
+  const anns = (tvData?.announcements?.length > 0 ? tvData.announcements : []).length > 0
+    ? (tvData.announcements || [])
+    : (announcements || []);
+  const tables = tvData?.tables || [];
+  const tvPhase = tvData?.phase || phaseLabel();
 
   return (
     <div className="bg-navy-900 text-white min-h-screen pt-[calc(env(safe-area-inset-top,0px)+34px)] px-[5vw] pb-[34px]" style={{ background: 'radial-gradient(circle at 30% 10%, #172554 0%, #0b1126 70%)' }}>
@@ -387,22 +677,30 @@ export const TvScreen = ({ announcements, phaseLabel, currentRound, secondsLeft,
           {anns[anns.length - 1].body || anns[anns.length - 1]}
         </div>
       )}
-      <p className="mt-[30px] text-[1.3rem] text-navy-100">{phaseLabel()}</p>
+      <p className="mt-[30px] text-[1.3rem] text-navy-100">{tvPhase}</p>
       {currentRound >= 1 && currentRound <= 4 ? (
         <>
           <div className="font-extrabold text-[clamp(4.5rem,16vw,11rem)] text-primary-500 leading-none" style={{ textShadow: '0 10px 40px rgba(242,107,15,.4)' }}>
             {formatTime(secondsLeft)}
           </div>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3.5 mt-[30px]">
-            {MENTORS.map((mentor, mentorIndex) => {
-              return (
+            {tables.length > 0 ? (
+              tables.map((table, tableIndex) => (
+                <div key={tableIndex} className="bg-white/[.06] border border-white/[.08] rounded-[22px] p-5 backdrop-blur-md">
+                  <span className="text-[.76rem] font-bold text-primary-300 uppercase tracking-wide">Mesa {table.table}</span>
+                  <b className="block text-[1.1rem] mt-1.5">{table.mentor || 'Livre'}</b>
+                  <p className="text-navy-100 mt-1">–</p>
+                </div>
+              ))
+            ) : (
+              MENTORS.map((mentor, mentorIndex) => (
                 <div key={mentorIndex} className="bg-white/[.06] border border-white/[.08] rounded-[22px] p-5 backdrop-blur-md">
                   <span className="text-[.76rem] font-bold text-primary-300 uppercase tracking-wide">Mesa {mentorIndex + 1}</span>
                   <b className="block text-[1.1rem] mt-1.5">{mentor.name}</b>
                   <p className="text-navy-100 mt-1">–</p>
                 </div>
-              );
-            })}
+              ))
+            )}
           </div>
         </>
       ) : (

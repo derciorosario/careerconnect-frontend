@@ -4,14 +4,15 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 const manifestIcons = [
-  { src: 'assets/icons/icon-48.webp', sizes: '48x48', type: 'image/webp', purpose: 'any maskable' },
-  { src: 'assets/icons/icon-72.webp', sizes: '72x72', type: 'image/webp', purpose: 'any maskable' },
-  { src: 'assets/icons/icon-96.webp', sizes: '96x96', type: 'image/webp', purpose: 'any maskable' },
-  { src: 'assets/icons/icon-128.webp', sizes: '128x128', type: 'image/webp', purpose: 'any maskable' },
-  { src: 'assets/icons/icon-192.webp', sizes: '192x192', type: 'image/webp', purpose: 'any maskable' },
-  { src: 'assets/icons/icon-256.webp', sizes: '256x256', type: 'image/webp', purpose: 'any maskable' },
-  { src: 'assets/icons/icon-512.webp', sizes: '512x512', type: 'image/webp', purpose: 'any maskable' }
-]
+  { src: 'assets/icons/icon-48.png', sizes: '48x48', type: 'image/png', purpose: 'any maskable' },
+  { src: 'assets/icons/icon-72.png', sizes: '72x72', type: 'image/png', purpose: 'any maskable' },
+  { src: 'assets/icons/icon-96.png', sizes: '96x96', type: 'image/png', purpose: 'any maskable' },
+  { src: 'assets/icons/icon-128.png', sizes: '128x128', type: 'image/png', purpose: 'any maskable' },
+  { src: 'assets/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+  { src: 'assets/icons/icon-256.png', sizes: '256x256', type: 'image/png', purpose: 'any maskable' },
+  { src: 'assets/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+];
+
 
 const pwaOptions = {
   registerType: 'autoUpdate',
@@ -40,14 +41,14 @@ const pwaOptions = {
         short_name: 'Mentores',
         description: 'Ver mentores disponíveis',
         url: '/app/mentee/mentors',
-        icons: [{ src: 'assets/icons/icon-96.webp', sizes: '96x96' }]
+        icons: [{ src: 'assets/icons/icon-96.png', sizes: '96x96' }]
       },
       {
         name: 'Perfil',
         short_name: 'Perfil',
         description: 'Ver o meu perfil',
         url: '/app/mentee/profile',
-        icons: [{ src: 'assets/icons/icon-96.webp', sizes: '96x96' }]
+        icons: [{ src: 'assets/icons/icon-96.png', sizes: '96x96' }]
       }
     ]
   }

@@ -48,7 +48,29 @@ const Container = ({ children }) => (
 export default function Landingpage() {
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0 });
   const [shareOpen, setShareOpen] = useState(false);
+  const [imagesReady, setImagesReady] = useState(false);
   const countdownInterval = useRef(null);
+
+  // Preload every image used on the page before revealing content
+  useEffect(() => {
+    const sources = [...IMAGES, ...PARTNERS.map((p) => p.src), logo, mainLogo];
+
+    let cancelled = false;
+
+    const loadImage = (src) =>
+      new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve({ src, ok: true });
+        img.onerror = () => resolve({ src, ok: false });
+        img.src = src;
+      });
+
+    Promise.all(sources.map(loadImage)).then(() => {
+      if (!cancelled) setImagesReady(true);
+    });
+
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     const tick = () => {
@@ -90,6 +112,18 @@ export default function Landingpage() {
       setTimeout(() => setShareOpen(false), 2000);
     }
   };
+
+  if (!imagesReady) {
+    return (
+      <div className="min-h-screen bg-surface text-ink font-sans bg-navy-950 grid place-items-center">
+        <div
+          className="w-10 h-10 rounded-full border-4 border-primary-500 border-t-transparent animate-spin"
+          role="status"
+          aria-label="A carregar"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-surface text-ink font-sans bg-navy-950 overflow-x-hidden">

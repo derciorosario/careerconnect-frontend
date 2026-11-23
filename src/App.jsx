@@ -104,8 +104,22 @@ function BottomNav({ items, activeTab, setActiveTab }) {
 export function CareerConnectApp({ initialRole }) {
   const [role, setRole] = useState(initialRole || null);
   const [previousRole, setPreviousRole] = useState(null);
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTabState] = useState('home');
   const [user, setUser] = useState(null);
+
+  // Wrap setActiveTab so that whenever the tab changes we instantly scroll to top.
+  const setActiveTab = (next) => {
+    setActiveTabState((prev) => {
+      // scroll only when the tab actually changes
+      if (prev !== next) {
+        // defer to ensure the DOM updates first, then scroll instantly
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        });
+      }
+      return next;
+    });
+  };
 
   // Event / simulation state
   const [currentRound, setCurrentRound] = useState(0);

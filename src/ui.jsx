@@ -108,7 +108,7 @@ export const AnnouncementInput = ({ onSubmit }) => {
 };
 
 // Real, scannable QR code. Falls back to the ticket text if generation fails.
-export const QrCode = ({ value, size = 120, className = '' }) => {
+export const QrCode = ({ value, size = 120, className = '', downloadable = false }) => {
   const [dataUrl, setDataUrl] = useState('');
 
   useEffect(() => {
@@ -125,17 +125,37 @@ export const QrCode = ({ value, size = 120, className = '' }) => {
     return () => { active = false; };
   }, [value, size]);
 
+  const handleDownload = () => {
+    if (!dataUrl) return;
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = `qr-${value}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (!value) return null;
 
   return (
-    <div
-      className={`bg-white rounded-[14px] p-1.5 shrink-0 grid place-items-center ${className}`}
-      style={{ width: size, height: size }}
-    >
-      {dataUrl ? (
-        <img src={dataUrl} alt="QR Code" width={size} height={size} className="w-full h-full" />
-      ) : (
-        <span className="text-[.6rem] text-ink-muted text-center break-all px-1">{value}</span>
+    <div className={`flex flex-col items-center gap-1.5 ${className}`}>
+      <div
+        className="bg-white rounded-[14px] p-1.5 shrink-0 grid place-items-center"
+        style={{ width: size, height: size }}
+      >
+        {dataUrl ? (
+          <img src={dataUrl} alt="QR Code" width={size} height={size} className="w-full h-full" />
+        ) : (
+          <span className="text-[.6rem] text-ink-muted text-center break-all px-1">{value}</span>
+        )}
+      </div>
+      {downloadable && dataUrl && (
+        <button
+          onClick={handleDownload}
+          className="text-[.7rem] font-semibold text-primary-500 underline"
+        >
+          Descarregar QR
+        </button>
       )}
     </div>
   );

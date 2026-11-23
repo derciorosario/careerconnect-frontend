@@ -55,6 +55,7 @@ export default function Register() {
     jobTitle: '', company: '', sector: '', years: '', mentorInterests: [], canHelpGoals: [], supportType: '',
     photo: '', linkedin: '',
   });
+  console.lo
   const [error, setError] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -197,10 +198,11 @@ export default function Register() {
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-[.85rem] font-semibold">Entra como</label>
-          <select value={form.role} onChange={(e) => setField('role', e.target.value)} className={FIELD_BASE}>
-            <option value="mentee">Mentorado</option>
-            <option value="mentor">Mentor (profissional)</option>
-          </select>
+<select value={form.role} onChange={(e) => setField('role', e.target.value)} className={FIELD_BASE}>
+              <option value="" disabled>Selecciona o perfil</option>
+              <option value="mentee">Mentorado</option>
+              <option value="mentor">Mentor (profissional)</option>
+            </select>
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-[.85rem] font-semibold">Foto (opcional)</label>
@@ -280,6 +282,7 @@ export default function Register() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-[.85rem] font-semibold">Tipo de apoio</label>
                 <select value={form.supportType} onChange={(e) => setField('supportType', e.target.value)} className={FIELD_BASE}>
+                  <option value="" disabled>Selecciona...</option>
                   {SUPPORT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
@@ -289,6 +292,7 @@ export default function Register() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-[.85rem] font-semibold">Situação</label>
                 <select value={form.level} onChange={(e) => setField('level', e.target.value)} className={FIELD_BASE}>
+                  <option value="" disabled>Selecciona...</option>
                   {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
                 </select>
               </div>
@@ -313,6 +317,7 @@ export default function Register() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-[.85rem] font-semibold">Objetivo</label>
                 <select value={form.goal} onChange={(e) => setField('goal', e.target.value)} className={FIELD_BASE}>
+                  <option value="" disabled>Selecciona...</option>
                   {GOALS.map((g) => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>

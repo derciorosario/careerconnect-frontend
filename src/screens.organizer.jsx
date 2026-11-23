@@ -126,6 +126,7 @@ export const OrganizerReg = ({ showToast }) => {
   const [registrations, setRegistrations] = useState([]);
   const [pendingMentors, setPendingMentors] = useState([]);
   const [actionLoading, setActionLoading] = useState({});
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -142,6 +143,10 @@ export const OrganizerReg = ({ showToast }) => {
     };
     load();
   }, [showToast]);
+
+  const filteredRegs = registrations.filter((reg) =>
+    (reg.user?.name || '').toLowerCase().includes(search.toLowerCase())
+  );
 
   const handleCheckIn = async (reg) => {
     if (!reg) return;
@@ -184,7 +189,7 @@ export const OrganizerReg = ({ showToast }) => {
         {pendingMentors.length > 0 ? (
           pendingMentors.map((r) => (
             <div key={r.id} className="flex justify-between items-center mt-3">
-              <PersonRow name={r.user?.name || 'Mentor'} subtitle={r.user?.mentorProfile?.company || 'Empresa'} />
+              <PersonRow name={r.user?.name || 'Mentor'} subtitle={r.user?.mentorProfile?.company || '-'} />
               <button onClick={async () => {
                 try {
                   await ccApproveMentor({ mentor_id: r.user_id, action: 'approve' });
@@ -201,13 +206,19 @@ export const OrganizerReg = ({ showToast }) => {
         )}
       </Card>
       <Card>
-        <div className="flex items-center justify-between mb-3.5">
+        <div className="flex items-center justify-between mb-3.5 gap-2">
           <b>Check-in ({registrations.filter((r) => r.status === 'present').length}/{registrations.length})</b>
           <button onClick={handleWalkIn} className="rounded-full font-bold text-[.76rem] h-[34px] px-3.5 bg-surface2 text-ink">+ Walk-in</button>
         </div>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Pesquisar por nome..."
+          className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-2.5 mb-2 focus:border-primary-500 focus:outline-none"
+        />
         <table className="w-full text-[.88rem] border-collapse mt-1">
           <tbody>
-            {registrations.map((reg) => (
+            {filteredRegs.map((reg) => (
               <tr key={reg.id} className="border-b border-line last:border-0">
                 <td className="py-[11px] px-2">{reg.user?.name || '–'}</td>
                 <td className="py-[11px] px-2 text-ink-muted text-[.85rem]">{reg.user?.role === 'mentor' ? 'Mentor' : 'Mentorado'}</td>
@@ -222,7 +233,7 @@ export const OrganizerReg = ({ showToast }) => {
                 </td>
               </tr>
             ))}
-            {registrations.length === 0 && (
+            {filteredRegs.length === 0 && (
               <tr><td colSpan="3" className="py-3 text-center text-ink-muted text-[.85rem]">Sem registos.</td></tr>
             )}
           </tbody>

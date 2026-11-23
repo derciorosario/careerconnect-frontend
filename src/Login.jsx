@@ -136,7 +136,7 @@ export default function Login() {
                 : 'bg-transparent text-ink-muted hover:text-ink'
             }`}
           >
-            Código OTP
+            Código de confirmação
           </button>
         </div>
 

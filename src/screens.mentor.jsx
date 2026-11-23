@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
-  getFirstName, formatTime, generateQrSvg,
+  getFirstName, formatTime,
 } from './data';
 import {
   ccGetProfile, ccGetMentorMatch, ccGetMentorshipRequestsForMentor,
   ccRespondMentorshipRequest, ccGetConnections, ccGetMessages, ccSendMessage,
   ccGetWishesForMentor, ccSubmitFeedback,
 } from './api/client';
-import { PersonRow, ProgressBar, Card } from './ui';
+import { PersonRow, ProgressBar, Card, QrCode } from './ui';
 
 // ── HOME ─────────────────────────────────────
 export const MentorHome = ({ showToast }) => {
@@ -55,9 +55,9 @@ export const MentorHome = ({ showToast }) => {
             <p className="text-[.85rem] text-navy-100">{tableNo ? `Mesa ${tableNo} fixa nos dois intervalos` : 'Mesa a atribuir no evento'}</p>
           </div>
           {me?.registrations?.[0]?.ticket_code ? (
-            <div dangerouslySetInnerHTML={{ __html: generateQrSvg(me.registrations[0].ticket_code) }} />
+            <QrCode value={me.registrations[0].ticket_code} size={104} />
           ) : (
-            <div dangerouslySetInnerHTML={{ __html: generateQrSvg('CC-MENTOR') }} />
+            <QrCode value={me?.ticket_code || 'CC-MENTOR'} size={104} />
           )}
         </div>
       </Card>

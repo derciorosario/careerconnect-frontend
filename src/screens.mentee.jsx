@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   getFirstName, formatTime,
-  generateQrSvg,
 } from './data';
 import {
   ccGetProfile, ccUpdateProfile,
@@ -21,7 +20,7 @@ import {
   ccGetBadges,
   setStoredToken,
 } from './api/client';
-import { Avatar, PersonRow, ProgressBar, ChecklistItem, Card, QuestionInput } from './ui';
+import { Avatar, PersonRow, ProgressBar, ChecklistItem, Card, QuestionInput, QrCode } from './ui';
 
 const AREAS = [
   'Tecnologia e TI',
@@ -125,7 +124,7 @@ export const MenteeHome = ({ showToast }) => {
             <p className="font-extrabold text-[1.05rem] mt-3 tracking-widest">{ticketCode || 'CC-....'}</p>
             <p className="text-[.76rem] text-navy-100 mt-0.5">Disponível sem rede</p>
           </div>
-          <div dangerouslySetInnerHTML={{ __html: generateQrSvg(ticketCode || 'CC-7K2QF') }} />
+          <QrCode value={ticketCode || 'CC-7K2QF'} size={104} />
         </div>
       </Card>
 

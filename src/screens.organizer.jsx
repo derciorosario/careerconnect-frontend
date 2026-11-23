@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  formatTime, ORGANIZER_TABS, generateQrSvg,
+  formatTime, ORGANIZER_TABS,
 } from './data';
 import {
   ccGetOrganizerDashboard, ccGetOrganizerRegistrations, ccApproveMentor,
@@ -9,7 +9,7 @@ import {
   ccGetProfile, ccUpdateProfile,
   ccCheckIn, ccCancelCheckIn, ccWalkIn,
   ccCreatePoll, ccModerateQuestion,
-  ccGetTVData,
+  ccGetTVData, ccGetPollResults,
   setStoredToken,
 } from './api/client';
 import { PersonRow, ProgressBar, Card, AnnouncementInput } from './ui';
@@ -23,15 +23,6 @@ const MENTORS = [
   { name: 'Lídia Zimba',  role: 'Fundadora',              company: 'Zimba Agro',         area: 'Agricultura' },
 ];
 
-const MENTEES = [
-  { name: 'Ana Mondlane',     course: 'Gestão · UEM',                    goal: 'Escolher a minha área',          pitch: 'Quero descobrir que área seguir depois do curso.' },
-  { name: 'Bruno Chissano',   course: 'Engenharia Informática · ISCTEM', goal: 'Preparar o primeiro estágio',    pitch: 'Procuro orientação para o meu primeiro estágio.' },
-  { name: 'Cláudia Nhantumbo',course: 'Direito · UEM',                   goal: 'Construir a minha marca pessoal', pitch: 'Quero comunicar melhor o que sei fazer.' },
-  { name: 'Dino Matola',      course: 'Economia · ISUTC',                goal: 'Desenvolver competências',       pitch: 'Quero reforçar a análise de dados.' },
-  { name: 'Elsa Macie',       course: 'Agronomia · UEM',                 goal: 'Criar o meu negócio',            pitch: 'Tenho uma ideia de negócio agrícola.' },
-  { name: 'Fátima Sitoe',     course: 'Marketing · ISCIM',               goal: 'Mudar de percurso',              pitch: 'Quero passar de vendas para marketing.' },
-];
-
 // ── ORGANIZER LIVE ───────────────────────────
 export const OrganizerLive = ({
   phaseLabel, secondsLeft, currentRound, isPaused, isRehearsal,
@@ -42,12 +33,14 @@ export const OrganizerLive = ({
   const [announcements, setAnnouncements] = useState([]);
 
   useEffect(() => {
+    let active = true;
     const load = async () => {
       try {
         const [roundResp, annResp] = await Promise.all([
           ccGetOrganizerRounds(),
           ccGetAnnouncements({}),
         ]);
+        if (!active) return;
         setRounds(roundResp.data?.rounds || []);
         setAnnouncements(annResp.data?.announcements || []);
       } catch (err) {
@@ -55,7 +48,10 @@ export const OrganizerLive = ({
       }
     };
     load();
-  }, [showToast]);
+    // Refresh when the round changes so the pairs table stays in sync
+    const interval = setInterval(load, 8000);
+    return () => { active = false; clearInterval(interval); };
+  }, [showToast, currentRound]);
 
   const current = rounds.find((r) => r.status === 'running') || rounds[rounds.length - 1] || null;
 
@@ -241,26 +237,44 @@ export const OrganizerInteraction = ({ showToast }) => {
   const [announcements, setAnnouncements] = useState([]);
   const [questions, setQuestions] = useState([]);
   const [polls, setPolls] = useState([]);
+  const [pollResults, setPollResults] = useState({});
   const [newPollQuestion, setNewPollQuestion] = useState('');
   const [newPollOptions, setNewPollOptions] = useState('');
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
+    let active = true;
     const load = async () => {
       try {
         const [annResp, qResp, pResp] = await Promise.all([
           ccGetAnnouncements({}),
-          ccGetQuestions({}),
+          ccGetQuestions({ status: 'all' }),
           ccGetPolls({}),
         ]);
+        if (!active) return;
         setAnnouncements(annResp.data?.announcements || []);
         setQuestions(qResp.data?.questions || []);
-        setPolls(pResp.data?.polls || []);
+        const loadedPolls = pResp.data?.polls || [];
+        setPolls(loadedPolls);
+        // Fetch live results for each poll
+        const resultsEntries = await Promise.all(
+          loadedPolls.map(async (poll) => {
+            try {
+              const rResp = await ccGetPollResults({ poll_id: poll.id });
+              return [poll.id, rResp.data?.results || []];
+            } catch {
+              return [poll.id, []];
+            }
+          })
+        );
+        if (active) setPollResults(Object.fromEntries(resultsEntries));
       } catch (err) {
         console.error('Failed to load interaction data:', err);
       }
     };
     load();
+    const interval = setInterval(load, 6000);
+    return () => { active = false; clearInterval(interval); };
   }, [showToast]);
 
   const POLL_OPTIONS = ['Falta de experiência', 'Contactos', 'Competências', 'Orientação'];
@@ -328,22 +342,32 @@ export const OrganizerInteraction = ({ showToast }) => {
       <Card>
         <div className="flex items-center justify-between mb-3.5"><b>Sondagem ao vivo</b></div>
         {polls.length > 0 ? (
-          polls.map((poll) => (
-            <div key={poll.id} className="mt-3">
-              <div className="flex justify-between text-[.85rem] mb-1">
-                <span>{poll.question}</span>
-              </div>
-              {(poll.options || []).map((opt, idx) => (
-                <div key={idx} className="flex justify-between text-[.85rem] mt-1 gap-2.5">
-                  <span className="min-w-[120px]">{opt}</span>
-                  <div className="flex-1"><ProgressBar value={50} /></div>
-                  <b>0</b>
+          polls.map((poll) => {
+            const results = pollResults[poll.id] || [];
+            const totalVotes = results.reduce((sum, r) => sum + (r.votes || 0), 0);
+            return (
+              <div key={poll.id} className="mt-3">
+                <div className="flex justify-between text-[.85rem] mb-1">
+                  <span>{poll.question}</span>
+                  <span className="text-[.76rem] text-ink-muted">{totalVotes} votos</span>
                 </div>
-              ))}
-            </div>
-          ))
+                {(poll.options || []).map((opt, idx) => {
+                  const found = results.find((r) => r.index === idx);
+                  const votes = found ? (found.votes || 0) : 0;
+                  const pct = totalVotes ? Math.round((votes / totalVotes) * 100) : 0;
+                  return (
+                    <div key={idx} className="flex justify-between text-[.85rem] mt-1 gap-2.5 items-center">
+                      <span className="min-w-[120px] flex-1">{typeof opt === 'object' ? opt.option : opt}</span>
+                      <div className="w-[120px]"><ProgressBar value={pct} /></div>
+                      <b className="w-[70px] text-right">{pct}%</b>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })
         ) : (
-          POLL_OPTIONS.map((option, index) => (
+          POLL_OPTIONS.map((option) => (
             <div key={option} className="flex justify-between items-center text-[.85rem] mt-2.5 gap-2.5">
               <span className="min-w-[120px]">{option}</span>
               <div className="flex-1"><ProgressBar value={0} /></div>
@@ -446,12 +470,25 @@ export const OrganizerReports = ({ showToast }) => {
 };
 
 // ── PROFILE (shared) ─────────────────────────
+const AREAS = [
+  'Tecnologia e TI', 'Finanças e Banca', 'Engenharia', 'Saúde', 'Direito',
+  'Marketing e Comunicação', 'Gestão e Empreendedorismo', 'Recursos Humanos',
+  'Energia e Recursos Naturais', 'Educação', 'Agricultura', 'Logística',
+];
+const GOALS = [
+  'Escolher a minha área', 'Preparar o primeiro estágio', 'Construir a minha marca pessoal',
+  'Desenvolver competências', 'Mudar de percurso', 'Criar o meu negócio',
+];
+const LEVELS = ['Estudante', 'Recém-graduado'];
+const SUPPORT_TYPES = ['Mentor', 'Coach', 'Orientação pontual'];
+
+// ── PROFILE (shared) ─────────────────────────
 const EMPTY_MENTOR = {
   name: '', phone: '', job_title: '', company: '', sector: '', years: '',
-  support_type: '', interests: '', can_help_goals: '', linkedin_url: '',
+  support_type: '', interests: [], can_help_goals: [], linkedin_url: '',
 };
 const EMPTY_MENTEE = {
-  name: '', phone: '', course: '', institution: '', goal: '', pitch: '',
+  name: '', phone: '', level: '', course: '', institution: '', interests: [], goal: '', pitch: '',
 };
 
 export const ProfileScreen = ({ asRole, setRole, showToast }) => {
@@ -476,8 +513,8 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
             sector: mp.sector || '',
             years: mp.years != null ? String(mp.years) : '',
             support_type: mp.support_type || '',
-            interests: Array.isArray(mp.interests) ? mp.interests.join(', ') : (mp.interests || ''),
-            can_help_goals: Array.isArray(mp.can_help_goals) ? mp.can_help_goals.join(', ') : (mp.can_help_goals || ''),
+            interests: Array.isArray(mp.interests) ? mp.interests : [],
+            can_help_goals: Array.isArray(mp.can_help_goals) ? mp.can_help_goals : [],
             linkedin_url: user?.linkedin_url || '',
           });
         } else {
@@ -485,8 +522,10 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
           setForm({
             name: user?.name || '',
             phone: user?.phone || '',
+            level: mp.level || '',
             course: mp.course || '',
             institution: mp.institution || '',
+            interests: Array.isArray(mp.interests) ? mp.interests : [],
             goal: mp.goal || '',
             pitch: mp.pitch || '',
           });
@@ -499,7 +538,11 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
   }, [showToast, asRole, isMentor]);
 
   const set = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
-  const toList = (s) => s.split(',').map((x) => x.trim()).filter(Boolean);
+  const toggle = (key, val) => setForm((p) => {
+    const cur = p[key] || [];
+    const next = cur.includes(val) ? cur.filter((x) => x !== val) : [...cur, val];
+    return { ...p, [key]: next };
+  });
 
   const subtitle = isMentor
     ? [form.job_title, form.company].filter(Boolean).join(', ') || form.name || 'Utilizador'
@@ -507,6 +550,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
 
   const inputCls = 'w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none';
   const labelCls = 'block text-[.85rem] font-semibold mb-1.5';
+  const chipCls = (active) => `rounded-full border px-3 py-1.5 text-[.85rem] font-medium transition ${active ? 'bg-primary-500 border-primary-500 text-white' : 'border-line text-ink bg-surface'}`;
 
   const handleSave = async () => {
     setSaving(true);
@@ -523,8 +567,8 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
             sector: form.sector,
             years: form.years ? Number(form.years) : null,
             support_type: form.support_type,
-            interests: toList(form.interests),
-            can_help_goals: toList(form.can_help_goals),
+            interests: form.interests,
+            can_help_goals: form.can_help_goals,
           },
         };
       } else {
@@ -532,8 +576,10 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
           name: form.name,
           phone: form.phone,
           menteeProfile: {
+            level: form.level || null,
             course: form.course,
             institution: form.institution,
+            interests: form.interests,
             goal: form.goal,
             pitch: form.pitch,
           },
@@ -556,73 +602,63 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
 
         {isMentor ? (
           <div className="mt-4 space-y-3">
-            <div>
-              <label className={labelCls}>Nome</label>
-              <input value={form.name} onChange={set('name')} className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Telemóvel</label>
-              <input value={form.phone} onChange={set('phone')} placeholder="+258 84 000 0000" className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Cargo</label>
-              <input value={form.job_title} onChange={set('job_title')} placeholder="Ex.: Engenheiro de Software" className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Empresa</label>
-              <input value={form.company} onChange={set('company')} placeholder="Ex.: Vodacom" className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Área / Setor</label>
-              <input value={form.sector} onChange={set('sector')} placeholder="Ex.: Tecnologia e TI" className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Anos de experiência</label>
-              <input type="number" min="0" value={form.years} onChange={set('years')} className={inputCls} />
-            </div>
+            <div><label className={labelCls}>Nome</label><input value={form.name} onChange={set('name')} className={inputCls} /></div>
+            <div><label className={labelCls}>Telemóvel</label><input value={form.phone} onChange={set('phone')} placeholder="+258 84 000 0000" className={inputCls} /></div>
+            <div><label className={labelCls}>Cargo</label><input value={form.job_title} onChange={set('job_title')} placeholder="Ex.: Engenheiro de Software" className={inputCls} /></div>
+            <div><label className={labelCls}>Empresa</label><input value={form.company} onChange={set('company')} placeholder="Ex.: Vodacom" className={inputCls} /></div>
+            <div><label className={labelCls}>Setor</label><input value={form.sector} onChange={set('sector')} placeholder="Ex.: Tecnologia e TI" className={inputCls} /></div>
+            <div><label className={labelCls}>Anos de experiência</label><input type="number" min="0" value={form.years} onChange={set('years')} className={inputCls} /></div>
             <div>
               <label className={labelCls}>Tipo de apoio</label>
-              <input value={form.support_type} onChange={set('support_type')} placeholder="Ex.: Mentor, Coach, Orientação pontual" className={inputCls} />
+              <select value={form.support_type} onChange={set('support_type')} className={inputCls}>
+                {SUPPORT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
             </div>
             <div>
-              <label className={labelCls}>Interesses (separados por vírgula)</label>
-              <input value={form.interests} onChange={set('interests')} placeholder="Ex.: Tecnologia e TI, Engenharia" className={inputCls} />
+              <label className={labelCls}>Áreas em que ajuda (até 3)</label>
+              <div className="flex flex-wrap gap-2 mt-1.5">
+                {AREAS.map((a) => (
+                  <button key={a} type="button" onClick={() => toggle('interests', a)} className={chipCls(form.interests.includes(a))}>{a}</button>
+                ))}
+              </div>
             </div>
             <div>
-              <label className={labelCls}>Objetivos em que ajudas (separados por vírgula)</label>
-              <input value={form.can_help_goals} onChange={set('can_help_goals')} placeholder="Ex.: Escolher a minha área, Desenvolver competências" className={inputCls} />
+              <label className={labelCls}>Objetivos em que pode ajudar</label>
+              <div className="flex flex-wrap gap-2 mt-1.5">
+                {GOALS.map((g) => (
+                  <button key={g} type="button" onClick={() => toggle('can_help_goals', g)} className={chipCls(form.can_help_goals.includes(g))}>{g}</button>
+                ))}
+              </div>
             </div>
-            <div>
-              <label className={labelCls}>LinkedIn</label>
-              <input value={form.linkedin_url} onChange={set('linkedin_url')} placeholder="https://linkedin.com/in/..." className={inputCls} />
-            </div>
+            <div><label className={labelCls}>LinkedIn</label><input value={form.linkedin_url} onChange={set('linkedin_url')} placeholder="https://linkedin.com/in/..." className={inputCls} /></div>
           </div>
         ) : (
           <div className="mt-4 space-y-3">
+            <div><label className={labelCls}>Nome</label><input value={form.name} onChange={set('name')} className={inputCls} /></div>
+            <div><label className={labelCls}>Telemóvel</label><input value={form.phone} onChange={set('phone')} placeholder="+258 84 000 0000" className={inputCls} /></div>
             <div>
-              <label className={labelCls}>Nome</label>
-              <input value={form.name} onChange={set('name')} className={inputCls} />
+              <label className={labelCls}>Situação</label>
+              <select value={form.level} onChange={set('level')} className={inputCls}>
+                {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+              </select>
             </div>
+            <div><label className={labelCls}>Curso</label><input value={form.course} onChange={set('course')} className={inputCls} /></div>
+            <div><label className={labelCls}>Instituição</label><input value={form.institution} onChange={set('institution')} className={inputCls} /></div>
             <div>
-              <label className={labelCls}>Telemóvel</label>
-              <input value={form.phone} onChange={set('phone')} placeholder="+258 84 000 0000" className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Curso</label>
-              <input value={form.course} onChange={set('course')} className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Instituição</label>
-              <input value={form.institution} onChange={set('institution')} className={inputCls} />
+              <label className={labelCls}>Áreas de interesse (até 3)</label>
+              <div className="flex flex-wrap gap-2 mt-1.5">
+                {AREAS.map((a) => (
+                  <button key={a} type="button" onClick={() => toggle('interests', a)} className={chipCls(form.interests.includes(a))}>{a}</button>
+                ))}
+              </div>
             </div>
             <div>
               <label className={labelCls}>Objetivo</label>
-              <input value={form.goal} onChange={set('goal')} className={inputCls} />
+              <select value={form.goal} onChange={set('goal')} className={inputCls}>
+                {GOALS.map((g) => <option key={g} value={g}>{g}</option>)}
+              </select>
             </div>
-            <div>
-              <label className={labelCls}>Pitch (120 caracteres)</label>
-              <textarea value={form.pitch} onChange={set('pitch')} maxLength={120} rows="3" className={inputCls} />
-            </div>
+            <div><label className={labelCls}>Pitch (120 caracteres)</label><textarea value={form.pitch} onChange={set('pitch')} maxLength={120} rows="3" className={inputCls} /></div>
           </div>
         )}
 
@@ -638,7 +674,6 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
     </>
   );
 };
-
 // ── TV / PROJECTOR ───────────────────────────
 export const TvScreen = ({ announcements, phaseLabel, currentRound, secondsLeft, showToast, setRole }) => {
   const [tvData, setTvData] = useState(null);

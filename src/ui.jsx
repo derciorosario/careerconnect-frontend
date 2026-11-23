@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import QRCode from 'qrcode';
 import { getInitials } from './data';
 
 export const Avatar = ({ name, size = 'md', variant = 'navy' }) => {
@@ -103,5 +104,39 @@ export const AnnouncementInput = ({ onSubmit }) => {
         Enviar anúncio
       </button>
     </>
+  );
+};
+
+// Real, scannable QR code. Falls back to the ticket text if generation fails.
+export const QrCode = ({ value, size = 120, className = '' }) => {
+  const [dataUrl, setDataUrl] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    if (!value) { setDataUrl(''); return; }
+    QRCode.toDataURL(String(value), {
+      errorCorrectionLevel: 'M',
+      margin: 1,
+      width: size * 2,
+      color: { dark: '#1b2a57', light: '#ffffff' },
+    })
+      .then((url) => { if (active) setDataUrl(url); })
+      .catch(() => { if (active) setDataUrl(''); });
+    return () => { active = false; };
+  }, [value, size]);
+
+  if (!value) return null;
+
+  return (
+    <div
+      className={`bg-white rounded-[14px] p-1.5 shrink-0 grid place-items-center ${className}`}
+      style={{ width: size, height: size }}
+    >
+      {dataUrl ? (
+        <img src={dataUrl} alt="QR Code" width={size} height={size} className="w-full h-full" />
+      ) : (
+        <span className="text-[.6rem] text-ink-muted text-center break-all px-1">{value}</span>
+      )}
+    </div>
   );
 };

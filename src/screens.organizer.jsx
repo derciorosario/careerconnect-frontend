@@ -92,7 +92,7 @@ export const OrganizerLive = ({
       }
     };
     load();
-    const interval = setInterval(load, 8000);
+    const interval = setInterval(load, 2000);
     return () => { active = false; clearInterval(interval); };
   }, []); // 👈 stable deps — interval + one initial load only
 
@@ -148,6 +148,12 @@ export const OrganizerLive = ({
               className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-600 text-white"
             >
               Gerar pares
+            </button>
+            <button
+              onClick={restartSimulation}
+              className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-red-600 text-white"
+            >
+              Terminar
             </button>
           </div>
           <label className="flex gap-2.5 items-center text-[.85rem] mt-4">

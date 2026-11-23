@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ccGetQuestions, ccCreateQuestion, ccUpdateQuestion, ccDeleteQuestion } from '../api/client';
+import { ccGetQuestions, ccCreateQuestion, ccUpdateQuestion, ccDeleteQuestion, ccDeleteAllQuestions } from '../api/client';
 import { Card } from '../ui';
 
 export const OrganizerQuestions = ({ showToast }) => {
@@ -72,6 +72,17 @@ export const OrganizerQuestions = ({ showToast }) => {
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (!window.confirm(`Tem a certeza que quer remover TODAS as ${questions.length} perguntas? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await ccDeleteAllQuestions();
+      showToast('Todas as perguntas foram removidas.');
+      loadQuestions();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao remover todas as perguntas.');
+    }
+  };
+
   const handleCancel = () => {
     setShowForm(false);
     setEditingQuestion(null);
@@ -95,9 +106,16 @@ export const OrganizerQuestions = ({ showToast }) => {
       <Card>
         <div className="flex items-center justify-between mb-3.5">
           <b>Perguntas (CRUD)</b>
-          <button onClick={() => { setShowForm(true); setEditingQuestion(null); setFormData({ body: '', status: 'visible', projected: false, anonymous: false }); }} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white">
-            + Nova Pergunta
-          </button>
+          <div className="flex gap-2">
+            {questions.length > 0 && (
+              <button onClick={handleDeleteAll} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-red-600 text-white hover:bg-red-700">
+                Remover todas
+              </button>
+            )}
+            <button onClick={() => { setShowForm(true); setEditingQuestion(null); setFormData({ body: '', status: 'visible', projected: false, anonymous: false }); }} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white">
+              + Nova Pergunta
+            </button>
+          </div>
         </div>
         {showForm && (
           <form onSubmit={handleSubmit} className="space-y-3 mb-4 p-4 bg-surface rounded-[14px] border border-line">

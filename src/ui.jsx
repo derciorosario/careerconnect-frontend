@@ -154,7 +154,7 @@ export const QrCode = ({ value, size = 120, className = '', downloadable = false
         )}
       </div>
       {displayUrl && (
-        <a href={displayUrl} target="_blank" rel="noopener noreferrer" className="text-[.7rem] font-semibold text-primary-500 underline break-all text-center max-w-[200px]">
+        <a href={displayUrl} target="_blank" rel="noopener noreferrer" className="text-[.7rem] hidden font-semibold text-primary-500 underline break-all text-center max-w-[200px]">
           {displayUrl}
         </a>
       )}

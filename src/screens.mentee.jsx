@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   getFirstName, formatTime,
 } from './data';
@@ -21,7 +21,6 @@ import {
   setStoredToken,
 } from './api/client';
 import { Avatar, PersonRow, ProgressBar, ChecklistItem, Card, QuestionInput, QrCode } from './ui';
-import { useRef } from 'react';
 
 const AREAS = [
   'Tecnologia e TI',
@@ -54,6 +53,34 @@ const ROUNDS = [
   { fromMentee: 3, toMentor: 3 },
 ];
 
+// ── skeleton primitives ──────────────────────
+const SkeletonBar = ({ w = '100%', h = 14, r = 7, className = '', style }) => (
+  <div
+    className={`animate-pulse bg-surface2 ${className}`}
+    style={{ width: w, height: h, borderRadius: r, ...style }}
+    aria-hidden="true"
+  />
+);
+
+const SkeletonCard = ({ children, navy = false }) => (
+  <div
+    className={`${navy ? 'bg-navy' : 'bg-[rgba(255,255,255,.15)] border-line'} animate-pulse rounded-[18px] p-4 mb-3.5 space-y-3`}
+    aria-hidden="true"
+  >
+    {children}
+  </div>
+);
+
+const SkeletonPersonRow = () => (
+  <div className="flex items-center gap-3" aria-hidden="true">
+    <div className="animate-pulse bg-surface2 rounded-full" style={{ width: 44, height: 44 }} />
+    <div className="flex-1 space-y-2">
+      <SkeletonBar w="55%" h={13} />
+      <SkeletonBar w="35%" h={11} />
+    </div>
+  </div>
+);
+
 // ── HOME ─────────────────────────────────────
 export const MenteeHome = ({ showToast }) => {
   const [profile, setProfile] = useState(null);
@@ -65,9 +92,19 @@ export const MenteeHome = ({ showToast }) => {
   const [bookings, setBookings] = useState([]);
   const [wishes, setWishes] = useState([]);
   const [bookingLoading, setBookingLoading] = useState({});
+  // Skeleton shows on every mount (tab entry). Re-renders of an already
+  // mounted page don't re-run the fetch effect, so no blink.
+  const [loading, setLoading] = useState(true);
+
+  // Stable ref so the fetch effect only runs once per mount, not on every
+  // parent re-render that passes a new showToast identity.
+  const showToastRef = useRef(showToast);
+  useEffect(() => { showToastRef.current = showToast; });
 
   useEffect(() => {
+    let cancelled = false;
     const loadData = async () => {
+      setLoading(true);
       try {
         const [profResp, connResp, feedbackResp, badgeResp, progResp, bookingResp, wishResp] = await Promise.all([
           ccGetProfile(),
@@ -78,6 +115,7 @@ export const MenteeHome = ({ showToast }) => {
           ccGetMyBookings(),
           ccGetMyWishes(),
         ]);
+        if (cancelled) return;
         setProfile(profResp.data?.user || null);
         setConnections(connResp.data?.connections || []);
         const feedbacks = feedbackResp.data?.feedback || [];
@@ -87,15 +125,17 @@ export const MenteeHome = ({ showToast }) => {
         setMasterclasses(progResp.data?.event?.sessions || []);
         setBookings(bookingResp.data?.bookings || []);
         setWishes(wishResp.data?.wishes || []);
-        // Use actual ticket code from registration
         const reg = profResp.data?.user?.registrations?.[0];
         setTicketCode(reg?.ticket_code || null);
       } catch (err) {
-        console.error('Failed to load mentee home data:', err);
+        if (!cancelled) console.error('Failed to load mentee home data:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
     loadData();
-  }, [showToast]);
+    return () => { cancelled = true; };
+  }, []); // run once per mount
 
   const bookedSessionIds = new Set(bookings.map((b) => b.session_id));
   const wishedMentorIds = new Set(wishes.map((w) => w.mentor_id));
@@ -110,6 +150,59 @@ export const MenteeHome = ({ showToast }) => {
     { label: 'Primeira conexão',  earned: connectionsCount > 0 },
     { label: 'Mentoria ativa',    earned: badgeData.some((b) => b.code === 'MENTORIA_ATIVA') },
   ];
+
+  if (loading) {
+    return (
+      <div role="status" aria-busy="true" aria-label="A carregar">
+        <SkeletonBar w="55%" h={26} className="mb-2" />
+        <SkeletonBar w="45%" h={12} className="mb-4" />
+
+        <SkeletonCard navy>
+          <div className="flex gap-3 items-center">
+            <div className="flex-1 space-y-2">
+              <SkeletonBar w="30%" h={10} style={{ background: 'rgba(255,255,255,.15)' }} />
+              <SkeletonBar w="65%" h={16} style={{ background: 'rgba(255,255,255,.15)' }} />
+              <SkeletonBar w="50%" h={11} style={{ background: 'rgba(255,255,255,.15)' }} />
+              <SkeletonBar w="40%" h={14} className="mt-3" style={{ background: 'rgba(255,255,255,.15)' }} />
+            </div>
+            <div className="animate-pulse rounded-[10px]" style={{ width: 104, height: 104, background: 'rgba(255,255,255,.12)' }} />
+          </div>
+        </SkeletonCard>
+
+        <SkeletonCard navy>
+          <div className="flex gap-3 items-center">
+            <div className="animate-pulse rounded-full" style={{ width: 104, height: 104, background: 'rgba(255,255,255,.12)' }} />
+            <div className="flex-1 space-y-2">
+              <SkeletonBar w="40%" h={13} style={{ background: 'rgba(255,255,255,.15)' }} />
+              <SkeletonBar w="70%" h={11} style={{ background: 'rgba(255,255,255,.15)' }} />
+            </div>
+          </div>
+        </SkeletonCard>
+
+        {[0, 1].map((i) => (
+          <SkeletonCard key={i}>
+            <SkeletonBar w="35%" h={14} />
+            <div className="flex gap-1.5 flex-wrap mt-2.5">
+              {[0, 1, 2, 3].map((j) => (
+                <SkeletonBar key={j} w={90} h={26} r={13} />
+              ))}
+            </div>
+          </SkeletonCard>
+        ))}
+
+        <SkeletonCard>
+          <SkeletonBar w="50%" h={14} />
+          <SkeletonBar w="30%" h={11} className="mt-2" />
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex justify-between items-center mt-2.5 gap-2.5">
+              <SkeletonBar w="60%" h={12} />
+              <SkeletonBar w={72} h={34} r={17} />
+            </div>
+          ))}
+        </SkeletonCard>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -191,9 +284,9 @@ export const MenteeHome = ({ showToast }) => {
                       await ccBookSession({ session_id: s.id });
                       setBookings((prev) => [...prev, { session_id: s.id }]);
                       bookedSessionIds.add(s.id);
-                      showToast('Masterclass reservada.');
+                      showToastRef.current('Masterclass reservada.');
                     } catch (err) {
-                      showToast(err.response?.data?.message || 'Erro ao reservar.');
+                      showToastRef.current(err.response?.data?.message || 'Erro ao reservar.');
                     } finally {
                       setBookingLoading((p) => { const { [s.id]: _, ...rest } = p; return rest; });
                     }
@@ -225,28 +318,64 @@ export const MenteeLive = ({
   const [mentorDirectory, setMentorDirectory] = useState([]);
   const [myMatches, setMyMatches] = useState(null);
   const [feedbackStatus, setFeedbackStatus] = useState(null);
+  // Skeleton only matters for the async round card. Starts true on mount
+  // when there is a round to load.
+  const [loadingRound, setLoadingRound] = useState(
+    currentRound >= 1 && currentRound <= 4
+  );
+
+  const showToastRef = useRef(showToast);
+  useEffect(() => { showToastRef.current = showToast; });
 
   useEffect(() => {
+    let cancelled = false;
     const loadRound = async () => {
       if (currentRound >= 1 && currentRound <= 4) {
+        setLoadingRound(true);
         try {
           const [roundResp, matchResp] = await Promise.all([
             ccGetCurrentRound({}),
             ccGetMyMatch({}),
           ]);
+          if (cancelled) return;
           setRoundData(roundResp.data?.round || null);
           setMyMatches(matchResp.data?.match || null);
         } catch (err) {
-          console.error('Failed to load round data:', err);
+          if (!cancelled) console.error('Failed to load round data:', err);
+        } finally {
+          if (!cancelled) setLoadingRound(false);
         }
+      } else {
+        setLoadingRound(false);
       }
     };
     loadRound();
+    return () => { cancelled = true; };
+    // Re-run when the round actually changes or the parent signals new data,
+    // but NOT on every render (showToast is behind a ref).
   }, [currentRound, roundDataVersion]);
 
   let body = null;
 
-  if (currentRound === 0) {
+  if (currentRound >= 1 && currentRound <= 4 && loadingRound) {
+    body = (
+      <SkeletonCard navy>
+        <div className="flex justify-between items-center">
+          <SkeletonBar w="35%" h={12} style={{ background: 'rgba(255,255,255,.15)' }} />
+          <SkeletonBar w="18%" h={24} style={{ background: 'rgba(255,255,255,.15)' }} />
+        </div>
+        <div className="animate-pulse rounded-full" style={{ height: 8, background: 'rgba(255,255,255,.12)' }} />
+        <div className="flex gap-3 items-center mt-3">
+          <div className="animate-pulse rounded-[18px]" style={{ width: 64, height: 64, background: 'rgba(255,255,255,.12)' }} />
+          <div className="flex-1 space-y-2">
+            <SkeletonBar w="25%" h={10} style={{ background: 'rgba(255,255,255,.15)' }} />
+            <SkeletonBar w="60%" h={16} style={{ background: 'rgba(255,255,255,.15)' }} />
+            <SkeletonBar w="45%" h={11} style={{ background: 'rgba(255,255,255,.15)' }} />
+          </div>
+        </div>
+      </SkeletonCard>
+    );
+  } else if (currentRound === 0) {
     body = (
       <Card variant="navy">
         <div className="text-[.76rem] font-bold text-primary-300 uppercase tracking-wide">A seguir</div>
@@ -329,9 +458,9 @@ export const MenteeLive = ({
                       wants_to_continue: true,
                     });
                     setFeedbackStatus('continue');
-                    showToast('Interesse enviado.');
+                    showToastRef.current('Interesse enviado.');
                   } catch (err) {
-                    showToast(err.response?.data?.message || 'Erro ao guardar interesse.');
+                    showToastRef.current(err.response?.data?.message || 'Erro ao guardar interesse.');
                   }
                 }}
                 className={`rounded-full font-bold text-[.82rem] h-10 px-4 ${feedbackStatus === 'continue' ? 'bg-primary-500 text-white' : 'bg-surface2 text-ink'}`}
@@ -347,9 +476,9 @@ export const MenteeLive = ({
                       wants_to_continue: false,
                     });
                     setFeedbackStatus('no');
-                    showToast('Sem interesse.');
+                    showToastRef.current('Sem interesse.');
                   } catch (err) {
-                    showToast(err.response?.data?.message || 'Erro ao guardar.');
+                    showToastRef.current(err.response?.data?.message || 'Erro ao guardar.');
                   }
                 }}
                 className={`rounded-full font-bold text-[.82rem] h-10 px-4 ${feedbackStatus === 'no' ? 'bg-surface2 text-ink' : 'bg-surface2 text-ink'}`}
@@ -388,7 +517,7 @@ export const MenteeLive = ({
                   const resp = await ccVoteQuestion({ question_id: question.id });
                   setQuestions((previous) => previous.map((q, i) => (i === index ? { ...q, votes: resp.data?.votes ?? q.votes, voted: resp.data?.voted } : q)));
                 } catch (err) {
-                  showToast(err.response?.data?.message || 'Erro ao votar.');
+                  showToastRef.current(err.response?.data?.message || 'Erro ao votar.');
                 }
               }}
               className={`rounded-full font-bold text-[.76rem] h-[34px] px-3.5 ${question.voted ? 'bg-primary-500 text-white' : 'bg-surface2 text-ink'}`}
@@ -402,9 +531,9 @@ export const MenteeLive = ({
             const resp = await ccCreateQuestion({ session_id: 'current', body: text });
             const created = resp.data?.question;
             setQuestions((previous) => [...previous, { ...created, votes: 0, mine: true }]);
-            showToast('Pergunta enviada.');
+            showToastRef.current('Pergunta enviada.');
           } catch (err) {
-            showToast(err.response?.data?.message || 'Erro ao enviar pergunta.');
+            showToastRef.current(err.response?.data?.message || 'Erro ao enviar pergunta.');
           }
         }} />
       </Card>
@@ -429,8 +558,7 @@ export const MenteeLive = ({
                   try {
                     const resp = await ccVotePoll({ poll_id: 'current', option_index: index });
                     setVotedOption(resp.data?.option_index ?? index);
-                    showToast(resp.data?.voted ? (resp.data?.message === 'Vote changed' ? 'Voto alterado.' : 'Voto registado.') : 'Voto removido.');
-                    // Refresh poll results
+                    showToastRef.current(resp.data?.voted ? (resp.data?.message === 'Vote changed' ? 'Voto alterado.' : 'Voto registado.') : 'Voto removido.');
                     const prResp = await ccGetPollResults({});
                     const results = prResp.data?.results || [];
                     if (results.length > 0) {
@@ -438,7 +566,7 @@ export const MenteeLive = ({
                       if (merged.length > 0) setPollVotes(merged);
                     }
                   } catch (err) {
-                    showToast(err.response?.data?.message || 'Erro ao votar.');
+                    showToastRef.current(err.response?.data?.message || 'Erro ao votar.');
                   }
                 }}
                 className={`mt-2 rounded-full font-bold text-[.76rem] h-[34px] px-3.5 ${isVoted ? 'bg-primary-500 text-white' : 'bg-surface2 text-ink'}`}
@@ -457,22 +585,50 @@ export const MenteeLive = ({
 export const MenteeMentors = ({ showToast }) => {
   const [mentors, setMentors] = useState([]);
   const [wished, setWished] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const showToastRef = useRef(showToast);
+  useEffect(() => { showToastRef.current = showToast; });
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
+      setLoading(true);
       try {
         const [dirResp, wishResp] = await Promise.all([
           ccGetMentorDirectory({}),
           ccGetMyWishes(),
         ]);
+        if (cancelled) return;
         setMentors(dirResp.data?.mentors || []);
         setWished((wishResp.data?.wishes || []).map((w) => w.mentor_id));
       } catch (err) {
-        console.error('Failed to load mentors:', err);
+        if (!cancelled) console.error('Failed to load mentors:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
     load();
-  }, [showToast]);
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading) {
+    return (
+      <div role="status" aria-busy="true" aria-label="A carregar mentores">
+        <SkeletonBar w="40%" h={26} className="mb-2" />
+        <SkeletonBar w="80%" h={12} className="mb-4" />
+        {[0, 1, 2, 3].map((i) => (
+          <SkeletonCard key={i}>
+            <SkeletonPersonRow />
+            <div className="flex gap-1.5 flex-wrap mt-2.5">
+              <SkeletonBar w={100} h={26} r={13} />
+              <SkeletonBar w={80} h={26} r={13} />
+            </div>
+          </SkeletonCard>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <>
@@ -494,19 +650,19 @@ export const MenteeMentors = ({ showToast }) => {
                       try {
                         await ccRemoveWish({ mentor_id: mentor.id });
                         setWished((prev) => prev.filter((id) => id !== mentor.id));
-                        showToast(`Interesse em ${mentor.name} removido.`);
+                        showToastRef.current(`Interesse em ${mentor.name} removido.`);
                       } catch (err) {
-                        showToast(err.response?.data?.message || 'Erro ao remover.');
+                        showToastRef.current(err.response?.data?.message || 'Erro ao remover.');
                       }
                       return;
                     }
-                    if (wished.length >= 5) return showToast('Máximo de 5 mentores.');
+                    if (wished.length >= 5) return showToastRef.current('Máximo de 5 mentores.');
                     try {
                       await ccAddWish({ mentor_id: mentor.id });
                       setWished([...wished, mentor.id]);
-                      showToast(`Interesse em ${mentor.name} guardado.`);
+                      showToastRef.current(`Interesse em ${mentor.name} guardado.`);
                     } catch (err) {
-                      showToast(err.response?.data?.message || 'Erro ao guardar.');
+                      showToastRef.current(err.response?.data?.message || 'Erro ao guardar.');
                     }
                   }}
                   className={`rounded-full font-bold text-[.76rem] h-[34px] px-3.5 ${isWished ? 'bg-primary-500 text-white' : 'bg-surface2 text-ink'}`}
@@ -530,22 +686,48 @@ export const MenteeMentors = ({ showToast }) => {
 export const MenteeMet = ({ showToast }) => {
   const [connections, setConnections] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const showToastRef = useRef(showToast);
+  useEffect(() => { showToastRef.current = showToast; });
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
+      setLoading(true);
       try {
         const [connResp, reqResp] = await Promise.all([
           ccGetConnections(),
           ccGetMyMentorshipRequests(),
         ]);
+        if (cancelled) return;
         setConnections(connResp.data?.connections || []);
         setRequests(reqResp.data?.requests || []);
       } catch (err) {
-        console.error('Failed to load met data:', err);
+        if (!cancelled) console.error('Failed to load met data:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
     load();
-  }, [showToast]);
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading) {
+    return (
+      <div role="status" aria-busy="true" aria-label="A carregar">
+        <SkeletonBar w="45%" h={26} className="mb-2" />
+        <SkeletonBar w="70%" h={12} className="mb-4" />
+        {[0, 1].map((i) => (
+          <SkeletonCard key={i}>
+            <SkeletonPersonRow />
+            <SkeletonBar w="60%" h={11} className="mt-3" />
+            <SkeletonBar w={120} h={34} r={17} className="mt-3" />
+          </SkeletonCard>
+        ))}
+      </div>
+    );
+  }
 
   if (connections.length === 0) {
     return (
@@ -586,9 +768,9 @@ export const MenteeMet = ({ showToast }) => {
                     try {
                       await ccCreateMentorshipRequest({ mentor_id: contact.id, message: 'Olá, gostava de ter o teu apoio como mentor.' });
                       setRequests([...requests, { mentor_id: contact.id, status: 'pending', message: 'Olá, gostava de ter o teu apoio como mentor.' }]);
-                      showToast('Pedido de mentoria enviado.');
+                      showToastRef.current('Pedido de mentoria enviado.');
                     } catch (err) {
-                      showToast(err.response?.data?.message || 'Erro ao enviar pedido.');
+                      showToastRef.current(err.response?.data?.message || 'Erro ao enviar pedido.');
                     }
                   }}
                   className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white"
@@ -608,22 +790,48 @@ export const MenteeMet = ({ showToast }) => {
 export const MenteeConnections = ({ showToast }) => {
   const [connections, setConnections] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const showToastRef = useRef(showToast);
+  useEffect(() => { showToastRef.current = showToast; });
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
+      setLoading(true);
       try {
         const [connResp, reqResp] = await Promise.all([
           ccGetConnections(),
           ccGetMyMentorshipRequests(),
         ]);
+        if (cancelled) return;
         setConnections(connResp.data?.connections || []);
         setRequests(reqResp.data?.requests || []);
       } catch (err) {
-        console.error('Failed to load connections:', err);
+        if (!cancelled) console.error('Failed to load connections:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
     load();
-  }, [showToast]);
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading) {
+    return (
+      <div role="status" aria-busy="true" aria-label="A carregar conexões">
+        <SkeletonBar w="35%" h={26} className="mb-2" />
+        <SkeletonBar w="65%" h={12} className="mb-4" />
+        {[0, 1, 2].map((i) => (
+          <SkeletonCard key={i}>
+            <SkeletonPersonRow />
+            <SkeletonBar w="60%" h={11} className="mt-3" />
+            <SkeletonBar w={120} h={34} r={17} className="mt-3" />
+          </SkeletonCard>
+        ))}
+      </div>
+    );
+  }
 
   if (connections.length === 0) {
     return (
@@ -662,7 +870,7 @@ export const MenteeConnections = ({ showToast }) => {
                 onClick={() => {
                   ccCreateMentorshipRequest({ mentor_id: contact.id, message: 'Olá, gostava de ter o teu apoio como mentor.' });
                   setRequests([...requests, { mentor_id: contact.id, status: 'pending', message: 'Olá, gostava de ter o teu apoio como mentor.' }]);
-                  showToast('Pedido enviado.');
+                  showToastRef.current('Pedido enviado.');
                 }}
                 className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white"
               >
@@ -698,8 +906,8 @@ export const MenteeMessages = ({ showToast }) => {
     if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Runs once on mount. Uses showToastRef so [showToast] never needs to
-  // be a dependency — prevents the loading screen from blinking on every
+  // Runs once per mount. Uses showToastRef so [showToast] never needs to
+  // be a dependency — prevents the loading skeleton from blinking on every
   // parent render.
   useEffect(() => {
     let cancelled = false;
@@ -815,9 +1023,25 @@ export const MenteeMessages = ({ showToast }) => {
 
       {/* Header never unmounts — only the body below swaps, so no blink */}
       {loading ? (
-        <Card>
-          <p className="text-ink-muted text-[.85rem]">A carregar conversas…</p>
-        </Card>
+        <div role="status" aria-busy="true" aria-label="A carregar conversas">
+          {[0, 1].map((i) => (
+            <div key={i} className="border border-line rounded-[16px] p-3.5 mb-3">
+              <div className="flex justify-between items-center mb-2.5 gap-2">
+                <SkeletonPersonRow />
+                <SkeletonBar w={24} h={18} r={9} />
+              </div>
+              <div className="space-y-1.5 mb-2.5">
+                <SkeletonBar w="55%" h={30} r={10} />
+                <SkeletonBar w="45%" h={30} r={10} className="ml-auto" />
+                <SkeletonBar w="60%" h={30} r={10} />
+              </div>
+              <div className="flex gap-2 max-md:flex-col">
+                <SkeletonBar w="100%" h={38} r={10} />
+                <SkeletonBar w={72} h={38} r={19} />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : connections.length === 0 ? (
         <Card>
           <b>Sem conexões ainda.</b>

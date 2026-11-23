@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import mainLogo from './assets/patners/main.png';
 import logo from './assets/logo.png';
 import mentor1 from './assets/mentors/1.jpeg';
 import mentor2 from './assets/mentors/2.jpeg';
@@ -98,8 +99,15 @@ export default function Landingpage() {
         <header className="flex justify-between items-center py-5">
           <img src={logo} alt="Career Connect" className="h-10 md:h-12 w-auto" />
           <div className="flex gap-2.5 items-center">
-            <Link to="/registo" className={BTN_BASE}>Garantir o meu lugar</Link>
+            {/**<Link to="/registo" className={BTN_BASE}>Garantir o meu lugar</Link> */}
             <Link to="/entrar" className={`${BTN_BASE} ${BTN_GHOST}`}>Entrar</Link>
+            <div className="h-[20px] w-[1px] bg-gray-500 rounded-4xl mx-1"></div>
+            <div>
+              <Link to="https://tecnicol.co.mz">
+                  <img src={mainLogo} alt="Career Connect" className="h-10 md:h-12 w-auto" />
+              </Link>
+               
+            </div>
           </div>
         </header>
 

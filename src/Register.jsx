@@ -207,7 +207,7 @@ export default function Register() {
               <option value="mentor">Mentor (profissional)</option>
             </select>
         </div>
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5 hidden">
           <label className="text-[.85rem] font-semibold">Foto (opcional)</label>
           <input type="file" accept="image/*" onChange={(e) => {
             const file = e.target.files?.[0];
@@ -411,7 +411,7 @@ export default function Register() {
           {isMentee && (
             <div className="bg-surface2 rounded-lg p-4 mb-6 border border-line">
               <p className="text-[.85rem] font-semibold text-ink mb-2">Bilhete digital</p>
-              <p className="text-[.85rem] text-ink-muted">O seu bilhete com QR Code e código curto foi enviado por e-mail.</p>
+              <p className="text-[.85rem] text-ink-muted">O seu bilhete com código foi enviado por e-mail.</p>
             </div>
           )}
           <div className="text-danger text-sm font-semibold">{error}</div>

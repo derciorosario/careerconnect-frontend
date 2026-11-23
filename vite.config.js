@@ -21,31 +21,32 @@ const pwaOptions = {
   },
   includeManifestIconsInDownloadUrls: false,
   manifest: {
-    name: 'J. RIBEIRO SERVIÇOS E.I',
-    short_name: 'JuDelivery',
-    description: 'Delivery and service platform',
-    theme_color: '#0f172a',
-    background_color: '#0f172a',
+    name: 'Career Connect',
+    short_name: 'CareerConnect',
+    description: 'Plataforma de mentoria e networking profissional',
+    theme_color: '#1b2a57',
+    background_color: '#1b2a57',
     display: 'standalone',
     display_override: ['window-controls-overlay'],
     orientation: 'portrait',
     scope: '/',
     start_url: '/',
+    lang: 'pt-PT',
     prefer_related_applications: false,
     icons: manifestIcons,
     shortcuts: [
       {
-        name: 'Pedidos',
-        short_name: 'Pedidos',
-        description: 'Ver pedidos',
-        url: '/orders',
+        name: 'Mentores',
+        short_name: 'Mentores',
+        description: 'Ver mentores disponíveis',
+        url: '/app/mentee/mentors',
         icons: [{ src: 'assets/icons/icon-96.webp', sizes: '96x96' }]
       },
       {
         name: 'Perfil',
         short_name: 'Perfil',
-        description: 'Ver perfil',
-        url: '/profile',
+        description: 'Ver o meu perfil',
+        url: '/app/mentee/profile',
         icons: [{ src: 'assets/icons/icon-96.webp', sizes: '96x96' }]
       }
     ]

@@ -9,6 +9,7 @@ export const CheckInScreen = () => {
   const [checked, setChecked] = useState(false);
   const [registration, setRegistration] = useState(null);
   const [regLoading, setRegLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -36,6 +37,7 @@ export const CheckInScreen = () => {
     }
     const loadRegistration = async () => {
       setRegLoading(true);
+      setNotFound(false);
       try {
         const resp = await ccGetRegistrationByTicket(ticketCode);
         const reg = resp.data?.registration || null;
@@ -44,7 +46,7 @@ export const CheckInScreen = () => {
           setChecked(true);
         }
       } catch {
-        // Registration not found or error
+        setNotFound(true);
       } finally {
         setRegLoading(false);
       }
@@ -78,6 +80,14 @@ export const CheckInScreen = () => {
           <h2 className="text-[1.5rem] font-extrabold tracking-tight mb-2">Check-in</h2>
           {regLoading ? (
             <p className="text-ink-muted text-[.85rem] mb-6">A validar bilhete...</p>
+          ) : notFound ? (
+            <div className="text-center py-4">
+              <div className="w-12 h-12 rounded-full bg-red-500 text-white grid place-items-center font-extrabold text-[1.5rem] mx-auto mb-3">
+                ✕
+              </div>
+              <p className="text-red-500 font-semibold text-[1.1rem]">Bilhete inválido</p>
+              <p className="text-ink-muted text-[.85rem] mt-1">O código <b className="text-primary-500 font-mono">{ticketCode}</b> não foi encontrado.</p>
+            </div>
           ) : ticketCode ? (
             <>
               <p className="text-ink-muted text-[.85rem] mb-2">Código do bilhete: <b className="text-primary-500 font-mono">{ticketCode}</b></p>

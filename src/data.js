@@ -88,6 +88,7 @@ export const ORGANIZER_TABS = [
   { key: 'live', label: 'Ao vivo' },
   { key: 'reg',  label: 'Inscritos' },
   { key: 'pools', label: 'Pools' },
+  { key: 'sessions', label: 'Sessões' },
   { key: 'questions', label: 'Perguntas' },
   { key: 'int',  label: 'Interação' },
   { key: 'rep',  label: 'Relatórios' },

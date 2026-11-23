@@ -3,10 +3,10 @@ export const env = "dev";
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 export const isNative = Capacitor.isNativePlatform();
 export const APP_VERSION="1.6"
-export const FRONTEND_URL = "https://jrmultiservicos.co.mz"
+export const FRONTEND_URL = "http://career.tecnicol.co.mz"
 export const API_URL = 
- env == "dev" ? isNative ? "http://192.168.18.3:5001/api" : "http://localhost:5001/api" :
-  "https://api.jrmultiservicos.co.mz/api";
+ env == "dev" ? isNative ? "http://192.168.18.3:5001/api" : "http://localhost:5006/api" :
+  "https://career-tecnicol-api.derflash.com/api";
 
 export const DEFAULT_ANDROID_DOWNLOAD_URL = `${API_URL.replace(/\/api$/, '')}/download/android/app-debug.apk`;
 export const APK_DOWNLOAD_URL = DEFAULT_ANDROID_DOWNLOAD_URL;
@@ -212,6 +212,12 @@ export const ccGetRegistrations = () => client.get('/registrations/');
 export const ccDeleteRegistration = (id) => client.delete(`/registrations/${id}`);
 export const ccGetRegistrationByTicket = (ticketCode) => client.get('/registrations/by-ticket', { params: { ticket_code: ticketCode } });
 
+// SESSIONS
+export const ccGetSessions = (params) => client.get('/sessions/', { params });
+export const ccCreateSession = (data) => client.post('/sessions/', data);
+export const ccUpdateSession = (id, data) => client.put(`/sessions/${id}`, data);
+export const ccDeleteSession = (id) => client.delete(`/sessions/${id}`);
+
 // ROUNDS
 export const ccGetRounds = (params) => client.get('/rounds/', { params });
 export const ccAdvanceRound = (data) => client.post('/rounds/advance', data);
@@ -261,6 +267,7 @@ export const ccVoteQuestion = (data) => client.post('/questions/vote', data);
 export const ccModerateQuestion = (data) => client.post('/questions/moderate', data);
 export const ccUpdateQuestion = (id, data) => client.put(`/questions/${id}`, data);
 export const ccDeleteQuestion = (id) => client.delete(`/questions/${id}`);
+export const ccDeleteAllQuestions = () => client.delete('/questions/all');
 
 // POLLS
 export const ccGetPolls = (params) => client.get('/polls/', { params });

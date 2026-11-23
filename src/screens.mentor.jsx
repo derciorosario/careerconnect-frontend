@@ -9,6 +9,34 @@ import {
 } from './api/client';
 import { PersonRow, ProgressBar, Card, QrCode } from './ui';
 
+// ── skeleton primitives ──────────────────────
+const SkeletonBar = ({ w = '100%', h = 14, r = 7, className = '', style }) => (
+  <div
+    className={`animate-pulse bg-surface2 ${className}`}
+    style={{ width: w, height: h, borderRadius: r, ...style }}
+    aria-hidden="true"
+  />
+);
+
+const SkeletonCard = ({ children, navy = false }) => (
+  <div
+    className={`${navy ? 'bg-navy' : 'bg-[rgba(255,255,255,.15)]  border-line'} animate-pulse rounded-[18px] p-4 mb-3.5 space-y-3`}
+    aria-hidden="true"
+  >
+    {children}
+  </div>
+);
+
+const SkeletonPersonRow = () => (
+  <div className="flex items-center gap-3" aria-hidden="true">
+    <div className="animate-pulse bg-surface2 rounded-full" style={{ width: 44, height: 44 }} />
+    <div className="flex-1 space-y-2">
+      <SkeletonBar w="55%" h={13} />
+      <SkeletonBar w="35%" h={11} />
+    </div>
+  </div>
+);
+
 // ── HOME ─────────────────────────────────────
 export const MentorHome = ({ showToast }) => {
   const [profile, setProfile] = useState(null);
@@ -16,9 +44,15 @@ export const MentorHome = ({ showToast }) => {
   const [maxMentees, setMaxMentees] = useState(3);
   const [wishesReceived, setWishesReceived] = useState([]);
   const [myMatch, setMyMatch] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const showToastRef = useRef(showToast);
+  useEffect(() => { showToastRef.current = showToast; });
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
+      setLoading(true);
       try {
         const [profResp, reqResp, wishResp, matchResp] = await Promise.all([
           ccGetProfile(),
@@ -26,17 +60,62 @@ export const MentorHome = ({ showToast }) => {
           ccGetWishesForMentor(),
           ccGetMentorMatch({}),
         ]);
+        if (cancelled) return;
         setProfile(profResp.data?.user || null);
         setRequests(reqResp.data?.requests || []);
         setMaxMentees(profResp.data?.user?.mentorProfile?.max_mentees || 3);
         setWishesReceived(wishResp.data?.wishes || []);
         setMyMatch(matchResp.data?.match || null);
       } catch (err) {
-        console.error('Failed to load mentor home:', err);
+        if (!cancelled) console.error('Failed to load mentor home:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
     load();
-  }, [showToast]);
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading) {
+    return (
+      <div role="status" aria-busy="true" aria-label="A carregar">
+        <SkeletonBar w="45%" h={26} className="mb-2" />
+        <SkeletonBar w="70%" h={12} className="mb-4" />
+
+        {/* Ticket card */}
+        <SkeletonCard navy>
+          <div className="flex gap-3 items-center">
+            <div className="flex-1 space-y-2">
+              <SkeletonBar w="30%" h={10} style={{ background: 'rgba(255,255,255,.15)' }} />
+              <SkeletonBar w="65%" h={16} style={{ background: 'rgba(255,255,255,.15)' }} />
+              <SkeletonBar w="50%" h={11} style={{ background: 'rgba(255,255,255,.15)' }} />
+            </div>
+            <div className="animate-pulse rounded-[10px]" style={{ width: 104, height: 104, background: 'rgba(255,255,255,.12)' }} />
+          </div>
+        </SkeletonCard>
+
+        {/* Accepted mentees progress */}
+        <SkeletonCard>
+          <div className="flex justify-between items-center">
+            <SkeletonBar w="45%" h={14} />
+            <SkeletonBar w="15%" h={11} />
+          </div>
+          <div className="animate-pulse bg-surface2 rounded-full" style={{ height: 8 }} />
+        </SkeletonCard>
+
+        {/* Wishes received */}
+        <SkeletonCard>
+          <div className="flex justify-between items-center">
+            <SkeletonBar w="50%" h={14} />
+            <SkeletonBar w="10%" h={11} />
+          </div>
+          {[0, 1].map((i) => (
+            <SkeletonPersonRow key={i} />
+          ))}
+        </SkeletonCard>
+      </div>
+    );
+  }
 
   const me = profile;
   const acceptedCount = requests.filter((r) => r.status === 'accepted').length;
@@ -104,9 +183,19 @@ export const MentorLive = ({ currentRound, secondsLeft, phaseLabel, showToast })
   const [feedbackStatus, setFeedbackStatus] = useState({});
   const loadedRoundRef = useRef(null);
 
+  const showToastRef = useRef(showToast);
+  useEffect(() => { showToastRef.current = showToast; });
+
   useEffect(() => {
-    // Only fetch when the round actually changes (not every second)
-    if (currentRound < 1 || currentRound > 4) return;
+    // Only fetch when the round actually changes (not every second).
+    // loadedRoundRef also prevents a re-fetch on remount if the round is
+    // unchanged — but since the component unmounts on tab-away, a fresh
+    // mount starts with loadedRoundRef === null and refetches, so the
+    // skeleton shows on every entry as requested.
+    if (currentRound < 1 || currentRound > 4) {
+      setLoading(false);
+      return;
+    }
     if (loadedRoundRef.current === currentRound) return;
     loadedRoundRef.current = currentRound;
 
@@ -117,14 +206,14 @@ export const MentorLive = ({ currentRound, secondsLeft, phaseLabel, showToast })
         const resp = await ccGetMentorMatch({});
         if (!cancelled) setMyMatch(resp.data?.match || null);
       } catch (err) {
-        console.error('Failed to load mentor match:', err);
+        if (!cancelled) console.error('Failed to load mentor match:', err);
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
     load();
     return () => { cancelled = true; };
-  }, [currentRound]); // 👈 no showToast, guarded by loadedRoundRef
+  }, [currentRound]);
 
   if (currentRound === 0 || currentRound > 4) {
     return (
@@ -134,6 +223,37 @@ export const MentorLive = ({ currentRound, secondsLeft, phaseLabel, showToast })
         <Card variant="navy">
           <h3 className="text-[1.08rem] font-extrabold">{currentRound === 0 ? 'À espera do intervalo' : 'Intervalo concluído'}</h3>
         </Card>
+      </>
+    );
+  }
+
+  // Skeleton for the whole round view while the match is being fetched
+  // on entry. Only applies when there's nothing to show yet.
+  if (loading && !myMatch) {
+    return (
+      <>
+        <h2 className="text-[1.45rem] font-extrabold tracking-tight">A minha mesa</h2>
+        <p className="text-ink-muted text-[.85rem] mt-1 mb-4">{phaseLabel()}</p>
+        <SkeletonCard navy>
+          <div className="flex justify-between items-center">
+            <SkeletonBar w="35%" h={12} style={{ background: 'rgba(255,255,255,.15)' }} />
+            <SkeletonBar w="18%" h={24} style={{ background: 'rgba(255,255,255,.15)' }} />
+          </div>
+          <div className="flex gap-3 items-center mt-3.5">
+            <div className="animate-pulse rounded-[18px]" style={{ width: 64, height: 64, background: 'rgba(255,255,255,.12)' }} />
+            <div className="flex-1 space-y-2">
+              <SkeletonBar w="25%" h={10} style={{ background: 'rgba(255,255,255,.15)' }} />
+              <SkeletonBar w="55%" h={16} style={{ background: 'rgba(255,255,255,.15)' }} />
+            </div>
+          </div>
+        </SkeletonCard>
+        {[0, 1].map((i) => (
+          <SkeletonCard key={i}>
+            <SkeletonPersonRow />
+            <SkeletonBar w="70%" h={11} className="mt-3" />
+            <SkeletonBar w="80%" h={11} />
+          </SkeletonCard>
+        ))}
       </>
     );
   }
@@ -209,9 +329,9 @@ export const MentorLive = ({ currentRound, secondsLeft, phaseLabel, showToast })
                       wants_to_continue: true,
                     });
                     setFeedbackStatus((p) => ({ ...p, [mentee.user_id]: 'continue' }));
-                    showToast('Interesse enviado.');
+                    showToastRef.current('Interesse enviado.');
                   } catch (err) {
-                    showToast(err.response?.data?.message || 'Erro ao guardar interesse.');
+                    showToastRef.current(err.response?.data?.message || 'Erro ao guardar interesse.');
                   }
                 }}
                 className={`rounded-full font-bold text-[.82rem] h-10 px-4 ${feedbackStatus[mentee.user_id] === 'continue' ? 'bg-primary-500 text-white' : 'bg-surface2 text-ink'}`}
@@ -227,9 +347,9 @@ export const MentorLive = ({ currentRound, secondsLeft, phaseLabel, showToast })
                       wants_to_continue: false,
                     });
                     setFeedbackStatus((p) => ({ ...p, [mentee.user_id]: 'no' }));
-                    showToast('Sem interesse.');
+                    showToastRef.current('Sem interesse.');
                   } catch (err) {
-                    showToast(err.response?.data?.message || 'Erro ao guardar.');
+                    showToastRef.current(err.response?.data?.message || 'Erro ao guardar.');
                   }
                 }}
                 className={`rounded-full font-bold text-[.82rem] h-10 px-4 ${feedbackStatus[mentee.user_id] === 'no' ? 'bg-surface2 text-ink' : 'bg-surface2 text-ink'}`}
@@ -249,22 +369,32 @@ export const MentorRequests = ({ showToast }) => {
   const [requests, setRequests] = useState([]);
   const [maxMentees, setMaxMentees] = useState(3);
   const [actionLoading, setActionLoading] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  const showToastRef = useRef(showToast);
+  useEffect(() => { showToastRef.current = showToast; });
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
+      setLoading(true);
       try {
         const [reqResp, profResp] = await Promise.all([
           ccGetMentorshipRequestsForMentor(),
           ccGetProfile(),
         ]);
+        if (cancelled) return;
         setRequests(reqResp.data?.requests || []);
         setMaxMentees(profResp.data?.user?.mentorProfile?.max_mentees || 3);
       } catch (err) {
-        console.error('Failed to load requests:', err);
+        if (!cancelled) console.error('Failed to load requests:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
     load();
-  }, [showToast]);
+    return () => { cancelled = true; };
+  }, []);
 
   const accepted = requests.filter((r) => r.status === 'accepted').length;
 
@@ -274,13 +404,32 @@ export const MentorRequests = ({ showToast }) => {
     try {
       await ccRespondMentorshipRequest({ request_id: request.id, status });
       setRequests((prev) => prev.map((r) => r.id === request.id ? { ...r, status } : r));
-      showToast(status === 'accepted' ? 'Mentoria aceite.' : 'Pedido recusado.');
+      showToastRef.current(status === 'accepted' ? 'Mentoria aceite.' : 'Pedido recusado.');
     } catch (err) {
-      showToast(err.response?.data?.message || 'Erro ao responder.');
+      showToastRef.current(err.response?.data?.message || 'Erro ao responder.');
     } finally {
       setActionLoading((p) => { const { [request.id]: _, ...rest } = p; return rest; });
     }
   };
+
+  if (loading) {
+    return (
+      <div role="status" aria-busy="true" aria-label="A carregar pedidos">
+        <SkeletonBar w="50%" h={26} className="mb-2" />
+        <SkeletonBar w="80%" h={12} className="mb-4" />
+        {[0, 1, 2].map((i) => (
+          <SkeletonCard key={i}>
+            <SkeletonPersonRow />
+            <SkeletonBar w="85%" h={11} className="mt-3" />
+            <div className="flex gap-2.5 mt-3">
+              <SkeletonBar w={88} h={40} r={20} />
+              <SkeletonBar w={88} h={40} r={20} />
+            </div>
+          </SkeletonCard>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <>
@@ -364,18 +513,44 @@ export const MentorRequests = ({ showToast }) => {
 // ── CONNECTIONS ──────────────────────────────
 export const MentorConnections = ({ showToast }) => {
   const [connections, setConnections] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const showToastRef = useRef(showToast);
+  useEffect(() => { showToastRef.current = showToast; });
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
+      setLoading(true);
       try {
         const resp = await ccGetConnections();
+        if (cancelled) return;
         setConnections(resp.data?.connections || []);
       } catch (err) {
-        console.error('Failed to load connections:', err);
+        if (!cancelled) console.error('Failed to load connections:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
     load();
-  }, [showToast]);
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading) {
+    return (
+      <div role="status" aria-busy="true" aria-label="A carregar conexões">
+        <SkeletonBar w="35%" h={26} className="mb-2" />
+        <SkeletonBar w="65%" h={12} className="mb-4" />
+        {[0, 1, 2].map((i) => (
+          <SkeletonCard key={i}>
+            <SkeletonPersonRow />
+            <SkeletonBar w="45%" h={11} className="mt-3" />
+            <SkeletonBar w="55%" h={11} />
+          </SkeletonCard>
+        ))}
+      </div>
+    );
+  }
 
   const menteeConnections = connections.filter((c) => c.contact.role === 'mentee');
 
@@ -429,8 +604,8 @@ export const MentorMessages = ({ showToast }) => {
     if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Runs once on mount. Uses showToastRef so [showToast] never needs to
-  // be a dependency — prevents the loading screen from blinking on every
+  // Runs once per mount. Uses showToastRef so [showToast] never needs to
+  // be a dependency — prevents the loading skeleton from blinking on every
   // parent render.
   useEffect(() => {
     let cancelled = false;
@@ -547,9 +722,25 @@ export const MentorMessages = ({ showToast }) => {
 
       {/* Header never unmounts — only the body below swaps, so no blink */}
       {loading ? (
-        <Card>
-          <p className="text-ink-muted text-[.85rem]">A carregar conversas…</p>
-        </Card>
+        <div role="status" aria-busy="true" aria-label="A carregar conversas">
+          {[0, 1].map((i) => (
+            <div key={i} className="border border-line rounded-[16px] p-3.5 mb-3">
+              <div className="flex justify-between items-center mb-2.5 gap-2">
+                <SkeletonPersonRow />
+                <SkeletonBar w={24} h={18} r={9} />
+              </div>
+              <div className="space-y-1.5 mb-2.5">
+                <SkeletonBar w="55%" h={30} r={10} />
+                <SkeletonBar w="45%" h={30} r={10} className="ml-auto" />
+                <SkeletonBar w="60%" h={30} r={10} />
+              </div>
+              <div className="flex gap-2 max-md:flex-col">
+                <SkeletonBar w="100%" h={38} r={10} />
+                <SkeletonBar w={72} h={38} r={19} />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : connections.length === 0 ? (
         <Card>
           <b>Sem conexões ainda.</b>

@@ -27,6 +27,8 @@ import Register from './Register';
 import Login from './Login';
 import { ccMe, setStoredToken, getStoredToken, getStoredRefreshToken, ccGetQuestions, ccGetPolls, ccGetPollResults, ccAdvanceRound, ccPauseRound, ccResumeRound, ccGetCurrentRound } from './api/client';
 
+import logo from './assets/logo.png';
+
 // ── NAV ──────────────────────────────────────
 function BottomNav({ items, activeTab, setActiveTab }) {
   return (
@@ -390,11 +392,13 @@ export function CareerConnectApp({ initialRole }) {
     <div className="min-h-screen bg-surface text-ink font-sans antialiased pb-[env(safe-area-inset-bottom,0px)]">
       {role && (
         <div className="sticky top-0 z-30 flex gap-1.5 items-center overflow-x-auto bg-navy-900 text-white px-3.5 pt-[calc(env(safe-area-inset-top,0px)+8px)] pb-2 text-[.78rem]">
-          <b className="mr-auto font-bold tracking-wide whitespace-nowrap opacity-85 text-[.74rem] uppercase">Career Connect</b>
-          {[
-            { key: 'mentee', label: 'Mentorado' },
-            { key: 'mentor', label: 'Mentor' },
-            { key: 'org', label: 'Organizador' },
+          <b className="mr-auto font-bold tracking-wide whitespace-nowrap opacity-85 text-[.74rem] uppercase">
+              <img src={logo} alt="Career Connect" className="h-7 md:h-8 w-auto" />
+          </b>
+          {[ // leave this itens commented!
+            //{ key: 'mentee', label: 'Mentorado' },
+            //{ key: 'mentor', label: 'Mentor' },
+            //{ key: 'org', label: 'Organizador' },
             { key: 'tv', label: 'Ecrã' },
           ].map((account) => (
             <button

@@ -71,7 +71,7 @@ export const NAV_MENTEE = [
   { key: 'met',     label: 'Conheci',    icon: ICONS.met },
   { key: 'conn',    label: 'Conexões',   icon: ICONS.conn },
   { key: 'msg',     label: 'Mensagens',  icon: ICONS.msg },
-  { key: 'fecho',   label: 'Fecho',      icon: ICONS.fecho },
+  // leave hidden { key: 'fecho',   label: 'Fecho',      icon: ICONS.fecho },
   { key: 'profile', label: 'Perfil',     icon: ICONS.profile },
 ];
 

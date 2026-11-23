@@ -223,6 +223,7 @@ export const MenteeLive = ({
   const [roundData, setRoundData] = useState(null);
   const [mentorDirectory, setMentorDirectory] = useState([]);
   const [myMatches, setMyMatches] = useState(null);
+  const [feedbackStatus, setFeedbackStatus] = useState(null);
 
   useEffect(() => {
     const loadRound = async () => {
@@ -326,14 +327,15 @@ export const MenteeLive = ({
                       to_user_id: mentor.id,
                       wants_to_continue: true,
                     });
-                    showToast('Interesse guardado.');
+                    setFeedbackStatus('continue');
+                    showToast('Interesse enviado.');
                   } catch (err) {
                     showToast(err.response?.data?.message || 'Erro ao guardar interesse.');
                   }
                 }}
-                className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white"
+                className={`rounded-full font-bold text-[.82rem] h-10 px-4 ${feedbackStatus === 'continue' ? 'bg-primary-500 text-white' : 'bg-surface2 text-ink'}`}
               >
-                Quero continuar
+                {feedbackStatus === 'continue' ? 'Interesse enviado ✓' : 'Quero continuar'}
               </button>
               <button
                 onClick={async () => {
@@ -343,14 +345,15 @@ export const MenteeLive = ({
                       to_user_id: mentor.id,
                       wants_to_continue: false,
                     });
-                    showToast('Ok, sem interesse.');
+                    setFeedbackStatus('no');
+                    showToast('Sem interesse.');
                   } catch (err) {
                     showToast(err.response?.data?.message || 'Erro ao guardar.');
                   }
                 }}
-                className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-surface2 text-ink"
+                className={`rounded-full font-bold text-[.82rem] h-10 px-4 ${feedbackStatus === 'no' ? 'bg-surface2 text-ink' : 'bg-surface2 text-ink'}`}
               >
-                Agora não
+                {feedbackStatus === 'no' ? 'Sem interesse ✓' : 'Agora não'}
               </button>
             </div>
           </Card>
@@ -525,14 +528,19 @@ export const MenteeMentors = ({ showToast }) => {
 // ── MET ──────────────────────────────────────
 export const MenteeMet = ({ showToast }) => {
   const [connections, setConnections] = useState([]);
+  const [requests, setRequests] = useState([]);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const resp = await ccGetConnections();
-        setConnections(resp.data?.connections || []);
+        const [connResp, reqResp] = await Promise.all([
+          ccGetConnections(),
+          ccGetMyMentorshipRequests(),
+        ]);
+        setConnections(connResp.data?.connections || []);
+        setRequests(reqResp.data?.requests || []);
       } catch (err) {
-        console.error('Failed to load connections:', err);
+        console.error('Failed to load met data:', err);
       }
     };
     load();
@@ -557,24 +565,36 @@ export const MenteeMet = ({ showToast }) => {
       <p className="text-ink-muted text-[.85rem] mt-1 mb-4">Podes alterar o interesse até 7 dias depois do evento.</p>
       {connections.map((c) => {
         const contact = c.contact;
+        const req = requests.find((r) => r.mentor_id === contact.id);
         return (
           <Card key={c.id}>
             <PersonRow name={contact.name} subtitle={contact.role || ''} />
-            <textarea rows="2" placeholder="Nota privada, só tu vês" className="w-full mt-3 mb-0 text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none" />
+            {req?.status !== 'accepted' && (
+              <textarea rows="2" placeholder="Nota privada, só tu vês" className="w-full mt-3 mb-0 text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none" />
+            )}
             <div className="flex items-center gap-2.5 mt-3">
-              <button
-                onClick={async () => {
-                  try {
-                    await ccCreateMentorshipRequest({ mentor_id: contact.id, message: 'Olá, gostava de ter o teu apoio como mentor.' });
-                    showToast('Pedido de mentoria enviado.');
-                  } catch (err) {
-                    showToast(err.response?.data?.message || 'Erro ao enviar pedido.');
-                  }
-                }}
-                className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white"
-              >
-                Pedir mentoria
-              </button>
+              {req ? (
+                <span className={`text-[.72rem] font-bold px-3 py-1 rounded-full ${
+                  req.status === 'accepted' ? 'bg-success/15 text-success' : req.status === 'declined' ? 'bg-surface2 text-ink-muted' : 'bg-primary-50/15 text-primary-500'
+                }`}>
+                  {{ pending: 'Pedido enviado', accepted: 'Mentoria ativa', declined: 'Pedido recusado' }[req.status] || req.status}
+                </span>
+              ) : (
+                <button
+                  onClick={async () => {
+                    try {
+                      await ccCreateMentorshipRequest({ mentor_id: contact.id, message: 'Olá, gostava de ter o teu apoio como mentor.' });
+                      setRequests([...requests, { mentor_id: contact.id, status: 'pending', message: 'Olá, gostava de ter o teu apoio como mentor.' }]);
+                      showToast('Pedido de mentoria enviado.');
+                    } catch (err) {
+                      showToast(err.response?.data?.message || 'Erro ao enviar pedido.');
+                    }
+                  }}
+                  className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white"
+                >
+                  Pedir mentoria
+                </button>
+              )}
             </div>
           </Card>
         );
@@ -722,7 +742,7 @@ export const MenteeMessages = ({ showToast }) => {
                       </div>
                     ))}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 max-md:flex-col">
                     <input value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="Escreve uma mensagem…" className="flex-1 bg-surface border-2 border-line rounded-[10px] px-3 py-2 text-base focus:border-primary-500 focus:outline-none" />
                     <button
                       onClick={async () => {

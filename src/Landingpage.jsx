@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import logo from './assets/logo.png';
+import mentor1 from './assets/mentors/1.jpeg';
+import mentor2 from './assets/mentors/2.jpeg';
+import mentor3 from './assets/mentors/3.jpeg';
 import partner1 from './assets/patners/1.jpeg';
 import partner2 from './assets/patners/2.png';
 import partner3 from './assets/patners/3.jpeg';
@@ -14,9 +17,9 @@ const PARTNERS = [
 ];
 
 const IMAGES = [
-  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSrYw6bc7fuDJ-FAgnkm-RS0ETK-NMqkYbKm_V2QG_nyw&s=10',
-  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPvYbVOh_TvSjwqlEopCLHMMobZVVhnhhUyyGx_rnpiQ&s=10',
-  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRsSb8b0IwOdRxcEHc3sY-kSquLS3hfBY3dllYwuIXCtuKq8nBCCQh27D87&s=10'
+  mentor1,
+  mentor2,
+  mentor3,
 ];
 
 const BIOGRAPHIES = [
@@ -153,7 +156,7 @@ export default function Landingpage() {
         </div>
 
         {/* F-07: vagas restantes */}
-        <div className="bg-surface-soft border border-line rounded-card p-5 mb-8 flex flex-wrap items-center justify-between gap-3">
+        <div className="bg-surface-soft border hidden border-line rounded-card p-5 mb-8 flex flex-wrap items-center justify-between gap-3">
           <span className="text-ink-muted text-sm font-semibold">Vagas restantes</span>
           <b className="text-[2rem] font-extrabold text-primary-500">{vagasRestantes}</b>
           <span className="text-ink-muted text-sm">de {totalCapacity}</span>

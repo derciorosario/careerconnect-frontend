@@ -190,22 +190,15 @@ export function CareerConnectApp({ initialRole }) {
             if (round.ends_at) {
               const remaining = Math.max(0, Math.floor((new Date(round.ends_at) - Date.now()) / 1000));
               setSecondsLeft(remaining);
-              if (remaining <= 0) {
-                advanceRound();
-              }
             } else if (round.started_at) {
-              // Fallback: compute from started_at + default 5 minutes (300s)
               const remaining = Math.max(0, Math.floor((new Date(round.started_at).getTime() + 5 * 60 * 1000 - Date.now()) / 1000));
               setSecondsLeft(remaining);
-              if (remaining <= 0) {
-                advanceRound();
-              }
             } else if (round.duration_minutes) {
               setSecondsLeft(round.duration_minutes * 60);
             }
           } else {
             // No running round — check if all done
-            setCurrentRound((prev) => (prev > 0 && prev <= 4 ? prev : 0));
+            setCurrentRound((prev) => (prev >= 1 && prev <= 4 ? prev : prev >= 5 ? 5 : 0));
             setIsRunning(false);
           }
         } catch (err) {
@@ -367,58 +360,12 @@ export function CareerConnectApp({ initialRole }) {
   };
 
   let content = null;
-
+   /*** Loader  */
   if (!role) {
     content = (
-      <div className="max-w-[720px] mx-auto pt-[52px] px-[22px] pb-10">
-        <div className="font-extrabold text-[1.35rem] italic tracking-tight leading-none">
-          Career<i className="text-primary-500 not-italic">Connect</i>
-        </div>
-        <h1 className="my-6 mb-3 max-w-[15ch] text-[clamp(1.9rem,6vw,2.8rem)] font-extrabold tracking-tight">
-          Entra na tua área pessoal.
-        </h1>
-        <p className="text-ink-muted">
-          Escolhe um perfil para entrar ou cria uma conta nova.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-[30px]">
-          <button
-            onClick={() => { setRole('mentee'); setActiveTab('home'); window.scrollTo(0, 0); }}
-            className="text-left bg-surface-soft border-2 border-transparent hover:border-primary-500 rounded-3xl p-5 flex flex-col gap-0.5 text-ink transition active:scale-[.985]"
-          >
-            <Avatar name="Mentorado" />
-            <h3 className="text-[1.02rem] mt-3 mb-0.5 font-bold">Mentorado</h3>
-            <div className="text-ink-muted text-[.85rem]">A tua área pessoal</div>
-          </button>
-          <button
-            onClick={() => { setRole('mentor'); setActiveTab('home'); window.scrollTo(0, 0); }}
-            className="text-left bg-surface-soft border-2 border-transparent hover:border-primary-500 rounded-3xl p-5 flex flex-col gap-0.5 text-ink transition active:scale-[.985]"
-          >
-            <Avatar name="Mentor" />
-            <h3 className="text-[1.02rem] mt-3 mb-0.5 font-bold">Mentor</h3>
-            <div className="text-ink-muted text-[.85rem]">Mesa, mentorados, pedidos</div>
-          </button>
-          <button
-            onClick={() => { setRole('org'); setActiveTab('live'); window.scrollTo(0, 0); }}
-            className="text-left bg-surface-soft border-2 border-transparent hover:border-primary-500 rounded-3xl p-5 flex flex-col gap-0.5 text-ink transition active:scale-[.985]"
-          >
-            <Avatar name="Organizador" />
-            <h3 className="text-[1.02rem] mt-3 mb-0.5 font-bold">Organizador</h3>
-            <div className="text-ink-muted text-[.85rem]">Painel de controlo</div>
-          </button>
-          <button
-            onClick={() => {
-              localStorage.setItem('previousRole', role || '');
-              setRole('tv');
-              setActiveTab('live');
-              window.scrollTo(0, 0);
-            }}
-            className="text-left bg-surface-soft border-2 border-transparent hover:border-primary-500 rounded-3xl p-5 flex flex-col gap-0.5 text-ink transition active:scale-[.985]"
-          >
-            <Avatar name="Ecrã" />
-            <h3 className="text-[1.02rem] mt-3 mb-0.5 font-bold">Ecrã grande</h3>
-            <div className="text-ink-muted text-[.85rem]">Projetor do evento</div>
-          </button>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-2 text-ink">
+        <div className="w-10 h-10 border-4 border-primary-500/30 rounded-full border-t-primary-500 animate-spin" />
+        <span className="text-sm font-semibold tracking-wide uppercase text-ink-muted">A carregar a tua área…</span>
       </div>
     );
   } else if (role === 'tv') {
@@ -490,7 +437,7 @@ function PendingApproval({ user }) {
     <div className="min-h-screen bg-navy-950 text-ink font-sans flex flex-col items-center justify-center pt-[52px] px-6 pb-10">
       <div className="max-w-[480px] mx-auto text-center">
         <div className="font-extrabold text-[1.35rem] italic tracking-tight leading-none mb-6 text-white">
-          Career<i className="text-primary-500 not-italic">Connect</i>
+         <img src={logo} alt="Career Connect" className="h-7 md:h-8 w-auto" />
         </div>
         <div className="bg-surface-soft border-2 border-line rounded-3xl p-8 mb-8">
           <h2 className="text-[1.5rem] font-extrabold tracking-tight mb-2 text-white">Conta em avaliação</h2>

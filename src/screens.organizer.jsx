@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
 import {
   formatTime, ORGANIZER_TABS,
 } from './data';
@@ -14,6 +16,8 @@ import {
   setStoredToken,
 } from './api/client';
 import { PersonRow, ProgressBar, Card, AnnouncementInput } from './ui';
+
+import logo from './assets/logo.png';
 
 const MENTORS = [
   { name: 'Sara Cumbe',   role: 'Directora de Finanças',  company: 'Standard Bank',      area: 'Finanças e Banca' },
@@ -169,7 +173,7 @@ export const OrganizerReg = ({ showToast }) => {
         ]);
         const regs = regResp.data?.registrations || [];
         setRegistrations(regs);
-        setPendingMentors(regs.filter((r) => r.user?.role === 'mentor' && r.status === 'registered'));
+        setPendingMentors(regs.filter((r) => r.user?.role === 'mentor' && r.user?.mentorProfile?.approval === 'pending'));
       } catch (err) {
         console.error('Failed to load registrations:', err);
       }
@@ -494,6 +498,82 @@ export const OrganizerReports = ({ showToast }) => {
     { area: 'Direito', supply: 20, demand: 25 },
     { area: 'Agricultura', supply: 15, demand: 10 },
   ];
+
+  const exportExcel = () => {
+    try {
+      const wsData = [
+        ['Career Connect - Relatório'],
+        [''],
+        ['Indicador', 'Valor'],
+        ['Inscritos', r.totalRegistrations || 0],
+        ['Presença (%)', r.presenceRate ? Math.round(r.presenceRate) : 0],
+        ['Conversas', r.conversations || 0],
+        ['Interesse mútuo', r.mutualConnections || 0],
+        ['Mentorias ativas', r.mentorships || 0],
+        ['Satisfação (/5)', r.avgRating ? r.avgRating.toFixed(1) : 0],
+        ['Total inquéritos', r.totalSurveys || 0],
+        [''],
+        ['Oferta e procura por área', ''],
+        ['Área', 'Oferta (%)', 'Procura (%)'],
+        ...areaSupplyDemand.map((a) => [a.area, a.supply, a.demand]),
+      ];
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      XLSX.utils.book_append_sheet(wb, ws, 'Relatorio');
+      XLSX.writeFile(wb, 'career-connect-relatorio.xlsx');
+      showToast('Relatório Excel exportado.');
+    } catch (err) {
+      showToast('Erro ao exportar Excel.');
+      console.error(err);
+    }
+  };
+
+  const exportPDF = () => {
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      let y = 20;
+      doc.setFontSize(18);
+      doc.text('Career Connect - Relatório', 20, y);
+      y += 15;
+      doc.setFontSize(12);
+      doc.text(`Gerado em: ${new Date().toLocaleString('pt-PT')}`, 20, y);
+      y += 15;
+      doc.setFontSize(14);
+      doc.text('Indicadores', 20, y);
+      y += 10;
+      const col1X = 20;
+      const col2X = 120;
+      kpis.forEach((k) => {
+        doc.setFontSize(11);
+        doc.text(k.label, col1X, y);
+        doc.text(k.value, col2X, y);
+        y += 8;
+      });
+      y += 10;
+      doc.setFontSize(14);
+      doc.text('Oferta e procura por área', 20, y);
+      y += 10;
+      doc.setFontSize(11);
+      const headerY = y;
+      doc.text('Área', col1X, headerY);
+      doc.text('Oferta (%)', col2X, headerY);
+      doc.text('Procura (%)', col2X + 60, headerY);
+      y += 8;
+      areaSupplyDemand.forEach((a) => {
+        doc.text(a.area, col1X, y);
+        doc.text(a.supply + '%', col2X, y);
+        doc.text(a.demand + '%', col2X + 60, y);
+        y += 7;
+      });
+      doc.save('career-connect-relatorio.pdf');
+      showToast('Relatório PDF exportado.');
+    } catch (err) {
+      showToast('Erro ao exportar PDF.');
+      console.error(err);
+    }
+  };
+
   return (
     <>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
@@ -514,8 +594,13 @@ export const OrganizerReports = ({ showToast }) => {
           </div>
         ))}
         <div className="flex flex-wrap gap-2.5 mt-4">
-          <button onClick={() => showToast('Exportação simulada.')} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-surface2 text-ink">Exportar Excel</button>
-          <button onClick={() => showToast('Exportação simulada.')} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-surface2 text-ink">Plano em PDF</button>
+          <button onClick={exportExcel} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white">
+            Exportar Excel
+          </button>
+          {/** Leave hidden */}
+          <button onClick={exportPDF} className="rounded-full hidden  font-bold text-[.82rem] h-10 px-4 bg-surface2 text-ink">
+            Plano em PDF
+          </button>
         </div>
       </Card>
     </>
@@ -840,9 +925,9 @@ export const OrganizerShell = ({ activeTab, setActiveTab, announcements, setRole
   return (
     <div className="max-w-[1040px] mx-auto pt-[18px] px-4 pb-10">
       <div className="flex justify-between items-center mb-3.5">
-        <div className="font-extrabold text-[1.35rem] italic tracking-tight leading-none">
-          Career<i className="text-primary-500 not-italic">Connect</i> <span className="text-ink-muted text-[.85rem] not-italic font-semibold">· Painel</span>
-        </div>
+        <div className="font-extrabold text-[1.35rem] italic tracking-tight leading-none flex gap-2">
+          <img src={logo} alt="Career Connect" className="h-7 md:h-8 w-auto" />
+         </div>
         <button onClick={() => { setStoredToken(null); localStorage.removeItem('refresh_token'); localStorage.removeItem('userRole'); setRole(null); window.location.href = '/entrar'; }} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-surface2 text-ink">Sair</button>
       </div>
       {announcements.length > 0 && (

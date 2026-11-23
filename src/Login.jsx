@@ -7,6 +7,9 @@ const BTN_GHOST  = 'bg-transparent text-ink shadow-[inset_0_0_0_2px_var(--color-
 const BTN_SM     = 'px-[18px] py-[9px] text-sm';
 const FIELD_BASE = 'w-full font-normal text-base text-ink bg-surface border-2 border-line rounded-field px-3.5 py-3 focus:border-primary-500 focus:outline-none';
 
+import logo from './assets/logo.png';
+
+
 export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -121,7 +124,7 @@ export default function Login() {
     <div className="min-h-screen bg-navy-950 text-ink font-sans">
       <div className="max-w-[480px] mx-auto pt-[18px] px-4 pb-10">
         <div className="font-extrabold text-[1.35rem] italic tracking-tight leading-none mb-6 text-white">
-          Career<i className="text-primary-500 not-italic">Connect</i>
+           <img src={logo} alt="Career Connect" className="h-7 md:h-8 w-auto" />
         </div>
 
         <h1 className="text-[1.5rem] font-extrabold tracking-tight mb-2 text-white">

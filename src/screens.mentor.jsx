@@ -101,6 +101,7 @@ export const MentorHome = ({ showToast }) => {
 export const MentorLive = ({ currentRound, secondsLeft, phaseLabel, showToast }) => {
   const [myMatch, setMyMatch] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [feedbackStatus, setFeedbackStatus] = useState({});
 
   useEffect(() => {
     const load = async () => {
@@ -196,14 +197,15 @@ export const MentorLive = ({ currentRound, secondsLeft, phaseLabel, showToast })
                         to_user_id: mentee.user_id,
                         wants_to_continue: true,
                       });
-                      showToast('Interesse guardado.');
+                      setFeedbackStatus((p) => ({ ...p, [mentee.user_id]: 'continue' }));
+                      showToast('Interesse enviado.');
                     } catch (err) {
                       showToast(err.response?.data?.message || 'Erro ao guardar interesse.');
                     }
                   }}
-                  className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white"
+                  className={`rounded-full font-bold text-[.82rem] h-10 px-4 ${feedbackStatus[mentee.user_id] === 'continue' ? 'bg-primary-500 text-white' : 'bg-surface2 text-ink'}`}
                 >
-                  Quero continuar
+                  {feedbackStatus[mentee.user_id] === 'continue' ? 'Interesse enviado ✓' : 'Quero continuar'}
                 </button>
                 <button
                   onClick={async () => {
@@ -213,14 +215,15 @@ export const MentorLive = ({ currentRound, secondsLeft, phaseLabel, showToast })
                         to_user_id: mentee.user_id,
                         wants_to_continue: false,
                       });
-                      showToast('Ok.');
+                      setFeedbackStatus((p) => ({ ...p, [mentee.user_id]: 'no' }));
+                      showToast('Sem interesse.');
                     } catch (err) {
                       showToast(err.response?.data?.message || 'Erro ao guardar.');
                     }
                   }}
-                  className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-surface2 text-ink"
+                  className={`rounded-full font-bold text-[.82rem] h-10 px-4 ${feedbackStatus[mentee.user_id] === 'no' ? 'bg-surface2 text-ink' : 'bg-surface2 text-ink'}`}
                 >
-                  Agora não
+                  {feedbackStatus[mentee.user_id] === 'no' ? 'Sem interesse ✓' : 'Agora não'}
                 </button>
               </div>
             </Card>
@@ -286,6 +289,9 @@ export const MentorRequests = ({ showToast }) => {
           <Card key={request.id}>
             <PersonRow name={request.mentee?.name || 'Mentorado'} subtitle={subtitle} />
             <p className="text-[.85rem] mt-3 mb-2.5">"{request.message || ''}"</p>
+            {request.status != "pending" && <span className={`text-[.72rem] font-bold px-3 py-1 rounded-full mb-2 inline-block ${request.status === 'accepted' ? 'bg-success/15 text-success' : request.status === 'declined' ? 'bg-surface2 text-ink-muted' : 'bg-primary-50/15 text-primary-500'}`}>
+              {request.status === 'accepted' ? 'Aceite' : request.status === 'declined' ? 'Recusado' : 'Pendente'}
+            </span>}
             {request.status === 'pending' ? (
               <div className="flex gap-2.5">
                 <button
@@ -303,10 +309,40 @@ export const MentorRequests = ({ showToast }) => {
                   Recusar
                 </button>
               </div>
+            ) : request.status === 'accepted' ? (
+              <div className="flex gap-2.5">
+                <button
+                  onClick={() => handleRespond(request, 'declined')}
+                  disabled={actionLoading[request.id]}
+                  className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-surface2 text-ink disabled:opacity-40"
+                >
+                  Recusar
+                </button>
+                {/** Leave Hidden **/ <button
+                  onClick={() => handleRespond(request, 'pending')}
+                  disabled={actionLoading[request.id]}
+                  className="hidden rounded-full font-bold text-[.82rem] h-10 px-4 bg-surface text-ink disabled:opacity-40"
+                >
+                  Pendente
+                </button>}
+              </div>
             ) : (
-              <span className={`text-[.72rem] font-bold px-3 py-1 rounded-full ${request.status === 'accepted' ? 'bg-success/15 text-success' : 'bg-surface2 text-ink-muted'}`}>
-                {request.status === 'accepted' ? 'Aceite' : 'Recusado'}
-              </span>
+              <div className="flex gap-2.5">
+                <button
+                  onClick={() => handleRespond(request, 'accepted')}
+                  disabled={accepted >= maxMentees || actionLoading[request.id]}
+                  className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white disabled:opacity-40"
+                >
+                  Aceitar
+                </button>
+               {/** Leave Hidden **/  <button
+                  onClick={() => handleRespond(request, 'pending')}
+                  disabled={actionLoading[request.id]}
+                  className="hidden rounded-full font-bold text-[.82rem] h-10 px-4 bg-surface text-ink disabled:opacity-40"
+                >
+                  Pendente
+                </button>}
+              </div>
             )}
           </Card>
         );
@@ -430,7 +466,7 @@ export const MentorMessages = ({ showToast }) => {
                       </div>
                     ))}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 max-md:flex-col">
                     <input value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="Escreve uma mensagem…" className="flex-1 bg-surface border-2 border-line rounded-[10px] px-3 py-2 text-base focus:border-primary-500 focus:outline-none" />
                     <button
                       onClick={async () => {

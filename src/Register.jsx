@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ccVerifyEmail, ccResendEmailOTP, uploadClient } from './api/client';
 
+import logo from './assets/logo.png';
+
 const BTN_BASE   = 'inline-block rounded-full bg-primary-500 text-white font-semibold text-base px-7 py-3.5 cursor-pointer no-underline hover:brightness-110 transition';
 const BTN_GHOST  = 'bg-transparent text-ink shadow-[inset_0_0_0_2px_var(--color-line)]';
 const FIELD_BASE = 'w-full font-normal text-base text-ink bg-surface border-2 border-line rounded-field px-3.5 py-3 focus:border-primary-500 focus:outline-none';
@@ -429,7 +431,7 @@ export default function Register() {
     <div className="min-h-screen bg-surface text-ink font-sans bg-navy-950">
       <div className="max-w-[480px] mx-auto pt-[18px] px-4 pb-10">
         <div className="font-extrabold text-[1.35rem] italic tracking-tight leading-none mb-6">
-          Career<i className="text-primary-500 not-italic">Connect</i>
+         <img src={logo} alt="Career Connect" className="h-7 md:h-8 w-auto" />
         </div>
         {step === 1 ? renderScreen1() : step === 2 ? renderScreen2() : renderScreen3()}
       </div>

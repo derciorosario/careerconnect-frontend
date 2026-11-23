@@ -112,8 +112,8 @@ export const CheckInScreen = () => {
                 </button>
               ) : (
                 <div className="mt-6">
-                  <span className="text-[.72rem] font-bold px-3 py-1 rounded-full bg-surface2 text-ink-muted">Apenas organizador</span>
-                  <p className="text-ink-muted text-[.82rem] mt-2">Inicie sessão como organizador para confirmar o check-in.</p>
+                  <span className="text-[.72rem] font-bold px-3 py-1 rounded-full bg-surface2 text-ink-muted">Apenas organizador pode confirmar o check-in</span>
+  
                 </div>
               )}
             </>

@@ -535,7 +535,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
       }
     };
     load();
-  }, [showToast, asRole, isMentor]);
+  }, [asRole, isMentor]);
 
   const set = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
   const toggle = (key, val) => setForm((p) => {

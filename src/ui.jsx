@@ -108,13 +108,17 @@ export const AnnouncementInput = ({ onSubmit }) => {
 };
 
 // Real, scannable QR code. Falls back to the ticket text if generation fails.
-export const QrCode = ({ value, size = 120, className = '', downloadable = false }) => {
+export const QrCode = ({ value, size = 120, className = '', downloadable = false, checkinUrl }) => {
   const [dataUrl, setDataUrl] = useState('');
+  const [displayUrl, setDisplayUrl] = useState('');
 
   useEffect(() => {
     let active = true;
-    if (!value) { setDataUrl(''); return; }
-    QRCode.toDataURL(String(value), {
+    if (!value) { setDataUrl(''); setDisplayUrl(''); return; }
+    // Generate checkin URL if not provided
+    const url = checkinUrl || `${window.location.origin}/checkin?ticket_code=${encodeURIComponent(value)}`;
+    setDisplayUrl(url);
+    QRCode.toDataURL(url, {
       errorCorrectionLevel: 'M',
       margin: 1,
       width: size * 2,
@@ -123,7 +127,7 @@ export const QrCode = ({ value, size = 120, className = '', downloadable = false
       .then((url) => { if (active) setDataUrl(url); })
       .catch(() => { if (active) setDataUrl(''); });
     return () => { active = false; };
-  }, [value, size]);
+  }, [value, size, checkinUrl]);
 
   const handleDownload = () => {
     if (!dataUrl) return;
@@ -149,6 +153,11 @@ export const QrCode = ({ value, size = 120, className = '', downloadable = false
           <span className="text-[.6rem] text-ink-muted text-center break-all px-1">{value}</span>
         )}
       </div>
+      {displayUrl && (
+        <a href={displayUrl} target="_blank" rel="noopener noreferrer" className="text-[.7rem] font-semibold text-primary-500 underline break-all text-center max-w-[200px]">
+          {displayUrl}
+        </a>
+      )}
       {downloadable && dataUrl && (
         <button
           onClick={handleDownload}

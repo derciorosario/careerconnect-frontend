@@ -258,6 +258,8 @@ export const ccGetQuestions = (params) => client.get('/questions/', { params });
 export const ccCreateQuestion = (data) => client.post('/questions/', data);
 export const ccVoteQuestion = (data) => client.post('/questions/vote', data);
 export const ccModerateQuestion = (data) => client.post('/questions/moderate', data);
+export const ccUpdateQuestion = (id, data) => client.put(`/questions/${id}`, data);
+export const ccDeleteQuestion = (id) => client.delete(`/questions/${id}`);
 
 // POLLS
 export const ccGetPolls = (params) => client.get('/polls/', { params });

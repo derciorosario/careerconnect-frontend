@@ -125,7 +125,7 @@ export const MenteeHome = ({ showToast }) => {
             <p className="font-extrabold text-[1.05rem] mt-3 tracking-widest">{ticketCode || 'CC-....'}</p>
             <p className="text-[.76rem] text-navy-100 mt-0.5">Disponível sem rede</p>
           </div>
-          <QrCode value={ticketCode || 'CC-7K2QF'} size={104} downloadable />
+          <QrCode value={ticketCode || 'CC-7K2QF'} size={104} downloadable checkinUrl={`${window.location.origin}/checkin?ticket_code=${encodeURIComponent(ticketCode || 'CC-7K2QF')}`} />
         </div>
       </Card>
 

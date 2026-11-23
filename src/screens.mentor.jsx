@@ -55,9 +55,9 @@ export const MentorHome = ({ showToast }) => {
             <p className="text-[.85rem] text-navy-100">{tableNo ? `Mesa ${tableNo} fixa nos dois intervalos` : 'Mesa a atribuir no evento'}</p>
           </div>
           {me?.registrations?.[0]?.ticket_code ? (
-            <QrCode value={me.registrations[0].ticket_code} size={104} downloadable />
+            <QrCode value={me.registrations[0].ticket_code} size={104} downloadable checkinUrl={`${window.location.origin}/checkin?ticket_code=${encodeURIComponent(me.registrations[0].ticket_code)}`} />
           ) : (
-            <QrCode value={me?.ticket_code || 'CC-MENTOR'} size={104} downloadable />
+            <QrCode value={me?.ticket_code || 'CC-MENTOR'} size={104} downloadable checkinUrl={`${window.location.origin}/checkin?ticket_code=${encodeURIComponent(me?.ticket_code || 'CC-MENTOR')}`} />
           )}
         </div>
       </Card>

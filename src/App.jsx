@@ -39,7 +39,6 @@ function BottomNav({ items, activeTab, setActiveTab }) {
 
   const go = (key) => {
     setActiveTab(key);
-    window.scrollTo(0, 0);
     setMoreOpen(false);
   };
 
@@ -186,10 +185,21 @@ export function CareerConnectApp({ initialRole }) {
             setCurrentRound(mapped);
             setIsRunning(true);
             setIsPaused(round.status === 'paused');
-            // Compute seconds left from round ends_at if available
+            // Sync seconds left from backend (source of truth) so all roles show the same time,
+            // including after a page refresh.
             if (round.ends_at) {
               const remaining = Math.max(0, Math.floor((new Date(round.ends_at) - Date.now()) / 1000));
-              if (remaining > 0) setSecondsLeft(remaining);
+              setSecondsLeft(remaining);
+              if (remaining <= 0) {
+                advanceRound();
+              }
+            } else if (round.started_at) {
+              // Fallback: compute from started_at + default 5 minutes (300s)
+              const remaining = Math.max(0, Math.floor((new Date(round.started_at).getTime() + 5 * 60 * 1000 - Date.now()) / 1000));
+              setSecondsLeft(remaining);
+              if (remaining <= 0) {
+                advanceRound();
+              }
             } else if (round.duration_minutes) {
               setSecondsLeft(round.duration_minutes * 60);
             }
@@ -239,20 +249,17 @@ export function CareerConnectApp({ initialRole }) {
     }
   };
 
-  // Countdown
+  // Countdown (visual decrement only; advancement is driven by backend ends_at in syncRound)
   useEffect(() => {
     if (!isRunning || isPaused) return;
     const interval = setInterval(() => {
       setSecondsLeft((previous) => {
-        if (previous <= 1) {
-          advanceRound();
-          return isRehearsal ? 30 : 300;
-        }
+        if (previous <= 1) return 0;
         return previous - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [isRunning, isPaused, isRehearsal, advanceRound]);
+  }, [isRunning, isPaused]);
 
   const totalPollVotes = useMemo(() => pollVotes.reduce((sum, v) => sum + v, 0), [pollVotes]);
 

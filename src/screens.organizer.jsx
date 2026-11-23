@@ -749,7 +749,14 @@ export const TvScreen = ({ announcements, phaseLabel, currentRound, secondsLeft,
   const anns = (tvData?.announcements?.length > 0 ? tvData.announcements : []).length > 0
     ? (tvData.announcements || [])
     : (announcements || []);
-  const tables = tvData?.tables || [];
+  const tablesRaw = tvData?.tables || [];
+  // Dedup rows by table number so the same table never repeats on screen
+  const seenTables = new Set();
+  const tables = tablesRaw.filter((t) => {
+    if (seenTables.has(t.table)) return false;
+    seenTables.add(t.table);
+    return true;
+  });
   const tvPhase = tvData?.phase || phaseLabel();
 
   return (

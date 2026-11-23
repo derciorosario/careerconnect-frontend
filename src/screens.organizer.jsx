@@ -18,6 +18,25 @@ import {
 } from './api/client';
 import { PersonRow, ProgressBar, Card, AnnouncementInput } from './ui';
 
+// ── skeleton primitives ──────────────────────
+const SkeletonBar = ({ w = '100%', h = 14, r = 7, className = '', style }) => (
+  <div
+    className={`animate-pulse bg-surface2 ${className}`}
+    style={{ width: w, height: h, borderRadius: r, ...style }}
+    aria-hidden="true"
+  />
+);
+
+const SkeletonPersonRow = () => (
+  <div className="flex items-center gap-3" aria-hidden="true">
+    <div className="animate-pulse bg-surface2 rounded-full" style={{ width: 44, height: 44 }} />
+    <div className="flex-1 space-y-2">
+      <SkeletonBar w="55%" h={13} />
+      <SkeletonBar w="35%" h={11} />
+    </div>
+  </div>
+);
+
 import logo from './assets/logo.png';
 
 const MENTORS = [
@@ -661,9 +680,11 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState(isMentor ? EMPTY_MENTOR : EMPTY_MENTEE);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true);
       try {
         const resp = await ccGetProfile();
         const user = resp.data?.user || null;
@@ -697,6 +718,8 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
         }
       } catch (err) {
         console.error('Failed to load profile:', err);
+      } finally {
+        setLoading(false);
       }
     };
     load();
@@ -758,6 +781,27 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
       setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div role="status" aria-busy="true" aria-label="A carregar">
+        <SkeletonBar w="40%" h={26} className="mb-2" />
+        <SkeletonBar w="70%" h={12} className="mb-4" />
+        {[0, 1].map((i) => (
+          <Card key={i} className="mt-4">
+            <SkeletonPersonRow />
+            <div className="mt-4 space-y-3">
+              <SkeletonBar w="35%" h={12} />
+              <SkeletonBar w="100%" h={38} r={14} />
+              <SkeletonBar w="35%" h={12} />
+              <SkeletonBar w="100%" h={38} r={14} />
+            </div>
+          </Card>
+        ))}
+        <SkeletonBar w={140} h={40} r={20} className="mt-1" />
+      </div>
+    );
+  }
 
   return (
     <>

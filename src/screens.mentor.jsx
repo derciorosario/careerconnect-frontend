@@ -161,11 +161,17 @@ export const MentorHome = ({ showToast }) => {
             {wishesReceived.map((wish) => {
               const mentee = wish.mentee;
               return (
-                <div key={wish.id} className="flex items-center gap-2.5 py-1">
+                <div key={wish.id} className="py-1">
                   <PersonRow
                     name={mentee?.name || 'Mentorado'}
                     subtitle={mentee?.menteeProfile?.goal || ''}
                   />
+                  {(mentee?.email || mentee?.phone) && (
+                    <div className="text-[.78rem] text-ink-muted mt-1 pl-[46px] space-y-0.5">
+                      {mentee?.email && <div>{mentee.email}</div>}
+                      {mentee?.phone && <div>{mentee.phone}</div>}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -308,14 +314,14 @@ export const MentorLive = ({ currentRound, secondsLeft, phaseLabel, showToast })
             </div>
           </Card>
 
-          <Card>
+          {/**<Card>
             <div className="flex items-center justify-between mb-3.5"><b>3 perguntas para fazer</b></div>
             <ol className="text-[.85rem] pl-[18px] mt-1 leading-[1.7]">
               <li>O que já tentaste até agora?</li>
               <li>Que obstáculo te trava mais?</li>
               <li>Como posso ajudar já esta semana?</li>
             </ol>
-          </Card>
+          </Card> */}
 
           <Card>
             <b>Queres continuar com {mentee.name ? getFirstName(mentee.name) : 'este mentorado'}?</b>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ccRegister, ccVerifyEmail, ccResendEmailOTP } from './api/client';
+import { ccVerifyEmail, ccResendEmailOTP, uploadClient } from './api/client';
 
 const BTN_BASE   = 'inline-block rounded-full bg-primary-500 text-white font-semibold text-base px-7 py-3.5 cursor-pointer no-underline hover:brightness-110 transition';
 const BTN_GHOST  = 'bg-transparent text-ink shadow-[inset_0_0_0_2px_var(--color-line)]';
@@ -53,7 +53,7 @@ export default function Register() {
     name: '', email: '', phone: '', password: '', role: isMentor ? 'mentor' : 'mentee',
     level: '', course: '', institution: '', interests: [], goal: '', pitch: '',
     jobTitle: '', company: '', sector: '', years: '', mentorInterests: [], canHelpGoals: [], supportType: '',
-    photo: '', linkedin: '',
+    photo: '', photoFile: null, linkedin: '',
   });
   console.lo
   const [error, setError] = useState('');
@@ -97,28 +97,29 @@ export default function Register() {
 
     setLoading(true);
     try {
-      const response = await ccRegister({
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-        password: form.password,
-        role: form.role,
-        level: form.level,
-        course: form.course,
-        institution: form.institution,
-        interests: form.interests,
-        goal: form.goal,
-        pitch: form.pitch,
-        jobTitle: form.jobTitle,
-        company: form.company,
-        sector: form.sector,
-        years: form.years,
-        mentorInterests: form.mentorInterests,
-        canHelpGoals: form.canHelpGoals,
-        supportType: form.supportType,
-        photo: form.photo,
-        linkedin: form.linkedin,
-      });
+      const formData = new FormData();
+      formData.append('name', form.name);
+      formData.append('email', form.email);
+      formData.append('phone', form.phone);
+      formData.append('password', form.password);
+      formData.append('role', form.role);
+      if (form.level) formData.append('level', form.level);
+      if (form.course) formData.append('course', form.course);
+      if (form.institution) formData.append('institution', form.institution);
+      formData.append('interests', JSON.stringify(form.interests));
+      if (form.goal) formData.append('goal', form.goal);
+      if (form.pitch) formData.append('pitch', form.pitch);
+      if (form.jobTitle) formData.append('jobTitle', form.jobTitle);
+      if (form.company) formData.append('company', form.company);
+      if (form.sector) formData.append('sector', form.sector);
+      if (form.years) formData.append('years', form.years);
+      formData.append('mentorInterests', JSON.stringify(form.mentorInterests));
+      formData.append('canHelpGoals', JSON.stringify(form.canHelpGoals));
+      if (form.supportType) formData.append('supportType', form.supportType);
+      if (form.photoFile) formData.append('photo', form.photoFile);
+      if (form.linkedin) formData.append('linkedin', form.linkedin);
+
+      const response = await uploadClient.post('/auth/register', formData);
 
       if (response.data.requiresEmailVerification) {
         setStep(3);
@@ -209,6 +210,7 @@ export default function Register() {
           <input type="file" accept="image/*" onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) {
+              setField('photoFile', file);
               const reader = new FileReader();
               reader.onload = (ev) => setField('photo', ev.target.result);
               reader.readAsDataURL(file);

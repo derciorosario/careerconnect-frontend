@@ -713,9 +713,7 @@ export const TvScreen = ({ announcements, phaseLabel, currentRound, secondsLeft,
   return (
     <div className="bg-navy-900 text-white min-h-screen pt-[calc(env(safe-area-inset-top,0px)+34px)] px-[5vw] pb-[34px]" style={{ background: 'radial-gradient(circle at 30% 10%, #172554 0%, #0b1126 70%)' }}>
       <div className="flex justify-between items-center">
-        <span className="font-extrabold text-[1.35rem] italic tracking-tight leading-none">
-          Career<i className="text-primary-500 not-italic">Connect</i>
-        </span>
+        <span className="font-extrabold text-[1.35rem] italic tracking-tight leading-none"></span>
         <button onClick={() => { setStoredToken(null); localStorage.removeItem('refresh_token'); localStorage.removeItem('userRole'); setRole(null); window.scrollTo(0, 0); }} className="rounded-full font-bold text-[.82rem] h-10 px-4 text-white bg-white/10">Sair</button>
       </div>
       {anns.length > 0 && (

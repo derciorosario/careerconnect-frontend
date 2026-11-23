@@ -29,28 +29,71 @@ import { ccMe, setStoredToken, getStoredToken, getStoredRefreshToken, ccGetQuest
 
 import logo from './assets/logo.png';
 
+const BTN_BASE   = 'inline-block rounded-full bg-primary-500 text-white font-semibold text-base px-7 py-3.5 cursor-pointer no-underline hover:brightness-110 transition';
+
 // ── NAV ──────────────────────────────────────
 function BottomNav({ items, activeTab, setActiveTab }) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const visible = items.slice(0, 4);
+  const rest = items.slice(4);
+
+  const go = (key) => {
+    setActiveTab(key);
+    window.scrollTo(0, 0);
+    setMoreOpen(false);
+  };
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-xl border-t border-line flex justify-center pb-[env(safe-area-inset-bottom,0px)] z-[25]">
-      <div className="flex w-full max-w-[480px]">
-        {items.map((item) => (
-          <button
-            key={item.key}
-            onClick={() => { setActiveTab(item.key); window.scrollTo(0, 0); }}
-            className={`flex-1 flex flex-col items-center justify-center gap-[3px] py-[10px] pb-[9px] min-h-[56px] text-[.68rem] font-semibold transition ${activeTab === item.key ? 'text-primary-500' : 'text-ink-muted'}`}
-          >
-            <item.icon
-              size={20}
-              strokeWidth={2.5}
-              stroke="currentColor"
-              className={`transition ${activeTab === item.key ? 'opacity-100 -translate-y-px' : 'opacity-55'}`}
-            />
-            {item.label}
-          </button>
-        ))}
-      </div>
-    </nav>
+    <>
+      {moreOpen && rest.length > 0 && (
+        <div className="fixed inset-0 z-[24]" onClick={() => setMoreOpen(false)}>
+          <div className="absolute bottom-[calc(56px+env(safe-area-inset-bottom,0px))] left-0 right-0 mx-auto max-w-[480px] bg-surface border-t border-line rounded-t-2xl shadow-lg p-2" onClick={(e) => e.stopPropagation()}>
+            {rest.map((item) => (
+              <button
+                key={item.key}
+                onClick={() => go(item.key)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[.9rem] font-semibold transition ${activeTab === item.key ? 'text-primary-500 bg-primary-50' : 'text-ink'}`}
+              >
+                <item.icon size={20} strokeWidth={2.5} stroke="currentColor" />
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <nav className="fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-xl border-t border-line flex justify-center pb-[env(safe-area-inset-bottom,0px)] z-[25]">
+        <div className="flex w-full max-w-[480px]">
+          {visible.map((item) => (
+            <button
+              key={item.key}
+              onClick={() => go(item.key)}
+              className={`flex-1 flex flex-col items-center justify-center gap-[3px] py-[10px] pb-[9px] min-h-[56px] text-[.68rem] font-semibold transition ${activeTab === item.key ? 'text-primary-500' : 'text-ink-muted'}`}
+            >
+              <item.icon
+                size={20}
+                strokeWidth={2.5}
+                stroke="currentColor"
+                className={`transition ${activeTab === item.key ? 'opacity-100 -translate-y-px' : 'opacity-55'}`}
+              />
+              {item.label}
+            </button>
+          ))}
+          {rest.length > 0 && (
+            <button
+              onClick={() => setMoreOpen((o) => !o)}
+              className={`flex-1 flex flex-col items-center justify-center gap-[3px] py-[10px] pb-[9px] min-h-[56px] text-[.68rem] font-semibold transition ${moreOpen ? 'text-primary-500' : 'text-ink-muted'}`}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition opacity-55">
+                <circle cx="5" cy="12" r="1.5" />
+                <circle cx="12" cy="12" r="1.5" />
+                <circle cx="19" cy="12" r="1.5" />
+              </svg>
+              Mais
+            </button>
+          )}
+        </div>
+      </nav>
+    </>
   );
 }
 
@@ -417,16 +460,51 @@ export function CareerConnectApp({ initialRole }) {
   );
 }
 
+// ── PENDING APPROVAL ─────────────────────────
+function PendingApproval({ user }) {
+  return (
+    <div className="min-h-screen bg-navy-950 text-ink font-sans flex flex-col items-center justify-center pt-[52px] px-6 pb-10">
+      <div className="max-w-[480px] mx-auto text-center">
+        <div className="font-extrabold text-[1.35rem] italic tracking-tight leading-none mb-6 text-white">
+          Career<i className="text-primary-500 not-italic">Connect</i>
+        </div>
+        <div className="bg-surface-soft border-2 border-line rounded-3xl p-8 mb-8">
+          <h2 className="text-[1.5rem] font-extrabold tracking-tight mb-2 text-white">Conta em avaliação</h2>
+          <p className="text-ink-muted mb-4">
+            Olá, <b>{user.name}</b>. A sua conta de mentor está a aguardar aprovação pela equipa. Só poderá entrar na área de mentor depois de aprovado.
+          </p>
+          <p className="text-ink-muted text-sm mb-6">
+            Enquanto isso, pode continuar a usar a plataforma como visitante ou tentar entrar com outro perfil.
+          </p>
+          <button
+            onClick={() => {
+              setStoredToken(null);
+              localStorage.removeItem('refresh_token');
+              localStorage.removeItem('userRole');
+              window.location.href = '/';
+            }}
+            className={`flex-1 ${BTN_BASE} w-full py-3`}
+          >
+            Entender
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── ROUTER ───────────────────────────────────
 export default function AppRouter() {
   const [authChecked, setAuthChecked] = useState(false);
   const [authRole, setAuthRole] = useState(null);
+  const [pendingApproval, setPendingApproval] = useState(null);
 
   const checkAuth = async () => {
     const token = getStoredToken();
     if (!token) {
       setAuthChecked(true);
       setAuthRole(null);
+      setPendingApproval(null);
       return;
     }
     setAuthChecked(false);
@@ -434,14 +512,23 @@ export default function AppRouter() {
       const response = await ccMe();
       if (response.data?.user) {
         const rawRole = response.data.user.role;
-        // Normalise backend 'organizer' to app route key 'org'
+        const mentorProfile = response.data.user.mentorProfile;
+        // Not-approved mentors keep their token but stay on the landing page
+        if (rawRole === 'mentor' && mentorProfile && mentorProfile.approval !== 'approved') {
+          setAuthRole(null);
+          setPendingApproval(response.data.user);
+          setAuthChecked(true);
+          return;
+        }
         setAuthRole(rawRole === 'organizer' ? 'org' : rawRole);
+        setPendingApproval(null);
       }
     } catch (err) {
       setStoredToken(null);
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('userRole');
       setAuthRole(null);
+      setPendingApproval(null);
     }
     setAuthChecked(true);
   };
@@ -459,7 +546,7 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={authRole === 'mentee' ? <Navigate to="/app/mentee" replace /> : authRole === 'mentor' ? <Navigate to="/app/mentor" replace /> : authRole === 'org' ? <Navigate to="/app/org" replace /> : authRole === 'tv' ? <Navigate to="/app/tv" replace /> : <Landingpage />} />
+        <Route path="/" element={pendingApproval ? <PendingApproval user={pendingApproval} /> : authRole === 'mentee' ? <Navigate to="/app/mentee" replace /> : authRole === 'mentor' ? <Navigate to="/app/mentor" replace /> : authRole === 'org' ? <Navigate to="/app/org" replace /> : authRole === 'tv' ? <Navigate to="/app/tv" replace /> : <Landingpage />} />
         <Route path="/mentor" element={<MentorLanding />} />
         <Route path="/registo" element={<Register />} />
         <Route path="/registo/mentor" element={<Register />} />

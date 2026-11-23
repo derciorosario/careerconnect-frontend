@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ccLogin, ccRequestOTP, ccVerifyOTP } from './api/client';
+import { ccLogin, ccRequestOTP, ccVerifyOTP, ccGetTestUsers } from './api/client';
 
 const BTN_BASE   = 'inline-block rounded-full bg-primary-500 text-white font-semibold text-base px-7 py-3.5 cursor-pointer no-underline hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed';
 const BTN_GHOST  = 'bg-transparent text-ink shadow-[inset_0_0_0_2px_var(--color-line)]';
@@ -21,6 +21,23 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [sendingOtp, setSendingOtp] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [testUsers, setTestUsers] = useState([]);
+  const [testLoading, setTestLoading] = useState(false);
+
+  useEffect(() => {
+    const loadTestUsers = async () => {
+      setTestLoading(true);
+      try {
+        const resp = await ccGetTestUsers();
+        setTestUsers(resp.data?.users || []);
+      } catch {
+        setTestUsers([]);
+      } finally {
+        setTestLoading(false);
+      }
+    };
+    loadTestUsers();
+  }, []);
 
   // Limpa mensagens e estado de OTP ao trocar de tab
   useEffect(() => {
@@ -90,6 +107,12 @@ export default function Login() {
 
   const switchMode = (nextMode) => {
     if (nextMode !== mode) setMode(nextMode);
+  };
+
+  const fillTestUser = (emailVal, passwordVal) => {
+    setEmail(emailVal);
+    setPassword(passwordVal);
+    setMode('password');
   };
 
   const showOtpSubmit = mode === 'password' || (mode === 'otp' && otpSent);
@@ -236,6 +259,28 @@ export default function Login() {
             </button>
           )}
         </form>
+
+        {/* Test mode quick login */}
+        {testUsers.length > 0 && (
+          <div className="mt-8 pt-6 border-t border-line">
+            <p className="text-[.8rem] text-ink-muted font-semibold mb-3 uppercase tracking-wide">Modo teste — login rápido</p>
+            <div className="flex flex-wrap gap-2">
+              {testUsers.map((u) => (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => fillTestUser(u.email, u.testPassword)}
+                  className="rounded-full bg-surface-soft text-[.78rem] font-semibold text-ink px-3 py-2 border border-line hover:bg-primary-500 hover:text-white transition"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span>{u.name}</span>
+                    <span className="text-[.7rem] text-primary-500 font-bold uppercase">{u.role}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <p className="text-center text-[.85rem] text-ink-muted mt-6">
           Não tem conta?{' '}

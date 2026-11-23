@@ -194,6 +194,7 @@ export const ccMe = () => client.get('/auth/me');
 export const ccGetProfile = () => client.get('/users/profile');
 export const ccUpdateProfile = (data) => client.put('/users/profile', data);
 export const ccGetAllUsers = () => client.get('/users/');
+export const ccGetTestUsers = () => client.get('/auth/test-users');
 export const ccGetMenteeDashboard = () => client.get('/users/mentee/dashboard');
 export const ccGetMentorDashboard = () => client.get('/users/mentor/dashboard');
 
@@ -215,11 +216,13 @@ export const ccAdvanceRound = (data) => client.post('/rounds/advance', data);
 export const ccPauseRound = (data) => client.post('/rounds/pause', data);
 export const ccResumeRound = (data) => client.post('/rounds/resume', data);
 export const ccGetCurrentRound = (params) => client.get('/rounds/current', { params });
+export const ccResetRounds = (data) => client.post('/rounds/reset', data);
 
 // MATCHES
 export const ccGetMyMatch = (params) => client.get('/matches/my', { params });
 export const ccGetMentorMatch = (params) => client.get('/matches/mentor', { params });
 export const ccGetAllMatches = (params) => client.get('/matches/', { params });
+export const ccGenerateMatches = () => client.post('/matches/generate');
 
 // MENTORS / WISHES
 export const ccGetMentorDirectory = (params) => client.get('/mentors/', { params });

@@ -25,7 +25,7 @@ import Landingpage from './Landingpage';
 import MentorLanding from './MentorLanding';
 import Register from './Register';
 import Login from './Login';
-import { ccMe, setStoredToken, getStoredToken, getStoredRefreshToken, ccGetQuestions, ccGetPolls, ccGetPollResults, ccAdvanceRound, ccPauseRound, ccResumeRound, ccGetCurrentRound } from './api/client';
+import { ccMe, setStoredToken, getStoredToken, getStoredRefreshToken, ccGetQuestions, ccGetPolls, ccGetPollResults, ccAdvanceRound, ccPauseRound, ccResumeRound, ccGetCurrentRound, ccGenerateMatches, ccResetRounds } from './api/client';
 
 import logo from './assets/logo.png';
 
@@ -100,6 +100,7 @@ function BottomNav({ items, activeTab, setActiveTab }) {
 // ── APP SHELL ────────────────────────────────
 export function CareerConnectApp({ initialRole }) {
   const [role, setRole] = useState(initialRole || null);
+  const [previousRole, setPreviousRole] = useState(null);
   const [activeTab, setActiveTab] = useState('home');
   const [user, setUser] = useState(null);
 
@@ -110,6 +111,7 @@ export function CareerConnectApp({ initialRole }) {
   const [isPaused, setIsPaused] = useState(false);
   const [isRehearsal, setIsRehearsal] = useState(false);
   const [furthestRoundCompleted, setFurthestRoundCompleted] = useState(0);
+  const [roundDataVersion, setRoundDataVersion] = useState(0);
 
   // Announcements
   const [announcements, setAnnouncements] = useState([]);
@@ -206,46 +208,28 @@ export function CareerConnectApp({ initialRole }) {
     }
   }, [role]);
 
-  // Countdown
-  useEffect(() => {
-    if (!isRunning || isPaused) return;
-    const interval = setInterval(() => {
-      setSecondsLeft((previous) => {
-        if (previous <= 1) {
-          return isRehearsal ? 30 : 300;
-        }
-        return previous - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isRunning, isPaused, isRehearsal]);
-
-  const totalPollVotes = useMemo(() => pollVotes.reduce((sum, v) => sum + v, 0), [pollVotes]);
-
-  const phaseLabel = () => {
-    if (currentRound === 0) return 'Antes do intervalo';
-    if (currentRound > 4) return 'Intervalo concluído';
-    return `Intervalo 1 · ronda ${currentRound} de 4`;
-  };
-
   const advanceRound = async () => {
     try {
       await ccAdvanceRound({});
-      // Re-fetch current round from backend
       const resp = await ccGetCurrentRound({});
       const round = resp.data?.round;
       if (round) {
         const breakNo = round.break_no || 0;
         const roundNo = round.round_no || 0;
-        // Map to local currentRound: break 1 => rounds 1-4, break 0 => round 0
         const mapped = breakNo > 0 ? roundNo : 0;
         setCurrentRound(mapped);
         setFurthestRoundCompleted((f) => Math.max(f, mapped > 0 ? mapped - 1 : 0));
         setIsRunning(true);
         setIsPaused(false);
         setSecondsLeft(isRehearsal ? 30 : 300);
+        // Generate matches for the new running round
+        try {
+          await ccGenerateMatches({});
+          setRoundDataVersion((v) => v + 1);
+        } catch {
+          // Non-blocking: matches may already exist or no participants
+        }
       } else {
-        // No more rounds
         setCurrentRound(5);
         setIsRunning(false);
         setFurthestRoundCompleted(4);
@@ -253,6 +237,29 @@ export function CareerConnectApp({ initialRole }) {
     } catch (err) {
       showToast(err.response?.data?.message || 'Erro ao avançar ronda.');
     }
+  };
+
+  // Countdown
+  useEffect(() => {
+    if (!isRunning || isPaused) return;
+    const interval = setInterval(() => {
+      setSecondsLeft((previous) => {
+        if (previous <= 1) {
+          advanceRound();
+          return isRehearsal ? 30 : 300;
+        }
+        return previous - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isRunning, isPaused, isRehearsal, advanceRound]);
+
+  const totalPollVotes = useMemo(() => pollVotes.reduce((sum, v) => sum + v, 0), [pollVotes]);
+
+  const phaseLabel = () => {
+    if (currentRound === 0) return 'Antes do intervalo';
+    if (currentRound > 4) return 'Intervalo concluído';
+    return `Intervalo 1 · ronda ${currentRound} de 4`;
   };
 
   const handlePause = async () => {
@@ -271,7 +278,12 @@ export function CareerConnectApp({ initialRole }) {
     }
   };
 
-  const restartSimulation = () => {
+  const restartSimulation = async () => {
+    try {
+      await ccResetRounds({});
+    } catch {
+      // Non-blocking
+    }
     setCurrentRound(0);
     setFurthestRoundCompleted(0);
     setIsRunning(false);
@@ -287,7 +299,7 @@ export function CareerConnectApp({ initialRole }) {
       case 'home':
         return <MenteeHome {...common} />;
       case 'live':
-        return <MenteeLive {...common} currentRound={currentRound} secondsLeft={secondsLeft} isRehearsal={isRehearsal} announcements={announcements} phaseLabel={phaseLabel} setActiveTab={setActiveTab} questions={questions} setQuestions={setQuestions} pollOptions={pollOptions} pollVotes={pollVotes} setPollVotes={setPollVotes} votedOption={votedOption} setVotedOption={setVotedOption} totalPollVotes={totalPollVotes} />;
+        return <MenteeLive {...common} currentRound={currentRound} secondsLeft={secondsLeft} isRehearsal={isRehearsal} announcements={announcements} phaseLabel={phaseLabel} setActiveTab={setActiveTab} questions={questions} setQuestions={setQuestions} pollOptions={pollOptions} pollVotes={pollVotes} setPollVotes={setPollVotes} votedOption={votedOption} setVotedOption={setVotedOption} totalPollVotes={totalPollVotes} roundDataVersion={roundDataVersion} />;
       case 'mentors':
         return <MenteeMentors {...common} />;
       case 'met':
@@ -387,7 +399,12 @@ export function CareerConnectApp({ initialRole }) {
             <div className="text-ink-muted text-[.85rem]">Painel de controlo</div>
           </button>
           <button
-            onClick={() => { setRole('tv'); setActiveTab('live'); window.scrollTo(0, 0); }}
+            onClick={() => {
+              localStorage.setItem('previousRole', role || '');
+              setRole('tv');
+              setActiveTab('live');
+              window.scrollTo(0, 0);
+            }}
             className="text-left bg-surface-soft border-2 border-transparent hover:border-primary-500 rounded-3xl p-5 flex flex-col gap-0.5 text-ink transition active:scale-[.985]"
           >
             <Avatar name="Ecrã" />
@@ -402,7 +419,7 @@ export function CareerConnectApp({ initialRole }) {
       <TvScreen
         announcements={announcements} phaseLabel={phaseLabel} currentRound={currentRound}
         secondsLeft={secondsLeft} furthestRoundCompleted={furthestRoundCompleted}
-        connections={[]} setRole={setRole}
+        connections={[]} showToast={showToast}
       />
     );
   } else if (role === 'org') {
@@ -446,7 +463,7 @@ export function CareerConnectApp({ initialRole }) {
           ].map((account) => (
             <button
               key={account.key}
-              onClick={() => { setRole(account.key); setActiveTab(account.key === 'org' ? 'live' : 'home'); window.scrollTo(0, 0); }}
+              onClick={() => { localStorage.setItem('previousRole', role || ''); setRole(account.key); setActiveTab(account.key === 'org' ? 'live' : 'home'); window.scrollTo(0, 0); }}
               className={`rounded-full px-3.5 py-[7px] font-semibold text-[.78rem] min-h-[34px] whitespace-nowrap transition ${role === account.key ? 'bg-primary-500 text-white' : 'bg-white/10 text-white'}`}
             >
               {account.label}

@@ -218,6 +218,7 @@ export const MenteeLive = ({
   currentRound, secondsLeft, isRehearsal, announcements, phaseLabel,
   mentorForMenteeRound, setActiveTab, showToast,
   questions, setQuestions, pollOptions, pollVotes, setPollVotes, votedOption, setVotedOption, totalPollVotes,
+  roundDataVersion,
 }) => {
   const [roundData, setRoundData] = useState(null);
   const [mentorDirectory, setMentorDirectory] = useState([]);
@@ -239,7 +240,7 @@ export const MenteeLive = ({
       }
     };
     loadRound();
-  }, [currentRound]);
+  }, [currentRound, roundDataVersion]);
 
   let body = null;
 
@@ -260,9 +261,10 @@ export const MenteeLive = ({
       </Card>
     );
   } else {
-    const match = roundData?.matches?.[0];
+    const match = myMatches;
     const mentor = match?.mentor;
     const menteeIds = match?.mentee_ids || [];
+    const tableNo = match?.table_no || currentRound;
     const isMatched = !!mentor;
 
     if (!isMatched) {
@@ -289,9 +291,9 @@ export const MenteeLive = ({
             </div>
             <div className="my-3 mb-4"><ProgressBar value={(secondsLeft / (isRehearsal ? 30 : 300)) * 100} /></div>
             <div className="flex gap-3 items-center">
-              <div className="inline-grid place-items-center w-16 h-16 rounded-[18px] bg-primary-500 text-white text-[1.8rem] font-extrabold shrink-0">
-                {match.table_no || currentRound}
-              </div>
+                <div className="inline-grid place-items-center w-16 h-16 rounded-[18px] bg-primary-500 text-white text-[1.8rem] font-extrabold shrink-0">
+                  {tableNo}
+                </div>
               <div>
                 <p className="text-[.76rem] text-navy-100">Mesa</p>
                 <h3 className="text-[1.08rem] font-extrabold">{mentor.name}</h3>

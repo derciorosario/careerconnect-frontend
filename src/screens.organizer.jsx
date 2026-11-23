@@ -10,6 +10,7 @@ import {
   ccCheckIn, ccCancelCheckIn, ccWalkIn,
   ccCreatePoll, ccModerateQuestion,
   ccGetTVData, ccGetPollResults,
+  ccGenerateMatches, ccGetAllUsers,
   setStoredToken,
 } from './api/client';
 import { PersonRow, ProgressBar, Card, AnnouncementInput } from './ui';
@@ -31,24 +32,42 @@ export const OrganizerLive = ({
 }) => {
   const [rounds, setRounds] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  const [usersById, setUsersById] = useState({});
 
   useEffect(() => {
     let active = true;
     const load = async () => {
       try {
-        const [roundResp, annResp] = await Promise.all([
+        const [roundResp, annResp, usersResp] = await Promise.all([
           ccGetOrganizerRounds(),
           ccGetAnnouncements({}),
+          ccGetAllUsers(),
         ]);
         if (!active) return;
         setRounds(roundResp.data?.rounds || []);
         setAnnouncements(annResp.data?.announcements || []);
+        const byId = {};
+        (usersResp.data?.users || []).forEach((u) => { byId[u.id] = u; });
+        setUsersById(byId);
+
+        // Auto-generate matches if a round is running but has none
+        const running = (roundResp.data?.rounds || []).find((r) => r.status === 'running');
+        if (running && (!running.matches || running.matches.length === 0)) {
+          try {
+            await ccGenerateMatches({});
+            if (active) {
+              const refreshed = await ccGetOrganizerRounds();
+              setRounds(refreshed.data?.rounds || []);
+            }
+          } catch {
+            // Non-blocking
+          }
+        }
       } catch (err) {
         console.error('Failed to load organizer live data:', err);
       }
     };
     load();
-    // Refresh when the round changes so the pairs table stays in sync
     const interval = setInterval(load, 8000);
     return () => { active = false; clearInterval(interval); };
   }, [showToast, currentRound]);
@@ -79,6 +98,19 @@ export const OrganizerLive = ({
             >
               {isPaused ? 'Retomar' : 'Pausar'}
             </button>
+            <button
+              onClick={async () => {
+                try {
+                  await ccGenerateMatches({});
+                  showToast('Pares gerados.');
+                } catch (err) {
+                  showToast(err.response?.data?.message || 'Erro ao gerar pares.');
+                }
+              }}
+              className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-600 text-white"
+            >
+              Gerar pares
+            </button>
           </div>
           <label className="flex gap-2.5 items-center text-[.85rem] mt-4">
             <input type="checkbox" checked={isRehearsal} onChange={(e) => { setIsRehearsal(e.target.checked); setSecondsLeft(e.target.checked ? 30 : 300); }} className="w-auto accent-primary-500" />
@@ -100,13 +132,14 @@ export const OrganizerLive = ({
           <tbody>
             {current?.matches?.length > 0 ? (
               current.matches.map((match, matchIndex) => {
-                const menteeCount = Array.isArray(match.mentee_ids) ? match.mentee_ids.length : 0;
+                const menteeIds = Array.isArray(match.mentee_ids) ? match.mentee_ids : [];
+                const menteeNames = menteeIds.map((id) => usersById[id]?.name || `Utilizador ${id.slice(0, 4)}`).join(', ');
                 return (
                   <tr key={match.id || matchIndex} className="border-b border-line last:border-0">
                     <td className="py-[11px] px-2"><b>{match.table_no || matchIndex + 1}</b></td>
                     <td className="py-[11px] px-2">{match.mentor?.name || '–'}</td>
-                    <td className="py-[11px] px-2">{menteeCount}</td>
-                    <td className="py-[11px] px-2">{menteeCount > 0 ? `${match.score || 85}%` : '–'}</td>
+                    <td className="py-[11px] px-2 text-[.82rem]">{menteeNames || '–'}</td>
+                    <td className="py-[11px] px-2">{menteeIds.length > 0 ? `${match.score || 85}%` : '–'}</td>
                   </tr>
                 );
               })
@@ -208,7 +241,7 @@ export const OrganizerReg = ({ showToast }) => {
       <Card>
         <div className="flex items-center justify-between mb-3.5 gap-2">
           <b>Check-in ({registrations.filter((r) => r.status === 'present').length}/{registrations.length})</b>
-          <button onClick={handleWalkIn} className="rounded-full font-bold text-[.76rem] h-[34px] px-3.5 bg-surface2 text-ink">+ Walk-in</button>
+          {/**Leave it hidden */} <button onClick={handleWalkIn} className="rounded-full hidden font-bold text-[.76rem] h-[34px] px-3.5 bg-surface2 text-ink">+ Walk-in</button>
         </div>
         <input
           value={search}
@@ -217,11 +250,20 @@ export const OrganizerReg = ({ showToast }) => {
           className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-2.5 mb-2 focus:border-primary-500 focus:outline-none"
         />
         <table className="w-full text-[.88rem] border-collapse mt-1">
+          <thead>
+            <tr>
+              <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Nome</th>
+              <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Perfil</th>
+              <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Bilhete</th>
+              <th className="text-right text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Estado</th>
+            </tr>
+          </thead>
           <tbody>
             {filteredRegs.map((reg) => (
               <tr key={reg.id} className="border-b border-line last:border-0">
                 <td className="py-[11px] px-2">{reg.user?.name || '–'}</td>
                 <td className="py-[11px] px-2 text-ink-muted text-[.85rem]">{reg.user?.role === 'mentor' ? 'Mentor' : 'Mentorado'}</td>
+                <td className="py-[11px] px-2 text-[.82rem] font-mono text-ink-muted">{reg.ticket_code || '–'}</td>
                 <td className="py-[11px] px-2 text-right">
                   <button
                     onClick={() => handleCheckIn(reg)}
@@ -234,7 +276,7 @@ export const OrganizerReg = ({ showToast }) => {
               </tr>
             ))}
             {filteredRegs.length === 0 && (
-              <tr><td colSpan="3" className="py-3 text-center text-ink-muted text-[.85rem]">Sem registos.</td></tr>
+              <tr><td colSpan="4" className="py-3 text-center text-ink-muted text-[.85rem]">Sem registos.</td></tr>
             )}
           </tbody>
         </table>
@@ -681,12 +723,12 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
           {saving ? 'A guardar...' : 'Guardar'}
         </button>
       </Card>
-      <button onClick={() => { setStoredToken(null); localStorage.removeItem('refresh_token'); localStorage.removeItem('userRole'); setRole(null); window.scrollTo(0, 0); }} className="w-full rounded-full font-bold text-[.92rem] h-12 bg-surface2 text-ink">Sair</button>
+      <button onClick={() => { setStoredToken(null); localStorage.removeItem('refresh_token'); localStorage.removeItem('userRole'); setRole(null); window.location.href = '/entrar'; }} className="w-full rounded-full font-bold text-[.92rem] h-12 bg-surface2 text-ink">Sair</button>
     </>
   );
 };
 // ── TV / PROJECTOR ───────────────────────────
-export const TvScreen = ({ announcements, phaseLabel, currentRound, secondsLeft, showToast, setRole }) => {
+export const TvScreen = ({ announcements, phaseLabel, currentRound, secondsLeft, showToast }) => {
   const [tvData, setTvData] = useState(null);
 
   useEffect(() => {
@@ -714,7 +756,16 @@ export const TvScreen = ({ announcements, phaseLabel, currentRound, secondsLeft,
     <div className="bg-navy-900 text-white min-h-screen pt-[calc(env(safe-area-inset-top,0px)+34px)] px-[5vw] pb-[34px]" style={{ background: 'radial-gradient(circle at 30% 10%, #172554 0%, #0b1126 70%)' }}>
       <div className="flex justify-between items-center">
         <span className="font-extrabold text-[1.35rem] italic tracking-tight leading-none"></span>
-        <button onClick={() => { setStoredToken(null); localStorage.removeItem('refresh_token'); localStorage.removeItem('userRole'); setRole(null); window.scrollTo(0, 0); }} className="rounded-full font-bold text-[.82rem] h-10 px-4 text-white bg-white/10">Sair</button>
+        <button
+          onClick={() => {
+            const prev = localStorage.getItem('previousRole') || null;
+            localStorage.removeItem('previousRole');
+            window.location.href = prev === 'org' ? '/app/org' : prev === 'mentee' ? '/app/mentee' : prev === 'mentor' ? '/app/mentor' : '/';
+          }}
+          className="rounded-full font-bold text-[.82rem] h-10 px-4 text-white bg-white/10"
+        >
+          Voltar
+        </button>
       </div>
       {anns.length > 0 && (
         <div className="bg-gradient-to-br from-primary-500 to-primary-400 text-white px-4 py-3 rounded-2xl mt-5 font-semibold text-[1.2rem] shadow-md">
@@ -733,7 +784,15 @@ export const TvScreen = ({ announcements, phaseLabel, currentRound, secondsLeft,
                 <div key={tableIndex} className="bg-white/[.06] border border-white/[.08] rounded-[22px] p-5 backdrop-blur-md">
                   <span className="text-[.76rem] font-bold text-primary-300 uppercase tracking-wide">Mesa {table.table}</span>
                   <b className="block text-[1.1rem] mt-1.5">{table.mentor || 'Livre'}</b>
-                  <p className="text-navy-100 mt-1">–</p>
+                  {table.mentees && table.mentees.length > 0 ? (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {table.mentees.map((m, mi) => (
+                        <span key={mi} className="bg-white/[.12] text-white text-[.72rem] font-semibold px-2 py-1 rounded-[8px]">{m}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-navy-100 mt-1">–</p>
+                  )}
                 </div>
               ))
             ) : (
@@ -777,7 +836,7 @@ export const OrganizerShell = ({ activeTab, setActiveTab, announcements, setRole
         <div className="font-extrabold text-[1.35rem] italic tracking-tight leading-none">
           Career<i className="text-primary-500 not-italic">Connect</i> <span className="text-ink-muted text-[.85rem] not-italic font-semibold">· Painel</span>
         </div>
-        <button onClick={() => { setStoredToken(null); localStorage.removeItem('refresh_token'); localStorage.removeItem('userRole'); setRole(null); window.scrollTo(0, 0); }} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-surface2 text-ink">Sair</button>
+        <button onClick={() => { setStoredToken(null); localStorage.removeItem('refresh_token'); localStorage.removeItem('userRole'); setRole(null); window.location.href = '/entrar'; }} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-surface2 text-ink">Sair</button>
       </div>
       {announcements.length > 0 && (
         <div className="bg-gradient-to-br from-primary-500 to-primary-400 text-white px-4 py-3 rounded-2xl mb-3.5 font-semibold text-[.88rem] shadow-md">

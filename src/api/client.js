@@ -210,6 +210,7 @@ export const ccWalkIn = (data) => client.post('/registrations/walkin', data);
 export const ccCancelCheckIn = (data) => client.post('/registrations/cancel-checkin', data);
 export const ccGetRegistrations = () => client.get('/registrations/');
 export const ccDeleteRegistration = (id) => client.delete(`/registrations/${id}`);
+export const ccGetRegistrationByTicket = (ticketCode) => client.get('/registrations/by-ticket', { params: { ticket_code: ticketCode } });
 
 // ROUNDS
 export const ccGetRounds = (params) => client.get('/rounds/', { params });

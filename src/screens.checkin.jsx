@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from './ui';
-import { ccGetProfile, ccCheckIn } from './api/client';
+import { ccGetProfile, ccCheckIn, ccGetRegistrationByTicket } from './api/client';
 
 export const CheckInScreen = () => {
   const [ticketCode, setTicketCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [isOrganizer, setIsOrganizer] = useState(false);
   const [checked, setChecked] = useState(false);
+  const [registration, setRegistration] = useState(null);
+  const [regLoading, setRegLoading] = useState(true);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -27,12 +29,38 @@ export const CheckInScreen = () => {
     loadUser();
   }, []);
 
+  useEffect(() => {
+    if (!ticketCode) {
+      setRegLoading(false);
+      return;
+    }
+    const loadRegistration = async () => {
+      setRegLoading(true);
+      try {
+        const resp = await ccGetRegistrationByTicket(ticketCode);
+        const reg = resp.data?.registration || null;
+        setRegistration(reg);
+        if (reg?.status === 'present') {
+          setChecked(true);
+        }
+      } catch {
+        // Registration not found or error
+      } finally {
+        setRegLoading(false);
+      }
+    };
+    loadRegistration();
+  }, [ticketCode]);
+
   const handleCheckIn = async () => {
     if (!ticketCode) return;
     setLoading(true);
     try {
       await ccCheckIn({ ticket_code: ticketCode });
       setChecked(true);
+      if (registration) {
+        setRegistration({ ...registration, status: 'present' });
+      }
     } catch {
       // Check-in API errors are handled by backend response
     } finally {
@@ -48,11 +76,22 @@ export const CheckInScreen = () => {
             ✓
           </div>
           <h2 className="text-[1.5rem] font-extrabold tracking-tight mb-2">Check-in</h2>
-          {ticketCode ? (
+          {regLoading ? (
+            <p className="text-ink-muted text-[.85rem] mb-6">A validar bilhete...</p>
+          ) : ticketCode ? (
             <>
-              <p className="text-ink-muted text-[.85rem] mb-6">Código do bilhete: <b className="text-primary-500 font-mono">{ticketCode}</b></p>
-              {checked ? (
-                <p className="text-success font-semibold">Check-in confirmado.</p>
+              <p className="text-ink-muted text-[.85rem] mb-2">Código do bilhete: <b className="text-primary-500 font-mono">{ticketCode}</b></p>
+              {registration && (
+                <p className="text-[1rem] font-semibold mb-4 text-white">{registration.user?.name || 'Utilizador'}</p>
+              )}
+              {registration?.status === 'present' ? (
+                <div className="text-center py-4">
+                  <div className="w-12 h-12 rounded-full bg-green-500 text-white grid place-items-center font-extrabold text-[1.5rem] mx-auto mb-3">
+                    ✓
+                  </div>
+                  <p className="text-success font-semibold text-[1.1rem]">Já fez check-in</p>
+                  <p className="text-ink-muted text-[.85rem] mt-1">Check-in efetuado em {registration.checked_in_at ? new Date(registration.checked_in_at).toLocaleString('pt-PT') : 'momentos atrás'}</p>
+                </div>
               ) : isOrganizer ? (
                 <button
                   onClick={handleCheckIn}

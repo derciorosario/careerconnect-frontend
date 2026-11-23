@@ -108,15 +108,15 @@ export const AnnouncementInput = ({ onSubmit }) => {
 };
 
 // Real, scannable QR code. Falls back to the ticket text if generation fails.
-export const QrCode = ({ value, size = 120, className = '', downloadable = false, checkinUrl }) => {
+export const QrCode = ({ value, size = 120, className = '', downloadable = false }) => {
   const [dataUrl, setDataUrl] = useState('');
   const [displayUrl, setDisplayUrl] = useState('');
 
   useEffect(() => {
     let active = true;
     if (!value) { setDataUrl(''); setDisplayUrl(''); return; }
-    // Generate checkin URL if not provided
-    const url = checkinUrl || `${window.location.origin}/checkin?ticket_code=${encodeURIComponent(value)}`;
+    // Generate checkin URL with relative path
+    const url = `/checkin?ticket_code=${encodeURIComponent(value)}`;
     setDisplayUrl(url);
     QRCode.toDataURL(url, {
       errorCorrectionLevel: 'M',
@@ -127,7 +127,7 @@ export const QrCode = ({ value, size = 120, className = '', downloadable = false
       .then((url) => { if (active) setDataUrl(url); })
       .catch(() => { if (active) setDataUrl(''); });
     return () => { active = false; };
-  }, [value, size, checkinUrl]);
+  }, [value, size]);
 
   const handleDownload = () => {
     if (!dataUrl) return;

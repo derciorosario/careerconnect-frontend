@@ -14,6 +14,7 @@ import {
   ccGetTVData, ccGetPollResults,
   ccGenerateMatches, ccGetAllUsers,
   setStoredToken,
+  ccCreateRound, ccUpdateRound, ccDeleteRound,
 } from './api/client';
 import { PersonRow, ProgressBar, Card, AnnouncementInput } from './ui';
 
@@ -74,9 +75,23 @@ export const OrganizerLive = ({
     load();
     const interval = setInterval(load, 8000);
     return () => { active = false; clearInterval(interval); };
-  }, [showToast, currentRound]);
+  }, []); // 👈 stable deps — interval + one initial load only
 
   const current = rounds.find((r) => r.status === 'running') || rounds[rounds.length - 1] || null;
+
+  // Deduplicate matches by table_no so the same table is never rendered twice.
+  // Keeps the first occurrence for a given table (entries are already ordered).
+  const uniqueMatches = (() => {
+    const seen = new Set();
+    const out = [];
+    (current?.matches || []).forEach((match, index) => {
+      const key = match.table_no != null ? `t-${match.table_no}` : `i-${match.id ?? index}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(match);
+    });
+    return out;
+  })();
 
   return (
     <>
@@ -134,12 +149,12 @@ export const OrganizerLive = ({
             </tr>
           </thead>
           <tbody>
-            {current?.matches?.length > 0 ? (
-              current.matches.map((match, matchIndex) => {
+            {uniqueMatches.length > 0 ? (
+              uniqueMatches.map((match, matchIndex) => {
                 const menteeIds = Array.isArray(match.mentee_ids) ? match.mentee_ids : [];
                 const menteeNames = menteeIds.map((id) => usersById[id]?.name || `Utilizador ${id.slice(0, 4)}`).join(', ');
                 return (
-                  <tr key={match.id || matchIndex} className="border-b border-line last:border-0">
+                  <tr key={match.table_no != null ? `t-${match.table_no}` : (match.id || matchIndex)} className="border-b border-line last:border-0">
                     <td className="py-[11px] px-2"><b>{match.table_no || matchIndex + 1}</b></td>
                     <td className="py-[11px] px-2">{match.mentor?.name || '–'}</td>
                     <td className="py-[11px] px-2 text-[.82rem]">{menteeNames || '–'}</td>
@@ -260,6 +275,7 @@ export const OrganizerReg = ({ showToast }) => {
               <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Perfil</th>
               <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Bilhete</th>
               <th className="text-right text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Estado</th>
+              <th className="text-right text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -277,10 +293,21 @@ export const OrganizerReg = ({ showToast }) => {
                     {actionLoading[reg.id] ? '...' : reg.status === 'present' ? 'Presente ✓' : 'Check-in'}
                   </button>
                 </td>
+                <td className="py-[11px] px-2 text-right">
+                  {reg.status === 'present' && (
+                    <button
+                      onClick={() => handleCheckIn(reg)}
+                      disabled={actionLoading[reg.id]}
+                      className="rounded-full font-bold text-[.76rem] h-[34px] px-3.5 bg-red-500 text-white disabled:opacity-50 ml-2"
+                    >
+                      Cancelar check-in
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
             {filteredRegs.length === 0 && (
-              <tr><td colSpan="4" className="py-3 text-center text-ink-muted text-[.85rem]">Sem registos.</td></tr>
+              <tr><td colSpan="5" className="py-3 text-center text-ink-muted text-[.85rem]">Sem registos.</td></tr>
             )}
           </tbody>
         </table>
@@ -926,7 +953,7 @@ export const OrganizerShell = ({ activeTab, setActiveTab, announcements, setRole
     <div className="max-w-[1040px] mx-auto pt-[18px] px-4 pb-10">
       <div className="flex justify-between items-center mb-3.5">
         <div className="font-extrabold text-[1.35rem] italic tracking-tight leading-none flex gap-2">
-          <img src={logo} alt="Career Connect" className="h-7 md:h-8 w-auto" />
+         
          </div>
         <button onClick={() => { setStoredToken(null); localStorage.removeItem('refresh_token'); localStorage.removeItem('userRole'); setRole(null); window.location.href = '/entrar'; }} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-surface2 text-ink">Sair</button>
       </div>

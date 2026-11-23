@@ -209,6 +209,7 @@ export const ccCheckIn = (data) => client.post('/registrations/checkin', data);
 export const ccWalkIn = (data) => client.post('/registrations/walkin', data);
 export const ccCancelCheckIn = (data) => client.post('/registrations/cancel-checkin', data);
 export const ccGetRegistrations = () => client.get('/registrations/');
+export const ccDeleteRegistration = (id) => client.delete(`/registrations/${id}`);
 
 // ROUNDS
 export const ccGetRounds = (params) => client.get('/rounds/', { params });
@@ -217,6 +218,9 @@ export const ccPauseRound = (data) => client.post('/rounds/pause', data);
 export const ccResumeRound = (data) => client.post('/rounds/resume', data);
 export const ccGetCurrentRound = (params) => client.get('/rounds/current', { params });
 export const ccResetRounds = (data) => client.post('/rounds/reset', data);
+export const ccCreateRound = (data) => client.post('/rounds/', data);
+export const ccUpdateRound = (id, data) => client.put(`/rounds/${id}`, data);
+export const ccDeleteRound = (id) => client.delete(`/rounds/${id}`);
 
 // MATCHES
 export const ccGetMyMatch = (params) => client.get('/matches/my', { params });

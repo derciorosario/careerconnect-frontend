@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   getFirstName, formatTime,
 } from './data';
@@ -102,23 +102,29 @@ export const MentorLive = ({ currentRound, secondsLeft, phaseLabel, showToast })
   const [myMatch, setMyMatch] = useState(null);
   const [loading, setLoading] = useState(false);
   const [feedbackStatus, setFeedbackStatus] = useState({});
+  const loadedRoundRef = useRef(null);
 
   useEffect(() => {
+    // Only fetch when the round actually changes (not every second)
+    if (currentRound < 1 || currentRound > 4) return;
+    if (loadedRoundRef.current === currentRound) return;
+    loadedRoundRef.current = currentRound;
+
+    let cancelled = false;
     const load = async () => {
-      if (currentRound >= 1 && currentRound <= 4) {
-        setLoading(true);
-        try {
-          const resp = await ccGetMentorMatch({});
-          setMyMatch(resp.data?.match || null);
-        } catch (err) {
-          console.error('Failed to load mentor match:', err);
-        } finally {
-          setLoading(false);
-        }
+      setLoading(true);
+      try {
+        const resp = await ccGetMentorMatch({});
+        if (!cancelled) setMyMatch(resp.data?.match || null);
+      } catch (err) {
+        console.error('Failed to load mentor match:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
     load();
-  }, [currentRound, showToast]);
+    return () => { cancelled = true; };
+  }, [currentRound]); // 👈 no showToast, guarded by loadedRoundRef
 
   if (currentRound === 0 || currentRound > 4) {
     return (
@@ -156,80 +162,84 @@ export const MentorLive = ({ currentRound, secondsLeft, phaseLabel, showToast })
         </div>
       </Card>
 
-      {loading ? (
+      {/* Loading indicator shown above the list — does NOT unmount existing cards */}
+      {loading && mentees.length === 0 && (
         <Card><p className="text-ink-muted text-[.85rem]">A carregar mentorados...</p></Card>
-      ) : mentees.length === 0 ? (
+      )}
+
+      {!loading && mentees.length === 0 && (
         <Card>
           <b>Sem mentorados atribuídos.</b>
           <p className="text-ink-muted text-[.85rem] mt-1.5">O organizador ainda não atribuiu mentorados a esta mesa.</p>
         </Card>
-      ) : (
-        mentees.map((mentee) => (
-          <div key={mentee.user_id}>
-            <Card>
-              <PersonRow name={mentee.name || 'Mentorado'} subtitle={mentee.goal || ''} />
-              <p className="text-[.85rem] mt-3"><b>Objetivo:</b> {mentee.goal || 'Não definido'}</p>
-              <p className="text-[.85rem] mt-1"><b>Pitch:</b> {mentee.pitch || 'Não definido'}</p>
-              <div className="flex gap-1.5 flex-wrap mt-2.5">
-                <span className="bg-surface text-ink-muted border border-line rounded-full px-3 py-[5px] text-[.74rem] font-semibold">
-                  compatível
-                </span>
-              </div>
-            </Card>
-
-            <Card>
-              <div className="flex items-center justify-between mb-3.5"><b>3 perguntas para fazer</b></div>
-              <ol className="text-[.85rem] pl-[18px] mt-1 leading-[1.7]">
-                <li>O que já tentaste até agora?</li>
-                <li>Que obstáculo te trava mais?</li>
-                <li>Como posso ajudar já esta semana?</li>
-              </ol>
-            </Card>
-
-            <Card>
-              <b>Queres continuar com {mentee.name ? getFirstName(mentee.name) : 'este mentorado'}?</b>
-              <div className="flex gap-3 mt-3">
-                <button
-                  onClick={async () => {
-                    try {
-                      await ccSubmitFeedback({
-                        match_id: myMatch.id,
-                        to_user_id: mentee.user_id,
-                        wants_to_continue: true,
-                      });
-                      setFeedbackStatus((p) => ({ ...p, [mentee.user_id]: 'continue' }));
-                      showToast('Interesse enviado.');
-                    } catch (err) {
-                      showToast(err.response?.data?.message || 'Erro ao guardar interesse.');
-                    }
-                  }}
-                  className={`rounded-full font-bold text-[.82rem] h-10 px-4 ${feedbackStatus[mentee.user_id] === 'continue' ? 'bg-primary-500 text-white' : 'bg-surface2 text-ink'}`}
-                >
-                  {feedbackStatus[mentee.user_id] === 'continue' ? 'Interesse enviado ✓' : 'Quero continuar'}
-                </button>
-                <button
-                  onClick={async () => {
-                    try {
-                      await ccSubmitFeedback({
-                        match_id: myMatch.id,
-                        to_user_id: mentee.user_id,
-                        wants_to_continue: false,
-                      });
-                      setFeedbackStatus((p) => ({ ...p, [mentee.user_id]: 'no' }));
-                      showToast('Sem interesse.');
-                    } catch (err) {
-                      showToast(err.response?.data?.message || 'Erro ao guardar.');
-                    }
-                  }}
-                  className={`rounded-full font-bold text-[.82rem] h-10 px-4 ${feedbackStatus[mentee.user_id] === 'no' ? 'bg-surface2 text-ink' : 'bg-surface2 text-ink'}`}
-                >
-                  {feedbackStatus[mentee.user_id] === 'no' ? 'Sem interesse ✓' : 'Agora não'}
-                </button>
-              </div>
-            </Card>
-          </div>
-        ))
       )}
+
+      {/* Cards stay mounted across re-fetches so scroll position is preserved */}
+      {mentees.map((mentee) => (
+        <div key={mentee.user_id}>
+          <Card>
+            <PersonRow name={mentee.name || 'Mentorado'} subtitle={mentee.goal || ''} />
+            <p className="text-[.85rem] mt-3"><b>Objetivo:</b> {mentee.goal || 'Não definido'}</p>
+            <p className="text-[.85rem] mt-1"><b>Pitch:</b> {mentee.pitch || 'Não definido'}</p>
+            <div className="flex gap-1.5 flex-wrap mt-2.5">
+              <span className="bg-surface text-ink-muted border border-line rounded-full px-3 py-[5px] text-[.74rem] font-semibold">
+                compatível
+              </span>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="flex items-center justify-between mb-3.5"><b>3 perguntas para fazer</b></div>
+            <ol className="text-[.85rem] pl-[18px] mt-1 leading-[1.7]">
+              <li>O que já tentaste até agora?</li>
+              <li>Que obstáculo te trava mais?</li>
+              <li>Como posso ajudar já esta semana?</li>
+            </ol>
+          </Card>
+
+          <Card>
+            <b>Queres continuar com {mentee.name ? getFirstName(mentee.name) : 'este mentorado'}?</b>
+            <div className="flex gap-3 mt-3">
+              <button
+                onClick={async () => {
+                  try {
+                    await ccSubmitFeedback({
+                      match_id: myMatch.id,
+                      to_user_id: mentee.user_id,
+                      wants_to_continue: true,
+                    });
+                    setFeedbackStatus((p) => ({ ...p, [mentee.user_id]: 'continue' }));
+                    showToast('Interesse enviado.');
+                  } catch (err) {
+                    showToast(err.response?.data?.message || 'Erro ao guardar interesse.');
+                  }
+                }}
+                className={`rounded-full font-bold text-[.82rem] h-10 px-4 ${feedbackStatus[mentee.user_id] === 'continue' ? 'bg-primary-500 text-white' : 'bg-surface2 text-ink'}`}
+              >
+                {feedbackStatus[mentee.user_id] === 'continue' ? 'Interesse enviado ✓' : 'Quero continuar'}
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await ccSubmitFeedback({
+                      match_id: myMatch.id,
+                      to_user_id: mentee.user_id,
+                      wants_to_continue: false,
+                    });
+                    setFeedbackStatus((p) => ({ ...p, [mentee.user_id]: 'no' }));
+                    showToast('Sem interesse.');
+                  } catch (err) {
+                    showToast(err.response?.data?.message || 'Erro ao guardar.');
+                  }
+                }}
+                className={`rounded-full font-bold text-[.82rem] h-10 px-4 ${feedbackStatus[mentee.user_id] === 'no' ? 'bg-surface2 text-ink' : 'bg-surface2 text-ink'}`}
+              >
+                {feedbackStatus[mentee.user_id] === 'no' ? 'Sem interesse ✓' : 'Agora não'}
+              </button>
+            </div>
+          </Card>
+        </div>
+      ))}
     </>
   );
 };
@@ -397,27 +407,52 @@ export const MentorConnections = ({ showToast }) => {
   );
 };
 
+
 // ── MESSAGES ─────────────────────────────────
 export const MentorMessages = ({ showToast }) => {
-  const [msg, setMsg] = useState('');
+  const [drafts, setDrafts] = useState({});
   const [conv, setConv] = useState({});
   const [connections, setConnections] = useState([]);
   const [sending, setSending] = useState({});
+  const [loading, setLoading] = useState(true);
 
+  // Stable ref for showToast so the load effect doesn't re-run when the
+  // parent re-renders and passes a new function identity.
+  const showToastRef = useRef(showToast);
+  useEffect(() => { showToastRef.current = showToast; });
+
+  // Refs to each conversation's scroll container
+  const scrollRefs = useRef({});
+
+  const scrollToNewest = (connectionId) => {
+    const el = scrollRefs.current[connectionId];
+    if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Runs once on mount. Uses showToastRef so [showToast] never needs to
+  // be a dependency — prevents the loading screen from blinking on every
+  // parent render.
   useEffect(() => {
+    let cancelled = false;
+
     const load = async () => {
+      setLoading(true);
       try {
         const resp = await ccGetConnections();
+        if (cancelled) return;
         const conns = resp.data?.connections || [];
-        const menteeConns = conns.filter((c) => c.contact.role === 'mentee');
+        const menteeConns = conns.filter((c) => c.contact?.role === 'mentee');
         setConnections(menteeConns);
+
         const entries = await Promise.all(
           menteeConns.map(async (c) => {
             try {
               const mResp = await ccGetMessages({ connection_id: c.id });
               const msgs = (mResp.data?.messages || []).map((m) => ({
+                id: m.id,
                 body: m.body,
                 mine: m.from_user_id !== c.contact?.id,
+                created_at: m.created_at,
               }));
               return [String(c.id), msgs];
             } catch {
@@ -425,15 +460,83 @@ export const MentorMessages = ({ showToast }) => {
             }
           })
         );
-        setConv(Object.fromEntries(entries));
+        if (cancelled) return;
+
+        setConv((previous) => Object.fromEntries(entries.map(([key, loaded]) => {
+          const loadedIds = new Set(loaded.map((m) => m.id).filter(Boolean));
+          const localOnly = (previous[key] || []).filter((m) => !m.id || !loadedIds.has(m.id));
+          return [key, [...loaded, ...localOnly]];
+        })));
       } catch (err) {
-        console.error('Failed to load connections:', err);
+        if (!cancelled) {
+          console.error('Failed to load connections:', err);
+          showToastRef.current('Erro ao carregar conversas.');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
-    load();
-  }, [showToast]);
 
-  const menteeConnections = connections;
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleSend = async (connection) => {
+    const key = String(connection.id);
+    const msg = (drafts[key] || '').trim();
+    if (!msg || sending[connection.id]) return;
+
+    setSending((p) => ({ ...p, [connection.id]: true }));
+
+    // Optimistic append — appears instantly at the top (newest-first sort)
+    const optimistic = {
+      id: `local-${Date.now()}`,
+      body: msg,
+      mine: true,
+      created_at: new Date().toISOString(),
+    };
+    setConv((p) => ({ ...p, [key]: [optimistic, ...(p[key] || [])] }));
+    setDrafts((p) => ({ ...p, [key]: '' }));
+
+    // Scroll to newest (top) immediately
+    requestAnimationFrame(() => scrollToNewest(connection.id));
+
+    try {
+      const resp = await ccSendMessage({ connection_id: connection.id, body: msg });
+      const sent = resp.data?.message;
+      setConv((p) => ({
+        ...p,
+        [key]: (p[key] || []).map((m) =>
+          m.id === optimistic.id
+            ? { ...m, id: sent?.id || m.id, created_at: sent?.created_at || m.created_at }
+            : m
+        ),
+      }));
+      requestAnimationFrame(() => scrollToNewest(connection.id));
+      showToastRef.current('Mensagem enviada.');
+    } catch (err) {
+      // Roll back optimistic message and restore draft
+      setConv((p) => ({
+        ...p,
+        [key]: (p[key] || []).filter((m) => m.id !== optimistic.id),
+      }));
+      setDrafts((p) => ({ ...p, [key]: msg }));
+      showToastRef.current(err.response?.data?.message || 'Erro ao enviar.');
+    } finally {
+      setSending((p) => {
+        const { [connection.id]: _, ...rest } = p;
+        return rest;
+      });
+    }
+  };
+
+  // Enter sends; Shift+Enter inserts a newline
+  const handleKeyDown = (e, connection) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend(connection);
+    }
+  };
 
   return (
     <>
@@ -441,60 +544,91 @@ export const MentorMessages = ({ showToast }) => {
       <p className="text-ink-muted text-[.85rem] mt-1 mb-4">
         Escreve apenas a mentorados com quem estás conectado.
       </p>
-      {menteeConnections.length === 0 ? (
+
+      {/* Header never unmounts — only the body below swaps, so no blink */}
+      {loading ? (
+        <Card>
+          <p className="text-ink-muted text-[.85rem]">A carregar conversas…</p>
+        </Card>
+      ) : connections.length === 0 ? (
         <Card>
           <b>Sem conexões ainda.</b>
-          <p className="text-ink-muted text-[.85rem] mt-1.5">Aceita pedidos de mentoria para desbloquear mensagens.</p>
+          <p className="text-ink-muted text-[.85rem] mt-1.5">
+            Aceita pedidos de mentoria para desbloquear mensagens.
+          </p>
         </Card>
       ) : (
-        <>
-          <div className="space-y-3 mb-5">
-            {menteeConnections.map((c) => {
-              const contact = c.contact;
-              const key = String(c.id);
-              const msgs = conv[key] || [];
-              return (
-                <div key={c.id} className="border border-line rounded-[16px] p-3.5">
-                  <div className="flex justify-between items-center mb-2.5">
-                    <PersonRow name={contact.name} subtitle={contact.role || ''} />
-                    <span className="text-[.72rem] font-bold px-2 py-0.5 rounded-full bg-surface2 text-ink-muted">{msgs.length}</span>
-                  </div>
-                  <div className="max-h-[140px] overflow-y-auto mb-2.5 space-y-1.5 text-[.85rem]">
-                    {msgs.length === 0 ? <p className="text-ink-muted">Sem mensagens ainda.</p> : msgs.map((m, i) => (
-                      <div key={i} className={`text-[.85rem] rounded-[10px] px-3 py-1.5 max-w-[80%] ${m.mine ? 'ml-auto bg-primary-500 text-white' : 'bg-surface-soft text-ink'}`}>
-                        {m.body}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-2 max-md:flex-col">
-                    <input value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="Escreve uma mensagem…" className="flex-1 bg-surface border-2 border-line rounded-[10px] px-3 py-2 text-base focus:border-primary-500 focus:outline-none" />
-                    <button
-                      onClick={async () => {
-                        if (!msg.trim() || sending[c.id]) return;
-                        setSending((p) => ({ ...p, [c.id]: true }));
-                        try {
-                          const resp = await ccSendMessage({ connection_id: c.id, body: msg });
-                          const sent = resp.data?.message;
-                          setConv((p) => ({ ...p, [key]: [...(p[key] || []), { body: sent?.body || msg, mine: true }] }));
-                          setMsg('');
-                          showToast('Mensagem enviada.');
-                        } catch (err) {
-                          showToast(err.response?.data?.message || 'Erro ao enviar.');
-                        } finally {
-                          setSending((p) => { const { [c.id]: _, ...rest } = p; return rest; });
-                        }
-                      }}
-                      disabled={sending[c.id]}
-                      className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white disabled:opacity-50"
-                    >
-                      {sending[c.id] ? '...' : 'Enviar'}
-                    </button>
-                  </div>
+        <div className="space-y-3 mb-5">
+          {connections.map((c) => {
+            const contact = c.contact;
+            const key = String(c.id);
+            const msgs = [...(conv[key] || [])].sort((a, b) => {
+              const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+              const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+              return timeB - timeA;
+            });
+            const isSending = !!sending[c.id];
+
+            return (
+              <div key={c.id} className="border border-line rounded-[16px] p-3.5">
+                <div className="flex justify-between items-center mb-2.5 gap-2">
+                  <PersonRow name={contact.name} subtitle={contact.role || ''} />
+                  <span className="text-[.72rem] font-bold px-2 py-0.5 rounded-full bg-surface2 text-ink-muted">
+                    {msgs.length}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
-        </>
+
+                {/* Scroll container — ref so we can scroll it after send */}
+                <div
+                  ref={(el) => { scrollRefs.current[c.id] = el; }}
+                  className="max-h-[180px] overflow-y-auto mb-2.5 space-y-1.5 text-[.85rem] scroll-smooth"
+                  aria-live="polite"
+                >
+                  {msgs.length === 0 ? (
+                    <p className="text-ink-muted">Sem mensagens ainda.</p>
+                  ) : (
+                    msgs.map((m) => (
+                      <div
+                        key={m.id}
+                        className={`text-[.85rem] rounded-[10px] px-3 py-1.5 max-w-[80%] ${
+                          m.mine ? 'ml-auto bg-primary-500 text-white' : 'bg-surface-soft text-ink'
+                        } ${m.id?.toString().startsWith('local-') ? 'opacity-70' : ''}`}
+                      >
+                        {m.body}
+                        {m.created_at && (
+                          <div className="mt-1 text-[.68rem] opacity-75">
+                            {new Date(m.created_at).toLocaleString('pt-PT', {
+                              dateStyle: 'short',
+                              timeStyle: 'short',
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="flex gap-2 max-md:flex-col">
+                  <input
+                    value={drafts[key] || ''}
+                    onChange={(e) => setDrafts((p) => ({ ...p, [key]: e.target.value }))}
+                    onKeyDown={(e) => handleKeyDown(e, c)}
+                    placeholder="Escreve uma mensagem…"
+                    className="flex-1 bg-surface border-2 border-line rounded-[10px] px-3 py-2 text-base focus:border-primary-500 focus:outline-none"
+                    disabled={isSending}
+                  />
+                  <button
+                    onClick={() => handleSend(c)}
+                    disabled={isSending || !(drafts[key] || '').trim()}
+                    className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white disabled:opacity-50"
+                  >
+                    {isSending ? '...' : 'Enviar'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
     </>
   );

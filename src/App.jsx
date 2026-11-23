@@ -18,9 +18,11 @@ import {
   OrganizerLive, OrganizerReg, OrganizerInteraction, OrganizerReports,
   ProfileScreen, TvScreen, OrganizerShell,
 } from './screens.organizer';
+import { OrganizerPools } from './screens/OrganizerPools';
 import {
   SurveyScreen, NextStepScreen, DailySummaryScreen,
 } from './screens.fecho';
+import { CheckInScreen } from './screens.checkin';
 import Landingpage from './Landingpage';
 import MentorLanding from './MentorLanding';
 import Register from './Register';
@@ -350,6 +352,8 @@ export function CareerConnectApp({ initialRole }) {
         return <OrganizerLive {...common} phaseLabel={phaseLabel} secondsLeft={secondsLeft} currentRound={currentRound} isPaused={isPaused} isRehearsal={isRehearsal} setIsRehearsal={setIsRehearsal} setSecondsLeft={setSecondsLeft} setIsPaused={setIsPaused} advanceRound={advanceRound} handlePause={handlePause} restartSimulation={restartSimulation} />;
       case 'reg':
         return <OrganizerReg {...common} />;
+      case 'pools':
+        return <OrganizerPools {...common} />;
       case 'int':
         return <OrganizerInteraction {...common} announcements={announcements} setAnnouncements={setAnnouncements} questions={questions} pollVotes={pollVotes} totalPollVotes={totalPollVotes} />;
       case 'rep':
@@ -527,6 +531,7 @@ export default function AppRouter() {
         <Route path="/app/org" element={authRole === 'org' ? <CareerConnectApp initialRole="org" /> : (authChecked ? <Navigate to="/entrar" replace /> : null)} />
         <Route path="/app/tv" element={authRole === 'tv' ? <CareerConnectApp initialRole="tv" /> : (authChecked ? <Navigate to="/entrar" replace /> : null)} />
         <Route path="/app" element={<Navigate to="/entrar" replace />} />
+        <Route path="/checkin" element={<CheckInScreen />} />
       </Routes>
     </BrowserRouter>
   );

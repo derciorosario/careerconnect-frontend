@@ -21,6 +21,7 @@ import {
   setStoredToken,
 } from './api/client';
 import { Avatar, PersonRow, ProgressBar, ChecklistItem, Card, QuestionInput, QrCode } from './ui';
+import { useRef } from 'react';
 
 const AREAS = [
   'Tecnologia e TI',
@@ -569,7 +570,7 @@ export const MenteeMet = ({ showToast }) => {
         return (
           <Card key={c.id}>
             <PersonRow name={contact.name} subtitle={contact.role || ''} />
-            {req?.status !== 'accepted' && (
+            {(req?.status !== 'accepted' && req?.status !== 'pending') && (
               <textarea rows="2" placeholder="Nota privada, só tu vês" className="w-full mt-3 mb-0 text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none" />
             )}
             <div className="flex items-center gap-2.5 mt-3">
@@ -675,27 +676,51 @@ export const MenteeConnections = ({ showToast }) => {
   );
 };
 
+
 // ── MESSAGES ─────────────────────────────────
 export const MenteeMessages = ({ showToast }) => {
-  const [msg, setMsg] = useState('');
+  const [drafts, setDrafts] = useState({});
   const [conv, setConv] = useState({});
   const [connections, setConnections] = useState([]);
   const [sending, setSending] = useState({});
+  const [loading, setLoading] = useState(true);
 
+  // Stable ref for showToast so the load effect doesn't re-run when the
+  // parent re-renders and passes a new function identity.
+  const showToastRef = useRef(showToast);
+  useEffect(() => { showToastRef.current = showToast; });
+
+  // Refs to each conversation's scroll container
+  const scrollRefs = useRef({});
+
+  const scrollToNewest = (connectionId) => {
+    const el = scrollRefs.current[connectionId];
+    if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Runs once on mount. Uses showToastRef so [showToast] never needs to
+  // be a dependency — prevents the loading screen from blinking on every
+  // parent render.
   useEffect(() => {
+    let cancelled = false;
+
     const load = async () => {
+      setLoading(true);
       try {
         const resp = await ccGetConnections();
+        if (cancelled) return;
         const conns = resp.data?.connections || [];
         setConnections(conns);
-        // Load messages for each connection
+
         const entries = await Promise.all(
           conns.map(async (c) => {
             try {
               const mResp = await ccGetMessages({ connection_id: c.id });
               const msgs = (mResp.data?.messages || []).map((m) => ({
+                id: m.id,
                 body: m.body,
                 mine: m.from_user_id !== c.contact?.id,
+                created_at: m.created_at,
               }));
               return [String(c.id), msgs];
             } catch {
@@ -703,13 +728,83 @@ export const MenteeMessages = ({ showToast }) => {
             }
           })
         );
-        setConv(Object.fromEntries(entries));
+        if (cancelled) return;
+
+        setConv((previous) => Object.fromEntries(entries.map(([key, loaded]) => {
+          const loadedIds = new Set(loaded.map((m) => m.id).filter(Boolean));
+          const localOnly = (previous[key] || []).filter((m) => !m.id || !loadedIds.has(m.id));
+          return [key, [...loaded, ...localOnly]];
+        })));
       } catch (err) {
-        console.error('Failed to load connections:', err);
+        if (!cancelled) {
+          console.error('Failed to load connections:', err);
+          showToastRef.current('Erro ao carregar conversas.');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
+
     load();
-  }, [showToast]);
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleSend = async (connection) => {
+    const key = String(connection.id);
+    const msg = (drafts[key] || '').trim();
+    if (!msg || sending[connection.id]) return;
+
+    setSending((p) => ({ ...p, [connection.id]: true }));
+
+    // Optimistic append — appears instantly at the top (newest-first sort)
+    const optimistic = {
+      id: `local-${Date.now()}`,
+      body: msg,
+      mine: true,
+      created_at: new Date().toISOString(),
+    };
+    setConv((p) => ({ ...p, [key]: [optimistic, ...(p[key] || [])] }));
+    setDrafts((p) => ({ ...p, [key]: '' }));
+
+    // Scroll to newest (top) immediately
+    requestAnimationFrame(() => scrollToNewest(connection.id));
+
+    try {
+      const resp = await ccSendMessage({ connection_id: connection.id, body: msg });
+      const sent = resp.data?.message;
+      setConv((p) => ({
+        ...p,
+        [key]: (p[key] || []).map((m) =>
+          m.id === optimistic.id
+            ? { ...m, id: sent?.id || m.id, created_at: sent?.created_at || m.created_at }
+            : m
+        ),
+      }));
+      requestAnimationFrame(() => scrollToNewest(connection.id));
+      showToastRef.current('Mensagem enviada.');
+    } catch (err) {
+      // Roll back optimistic message and restore draft
+      setConv((p) => ({
+        ...p,
+        [key]: (p[key] || []).filter((m) => m.id !== optimistic.id),
+      }));
+      setDrafts((p) => ({ ...p, [key]: msg }));
+      showToastRef.current(err.response?.data?.message || 'Erro ao enviar.');
+    } finally {
+      setSending((p) => {
+        const { [connection.id]: _, ...rest } = p;
+        return rest;
+      });
+    }
+  };
+
+  // Enter sends; Shift+Enter inserts a newline
+  const handleKeyDown = (e, connection) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend(connection);
+    }
+  };
 
   return (
     <>
@@ -717,60 +812,91 @@ export const MenteeMessages = ({ showToast }) => {
       <p className="text-ink-muted text-[.85rem] mt-1 mb-4">
         Escreve apenas a mentores com quem estás conectado.
       </p>
-      {connections.length === 0 ? (
+
+      {/* Header never unmounts — only the body below swaps, so no blink */}
+      {loading ? (
+        <Card>
+          <p className="text-ink-muted text-[.85rem]">A carregar conversas…</p>
+        </Card>
+      ) : connections.length === 0 ? (
         <Card>
           <b>Sem conexões ainda.</b>
-          <p className="text-ink-muted text-[.85rem] mt-1.5">Marca interesse depois de cada conversa para desbloquear mensagens.</p>
+          <p className="text-ink-muted text-[.85rem] mt-1.5">
+            Marca interesse depois de cada conversa para desbloquear mensagens.
+          </p>
         </Card>
       ) : (
-        <>
-          <div className="space-y-3 mb-5">
-            {connections.map((c) => {
-              const contact = c.contact;
-              const key = String(c.id);
-              const msgs = conv[key] || [];
-              return (
-                <div key={c.id} className="border border-line rounded-[16px] p-3.5">
-                  <div className="flex justify-between items-center mb-2.5">
-                    <PersonRow name={contact.name} subtitle={contact.role || ''} />
-                    <span className="text-[.72rem] font-bold px-2 py-0.5 rounded-full bg-surface2 text-ink-muted">{msgs.length}</span>
-                  </div>
-                  <div className="max-h-[140px] overflow-y-auto mb-2.5 space-y-1.5 text-[.85rem]">
-                    {msgs.length === 0 ? <p className="text-ink-muted">Sem mensagens ainda.</p> : msgs.map((m, i) => (
-                      <div key={i} className={`text-[.85rem] rounded-[10px] px-3 py-1.5 max-w-[80%] ${m.mine ? 'ml-auto bg-primary-500 text-white' : 'bg-surface-soft text-ink'}`}>
-                        {m.body}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-2 max-md:flex-col">
-                    <input value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="Escreve uma mensagem…" className="flex-1 bg-surface border-2 border-line rounded-[10px] px-3 py-2 text-base focus:border-primary-500 focus:outline-none" />
-                    <button
-                      onClick={async () => {
-                        if (!msg.trim() || sending[c.id]) return;
-                        setSending((p) => ({ ...p, [c.id]: true }));
-                        try {
-                          const resp = await ccSendMessage({ connection_id: c.id, body: msg });
-                          const sent = resp.data?.message;
-                          setConv((p) => ({ ...p, [key]: [...(p[key] || []), { body: sent?.body || msg, mine: true }] }));
-                          setMsg('');
-                          showToast('Mensagem enviada.');
-                        } catch (err) {
-                          showToast(err.response?.data?.message || 'Erro ao enviar.');
-                        } finally {
-                          setSending((p) => { const { [c.id]: _, ...rest } = p; return rest; });
-                        }
-                      }}
-                      disabled={sending[c.id]}
-                      className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white disabled:opacity-50"
-                    >
-                      {sending[c.id] ? '...' : 'Enviar'}
-                    </button>
-                  </div>
+        <div className="space-y-3 mb-5">
+          {connections.map((c) => {
+            const contact = c.contact;
+            const key = String(c.id);
+            const msgs = [...(conv[key] || [])].sort((a, b) => {
+              const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+              const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+              return timeB - timeA;
+            });
+            const isSending = !!sending[c.id];
+
+            return (
+              <div key={c.id} className="border border-line rounded-[16px] p-3.5">
+                <div className="flex justify-between items-center mb-2.5 gap-2">
+                  <PersonRow name={contact.name} subtitle={contact.role || ''} />
+                  <span className="text-[.72rem] font-bold px-2 py-0.5 rounded-full bg-surface2 text-ink-muted">
+                    {msgs.length}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
-        </>
+
+                {/* Scroll container — ref so we can scroll it after send */}
+                <div
+                  ref={(el) => { scrollRefs.current[c.id] = el; }}
+                  className="max-h-[180px] overflow-y-auto mb-2.5 space-y-1.5 text-[.85rem] scroll-smooth"
+                  aria-live="polite"
+                >
+                  {msgs.length === 0 ? (
+                    <p className="text-ink-muted">Sem mensagens ainda.</p>
+                  ) : (
+                    msgs.map((m) => (
+                      <div
+                        key={m.id}
+                        className={`text-[.85rem] rounded-[10px] px-3 py-1.5 max-w-[80%] ${
+                          m.mine ? 'ml-auto bg-primary-500 text-white' : 'bg-surface-soft text-ink'
+                        } ${m.id?.toString().startsWith('local-') ? 'opacity-70' : ''}`}
+                      >
+                        {m.body}
+                        {m.created_at && (
+                          <div className="mt-1 text-[.68rem] opacity-75">
+                            {new Date(m.created_at).toLocaleString('pt-PT', {
+                              dateStyle: 'short',
+                              timeStyle: 'short',
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="flex gap-2 max-md:flex-col">
+                  <input
+                    value={drafts[key] || ''}
+                    onChange={(e) => setDrafts((p) => ({ ...p, [key]: e.target.value }))}
+                    onKeyDown={(e) => handleKeyDown(e, c)}
+                    placeholder="Escreve uma mensagem…"
+                    className="flex-1 bg-surface border-2 border-line rounded-[10px] px-3 py-2 text-base focus:border-primary-500 focus:outline-none"
+                    disabled={isSending}
+                  />
+                  <button
+                    onClick={() => handleSend(c)}
+                    disabled={isSending || !(drafts[key] || '').trim()}
+                    className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white disabled:opacity-50"
+                  >
+                    {isSending ? '...' : 'Enviar'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
     </>
   );

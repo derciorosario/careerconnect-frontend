@@ -359,7 +359,7 @@ export const OrganizerReg = ({ showToast }) => {
           ✕
         </button>
       </div>
-      <div className="max-w-[400px] w-full bg-white rounded-[24px] p-6 shadow-2xl relative">
+      <div className="max-w-[400px] w-full bg-surface rounded-[24px] p-6 shadow-2xl relative">
         <h3 className="text-[1.1rem] font-extrabold mb-1">Escanear bilhete</h3>
         <p className="text-[.8rem] text-ink-muted mb-4">Aponte a câmara ao QR code do bilhete</p>
         <div id="reader" className="w-full aspect-square bg-black rounded-[16px] overflow-hidden mx-auto" />
@@ -425,49 +425,55 @@ export const OrganizerReg = ({ showToast }) => {
           placeholder="Pesquisar por nome..."
           className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-2.5 mb-2 focus:border-primary-500 focus:outline-none"
         />
-        <table className="w-full text-[.88rem] border-collapse mt-1">
-          <thead>
-            <tr>
-              <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Nome</th>
-              <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Perfil</th>
-              <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Bilhete</th>
-              <th className="text-right text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Estado</th>
-              <th className="text-right text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredRegs.map((reg) => (
-              <tr key={reg.id} className="border-b border-line last:border-0">
-                <td className="py-[11px] px-2">{reg.user?.name || '–'}</td>
-                <td className="py-[11px] px-2 text-ink-muted text-[.85rem]">{reg.user?.role === 'mentor' ? 'Mentor' : 'Mentorado'}</td>
-                <td className="py-[11px] px-2 text-[.82rem] font-mono text-ink-muted">{reg.ticket_code || '–'}</td>
-                <td className="py-[11px] px-2 text-right">
-                  <button
-                    onClick={() => handleCheckIn(reg)}
-                    disabled={actionLoading[reg.id]}
-                    className={`rounded-full font-bold text-[.76rem] h-[34px] px-3.5 ${reg.status === 'present' ? 'bg-surface2 text-ink' : 'bg-primary-500 text-white'} disabled:opacity-50`}
-                  >
-                    {actionLoading[reg.id] ? '...' : reg.status === 'present' ? 'Presente ✓' : 'Check-in'}
-                  </button>
-                </td>
-                <td className="py-[11px] px-2 text-right">
-                  {reg.status === 'present' && (
-                    <button
-                      onClick={() => handleCheckIn(reg)}
-                      disabled={actionLoading[reg.id]}
-                      className="rounded-full font-bold text-[.76rem] h-[34px] px-3.5 bg-red-500 text-white disabled:opacity-50 ml-2"
-                    >
-                      Cancelar check-in
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {filteredRegs.length === 0 && (
-              <tr><td colSpan="5" className="py-3 text-center text-ink-muted text-[.85rem]">Sem registos.</td></tr>
+       
+
+       <div className="mt-1 max-h-[60vh] overflow-auto rounded-[14px] border border-line">
+  <table className="w-full min-w-[640px] text-[.88rem] border-collapse">
+    <thead className="sticky top-0 z-10 bg-surface">
+      <tr>
+        <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Nome</th>
+        <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Perfil</th>
+        <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Bilhete</th>
+        <th className="text-right text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Estado</th>
+        <th className="text-right text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {filteredRegs.map((reg) => (
+        <tr key={reg.id} className="border-b border-line last:border-0">
+          <td className="py-[11px] px-2 whitespace-nowrap">{reg.user?.name || '–'}</td>
+          <td className="py-[11px] px-2 text-ink-muted text-[.85rem]">{reg.user?.role === 'mentor' ? 'Mentor' : 'Mentorado'}</td>
+          <td className="py-[11px] px-2 text-[.82rem] font-mono text-ink-muted">{reg.ticket_code || '–'}</td>
+          <td className="py-[11px] px-2 text-right">
+            <button
+              onClick={() => handleCheckIn(reg)}
+              disabled={actionLoading[reg.id]}
+              className={`rounded-full font-bold text-[.76rem] h-[34px] px-3.5 whitespace-nowrap ${reg.status === 'present' ? 'bg-surface2 text-ink' : 'bg-primary-500 text-white'} disabled:opacity-50`}
+            >
+              {actionLoading[reg.id] ? '...' : reg.status === 'present' ? 'Presente ✓' : 'Check-in'}
+            </button>
+          </td>
+          <td className="py-[11px] px-2 text-right">
+            {reg.status === 'present' && (
+              <button
+                onClick={() => handleCheckIn(reg)}
+                disabled={actionLoading[reg.id]}
+                className="rounded-full font-bold text-[.76rem] h-[34px] px-3.5 bg-red-500 text-white disabled:opacity-50 ml-2 whitespace-nowrap"
+              >
+                Cancelar check-in
+              </button>
             )}
-          </tbody>
-        </table>
+          </td>
+        </tr>
+      ))}
+      {filteredRegs.length === 0 && (
+        <tr><td colSpan="5" className="py-3 text-center text-ink-muted text-[.85rem]">Sem registos.</td></tr>
+      )}
+    </tbody>
+  </table>
+</div>
+
+
       </Card>
 
       {scanning && renderScanner()}

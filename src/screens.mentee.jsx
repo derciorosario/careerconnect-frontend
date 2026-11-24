@@ -311,7 +311,7 @@ export const MenteeHome = ({ showToast }) => {
 export const MenteeLive = ({
   currentRound, secondsLeft, isRehearsal, announcements, phaseLabel,
   mentorForMenteeRound, setActiveTab, showToast,
-  questions, setQuestions, pollOptions, pollVotes, setPollVotes, votedOption, setVotedOption, totalPollVotes,
+  questions, setQuestions, pollOptions, setPollOptions, pollVotes, setPollVotes, votedOption, setVotedOption, totalPollVotes,
   roundDataVersion,
 }) => {
   const [roundData, setRoundData] = useState(null);
@@ -354,6 +354,37 @@ export const MenteeLive = ({
     // Re-run when the round actually changes or the parent signals new data,
     // but NOT on every render (showToast is behind a ref).
   }, [currentRound, roundDataVersion]);
+
+  // Realtime polling for questions and polls during live rounds
+  useEffect(() => {
+    if (currentRound < 1 || currentRound > 4) return;
+    let active = true;
+    const interval = setInterval(async () => {
+      try {
+        const [qResp, pResp, prResp] = await Promise.all([
+          ccGetQuestions({}),
+          ccGetPolls({}),
+          ccGetPollResults({}),
+        ]);
+        if (!active) return;
+        setQuestions(qResp.data?.questions || []);
+        const pollData = pResp.data?.poll || pResp.data?.polls?.[0] || null;
+        if (pollData) {
+          setPollOptions(Array.isArray(pollData.options) ? pollData.options : []);
+        }
+        const results = prResp.data?.results || prResp.data?.poll_results || [];
+        if (results.length > 0) {
+          const merged = results.map((r) => r.vote_count || r.count || r.votes || 0);
+          if (merged.length > 0) setPollVotes(merged);
+          const votedIdx = prResp.data?.voted_index;
+          if (typeof votedIdx === 'number') setVotedOption(votedIdx);
+        }
+      } catch (err) {
+        console.error('Realtime poll update failed:', err);
+      }
+    }, 5000);
+    return () => { active = false; clearInterval(interval); };
+  }, [currentRound, setQuestions, setPollOptions, setPollVotes, setVotedOption]);
 
   let body = null;
 

@@ -390,8 +390,8 @@ export const OrganizerInteraction = ({ showToast }) => {
 
   return (
     <>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
-        <Card>
+      <div className="grid __grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
+        {/** <Card>
           <b>Anúncio a todos</b>
           <AnnouncementInput onSubmit={async (text) => {
             try {
@@ -403,7 +403,7 @@ export const OrganizerInteraction = ({ showToast }) => {
               showToast(err.response?.data?.message || 'Erro ao enviar anúncio.');
             }
           }} />
-        </Card>
+        </Card> */}
         <Card>
           <b>Perguntas para moderar</b>
           {questions.map((question, index) => (

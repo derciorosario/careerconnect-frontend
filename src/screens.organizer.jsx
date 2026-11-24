@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
+import { Html5Qrcode } from 'html5-qrcode';
 import { jsPDF } from 'jspdf';
 import {
   formatTime, ORGANIZER_TABS,
@@ -14,6 +15,7 @@ import {
   ccGetTVData, ccGetPollResults,
   ccGenerateMatches, ccGetAllUsers,
   setStoredToken,
+  isNative,
   ccCreateRound, ccUpdateRound, ccDeleteRound,
 } from './api/client';
 import { PersonRow, ProgressBar, Card, AnnouncementInput } from './ui';
@@ -199,27 +201,76 @@ export const OrganizerLive = ({
 };
 
 // ── ORGANIZER REG ────────────────────────────
+// ── ORGANIZER REG ────────────────────────────
 export const OrganizerReg = ({ showToast }) => {
   const [registrations, setRegistrations] = useState([]);
   const [pendingMentors, setPendingMentors] = useState([]);
   const [actionLoading, setActionLoading] = useState({});
   const [search, setSearch] = useState('');
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState(null);
+
+  const qrScannerRef = useRef(null);
+  const handledRef = useRef(false);          // prevents duplicate decode callbacks
+  const registrationsRef = useRef([]);       // always-fresh registrations for the scan callback
+  const scanHandlerRef = useRef(null);       // always-fresh scan handler
+
+  registrationsRef.current = registrations;
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [regResp] = await Promise.all([
-          ccGetOrganizerRegistrations({}),
-        ]);
+        const regResp = await ccGetOrganizerRegistrations({});
         const regs = regResp.data?.registrations || [];
         setRegistrations(regs);
-        setPendingMentors(regs.filter((r) => r.user?.role === 'mentor' && r.user?.mentorProfile?.approval === 'pending'));
+        setPendingMentors(
+          regs.filter((r) => r.user?.role === 'mentor' && r.user?.mentorProfile?.approval === 'pending')
+        );
       } catch (err) {
         console.error('Failed to load registrations:', err);
       }
     };
     load();
   }, [showToast]);
+
+  // ── Start/stop the camera AFTER the #reader element is in the DOM ──
+  useEffect(() => {
+    if (!scanning) return undefined;
+
+    handledRef.current = false;
+    setScanError(null);
+
+    const scanner = new Html5Qrcode('reader'); // #reader exists now (overlay rendered)
+    qrScannerRef.current = scanner;
+
+    const startPromise = scanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      (decodedText) => {
+        if (handledRef.current) return;
+        handledRef.current = true;
+        scanHandlerRef.current?.(decodedText);
+      },
+      () => {
+        // per-frame "no QR found" errors, ignore
+      }
+    );
+
+    startPromise.catch((e) => {
+      console.error('Scanner start failed:', e);
+      setScanError('Não foi possível aceder à câmara. Verifique as permissões.');
+    });
+
+    return () => {
+      startPromise
+        .then(() => scanner.stop())
+        .catch(() => {})
+        .then(() => {
+          try { scanner.clear(); } catch { /* ignore */ }
+        });
+      qrScannerRef.current = null;
+    };
+  }, [scanning]);
 
   const filteredRegs = registrations.filter((reg) =>
     (reg.user?.name || '').toLowerCase().includes(search.toLowerCase())
@@ -231,11 +282,11 @@ export const OrganizerReg = ({ showToast }) => {
     try {
       if (reg.status === 'present') {
         await ccCancelCheckIn({ registration_id: reg.id });
-        setRegistrations((prev) => prev.map((r) => r.id === reg.id ? { ...r, status: 'cancelled' } : r));
+        setRegistrations((prev) => prev.map((r) => (r.id === reg.id ? { ...r, status: 'cancelled' } : r)));
         showToast('Check-in cancelado.');
       } else {
         await ccCheckIn({ user_id: reg.user_id });
-        setRegistrations((prev) => prev.map((r) => r.id === reg.id ? { ...r, status: 'present' } : r));
+        setRegistrations((prev) => prev.map((r) => (r.id === reg.id ? { ...r, status: 'present' } : r)));
         showToast('Check-in efetuado.');
       }
     } catch (err) {
@@ -259,6 +310,71 @@ export const OrganizerReg = ({ showToast }) => {
     }
   };
 
+  const startScanner = () => {
+    setScanError(null);
+    setScanning(true); // overlay renders -> effect above starts the camera
+  };
+
+  const stopScanner = () => {
+    setScanning(false); // effect cleanup stops the camera
+  };
+
+  const handleScanResult = async (decodedText) => {
+    // Close overlay (cleanup stops the camera)
+    setScanning(false);
+
+    let ticketCode = (decodedText || '').trim();
+    try {
+      const url = new URL(ticketCode);
+      ticketCode = url.searchParams.get('ticket_code') || ticketCode;
+    } catch {
+      // not a URL, use as-is
+    }
+
+    if (!ticketCode) {
+      showToast('Código de bilhete inválido.');
+      return;
+    }
+
+    const reg = registrationsRef.current.find((r) => r.ticket_code === ticketCode);
+    if (!reg) {
+      showToast('Bilhete não encontrado nos registos.');
+      return;
+    }
+    if (reg.status === 'present') {
+      showToast(`${reg.user?.name || 'Participante'} já está presente.`);
+      return;
+    }
+    await handleCheckIn(reg);
+  };
+  scanHandlerRef.current = handleScanResult;
+
+  const renderScanner = () => (
+    <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-4">
+      <div className="absolute top-6 left-6 z-10">
+        <button
+          onClick={stopScanner}
+          className="w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center backdrop-blur-sm hover:bg-white/20 transition"
+        >
+          ✕
+        </button>
+      </div>
+      <div className="max-w-[400px] w-full bg-white rounded-[24px] p-6 shadow-2xl relative">
+        <h3 className="text-[1.1rem] font-extrabold mb-1">Escanear bilhete</h3>
+        <p className="text-[.8rem] text-ink-muted mb-4">Aponte a câmara ao QR code do bilhete</p>
+        <div id="reader" className="w-full aspect-square bg-black rounded-[16px] overflow-hidden mx-auto" />
+        {scanError && (
+          <div className="mt-3 p-3 rounded-lg bg-red-500/10 text-red-500 text-[.8rem] text-center">
+            {scanError}
+          </div>
+        )}
+        <div className="mt-4 text-[.78rem] text-ink-muted text-center">
+          {isNative ? 'Câmara nativa' : 'Câmara do navegador'}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <>
       <Card>
@@ -267,25 +383,41 @@ export const OrganizerReg = ({ showToast }) => {
           pendingMentors.map((r) => (
             <div key={r.id} className="flex justify-between items-center mt-3">
               <PersonRow name={r.user?.name || 'Mentor'} subtitle={r.user?.mentorProfile?.company || '-'} />
-              <button onClick={async () => {
-                try {
-                  await ccApproveMentor({ mentor_id: r.user_id, action: 'approve' });
-                  setPendingMentors((prev) => prev.filter((x) => x.id !== r.id));
-                  showToast('Mentor aprovado.');
-                } catch (err) {
-                  showToast(err.response?.data?.message || 'Erro ao aprovar.');
-                }
-              }} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white">Aprovar</button>
+              <button
+                onClick={async () => {
+                  try {
+                    await ccApproveMentor({ mentor_id: r.user_id, action: 'approve' });
+                    setPendingMentors((prev) => prev.filter((x) => x.id !== r.id));
+                    showToast('Mentor aprovado.');
+                  } catch (err) {
+                    showToast(err.response?.data?.message || 'Erro ao aprovar.');
+                  }
+                }}
+                className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white"
+              >
+                Aprovar
+              </button>
             </div>
           ))
         ) : (
           <p className="text-[.85rem] text-success mt-2">Sem pendentes.</p>
         )}
       </Card>
+
       <Card>
         <div className="flex items-center justify-between mb-3.5 gap-2">
           <b>Check-in ({registrations.filter((r) => r.status === 'present').length}/{registrations.length})</b>
-          {/**Leave it hidden */} <button onClick={handleWalkIn} className="rounded-full hidden font-bold text-[.76rem] h-[34px] px-3.5 bg-surface2 text-ink">+ Walk-in</button>
+          <button
+            onClick={startScanner}
+            disabled={scanning}
+            className="rounded-full font-bold text-[.76rem] h-[34px] px-3.5 bg-primary-500 text-white disabled:opacity-50"
+          >
+            Escanear QR
+          </button>
+          {/** Leave it hidden */}
+          <button onClick={handleWalkIn} className="rounded-full hidden font-bold text-[.76rem] h-[34px] px-3.5 bg-surface2 text-ink">
+            + Walk-in
+          </button>
         </div>
         <input
           value={search}
@@ -337,6 +469,8 @@ export const OrganizerReg = ({ showToast }) => {
           </tbody>
         </table>
       </Card>
+
+      {scanning && renderScanner()}
     </>
   );
 };

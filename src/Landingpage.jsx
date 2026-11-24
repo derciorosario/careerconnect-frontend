@@ -46,7 +46,7 @@ const Container = ({ children }) => (
 );
 
 export default function Landingpage() {
-  const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0 });
+  const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [shareOpen, setShareOpen] = useState(false);
   const [imagesReady, setImagesReady] = useState(false);
   const countdownInterval = useRef(null);
@@ -76,17 +76,18 @@ export default function Landingpage() {
     const tick = () => {
       const difference = new Date('2026-12-04T14:00:00+02:00') - Date.now();
       if (difference <= 0) {
-        setCountdown({ days: 'Hoje', hours: '', minutes: '' });
+        setCountdown({ days: 'Hoje', hours: '', minutes: '', seconds: '' });
         return;
       }
       setCountdown({
         days: Math.floor(difference / 864e5),
         hours: Math.floor(difference / 36e5) % 24,
-        minutes: Math.floor(difference / 6e4) % 60
+        minutes: Math.floor(difference / 6e4) % 60,
+        seconds: Math.floor(difference / 1000) % 60
       });
     };
     tick();
-    countdownInterval.current = setInterval(tick, 30000);
+    countdownInterval.current = setInterval(tick, 1000);
     return () => clearInterval(countdownInterval.current);
   }, []);
 
@@ -171,6 +172,7 @@ export default function Landingpage() {
                         <div className="bg-surface-soft rounded-count px-3.5 py-2.5 min-w-[68px] text-center"><b className="block text-[1.6rem] leading-none">{countdown.days}</b><small className="text-ink-muted text-[.72rem]">dias</small></div>
                         <div className="bg-surface-soft rounded-count px-3.5 py-2.5 min-w-[68px] text-center"><b className="block text-[1.6rem] leading-none">{countdown.hours}</b><small className="text-ink-muted text-[.72rem]">horas</small></div>
                         <div className="bg-surface-soft rounded-count px-3.5 py-2.5 min-w-[68px] text-center"><b className="block text-[1.6rem] leading-none">{countdown.minutes}</b><small className="text-ink-muted text-[.72rem]">min</small></div>
+                        <div className="bg-surface-soft rounded-count px-3.5 py-2.5 min-w-[68px] text-center"><b className="block text-[1.6rem] leading-none">{countdown.seconds}</b><small className="text-ink-muted text-[.72rem]">seg</small></div>
                       </>
                     )}
                   </div>

@@ -60,6 +60,8 @@ export default function Landingpage() {
   const [imagesReady, setImagesReady] = useState(false);
   const [activeJourney, setActiveJourney] = useState(null);
   const countdownInterval = useRef(null);
+  const journeyRef = useRef(null);
+  const [journeyVisible, setJourneyVisible] = useState(false);
 
  const VB_W = 1000;
 const VB_H = 220;
@@ -130,6 +132,24 @@ const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
     countdownInterval.current = setInterval(tick, 1000);
     return () => clearInterval(countdownInterval.current);
   }, []);
+
+  // Only draw the curved SVG line once the Journey section enters the viewport
+  useEffect(() => {
+    if (!imagesReady) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setJourneyVisible(true);
+            observer.disconnect();
+          }
+        });
+      },
+      { threshold: 0.1 },
+    );
+    if (journeyRef.current) observer.observe(journeyRef.current);
+    return () => observer.disconnect();
+  }, [imagesReady]);
 
   const totalCapacity = 120;
   const registeredCount = (() => {
@@ -253,7 +273,7 @@ const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
         {/* ── Journey steps with curved SVG line and floating tooltip ── */}
 
         {/* ── Journey steps with curved SVG line and floating tooltip ── */}
-<div className="mt-14">
+<div className="mt-14" ref={journeyRef}>
   <div className="pt-28">
     {/* This wrapper is the positioning context, so percentages match the SVG exactly */}
     <div className="relative">
@@ -272,7 +292,7 @@ const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
   strokeLinecap="round"
   strokeDasharray="1400"
   strokeDashoffset="1400"
-  className="motion-safe:animate-[draw_2.6s_.3s_cubic-bezier(.6,0,.2,1)_forwards]"
+  className={journeyVisible ? 'draw-animate' : ''}
 />
 
         {JOURNEY_STEPS.map((step, i) => {
@@ -392,7 +412,7 @@ const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
               { title: 'Encontrar um mentor', text: 'Profissionais aprovados que orientam a tua carreira antes, durante e depois do evento.' },
               { title: 'Fazer conexões profissionais', text: 'Rondas de 5 minutos com mentores e contacto direto com quem já está no mercado.' },
               { title: '8 conversas num só dia', text: 'Dois intervalos de 20 minutos com 4 rondas cada para conhecer vários mentores.' },
-              { title: 'Dar o próximo passo', text: 'Pede mentoria, troca contactos e continua a ligação depois do evento.' },
+              { title: 'Dar o próximo passo', text: 'solicitada mentoria, troca contactos e continua a ligação depois do evento.' },
             ].map((benefit, i) => (
               <div key={i} className="bg-surface-soft rounded-inner p-6">
                 <div className="w-10 h-10 rounded-full bg-primary-500 text-white grid place-items-center font-extrabold mb-4">{i + 1}</div>
@@ -411,7 +431,7 @@ const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { step: '1', title: 'Regista-te', text: 'Cria a tua conta na landing principal em menos de 2 minutos e escolhe se és mentorado ou mentor.' },
-              { step: '2', title: 'Conversa nos intervalos', text: 'Durante os dois intervalos de 20 minutos, falas com mentores em rondas de 5 minutos, numa mesa numerada.' },
+              { step: '2', title: 'Conversa nos intervalos', text: 'Durante os dois intervalos de 20 minutos, fale com mentores em rondas de 5 minutos, numa mesa numerada.' },
               { step: '3', title: 'Continua a conexão', text: 'Marca "quero continuar", troca códigos ou pede mentoria e mantém a ligação depois do evento.' },
             ].map((step, i) => (
               <div key={i} className="relative pt-[52px]">
@@ -444,7 +464,7 @@ const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
         {/* Desafios */}
       
       <section className="py-16 md:py-20">
-          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-10">A que desafios responde o Career Connect.</h2>
+          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[25ch] mb-10">A que desafios responde o Career Connect? - 1ª Edição</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5.5 mt-10">
           {[
             { title: 'Acesso ao mercado', items: ['Dificuldade em conseguir o primeiro passo', 'Pouca experiência profissional', 'Preparação insuficiente para entrevistas'] },
@@ -568,7 +588,7 @@ const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
         <section className="pt-5 pb-16 md:pb-20">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-9 items-start">
             <div>
-              <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-7">Encontramo-nos no Hotel Cardoso.</h2>
+              <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-7">Próxima Masterclass - Encontramo-nos no Hotel Cardoso.</h2>
               <div className="mt-7">
               {[
                 { q: 'Para quem é o Career Connect?', a: 'Para jovens que querem preparar-se para o primeiro passo profissional e ligar-se a oportunidades reais.' },

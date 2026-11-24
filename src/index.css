@@ -150,6 +150,10 @@ body{
   to { stroke-dashoffset: 0; }
 }
 
+.draw-animate {
+  animation: draw 2.6s 0.3s cubic-bezier(.6,0,.2,1) forwards;
+}
+
 @theme {
   /* ── Brand / Primary (Orange) ─────────────────────────── */
   --color-primary-50:  #fff5ec;

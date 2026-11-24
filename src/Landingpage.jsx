@@ -35,6 +35,15 @@ const MASTERCLASSES = [
   { id: 2, initials: 'MC', name: 'Marlena Chambule', role: 'Directora Executiva da Salto Moçambique', theme: 'Integração e crescimento', title: 'O próximo passo depois da contratação: construir uma carreira de sucesso', topics: [['Adaptação', 'Compreender a cultura organizacional e integrar-se nas equipas.'], ['Postura e desempenho', 'Agir com ética, pontualidade e proactividade.'], ['Carreira sustentável', 'Definir objectivos, apostar na aprendizagem contínua e construir uma boa reputação.']], question: 'Que dúvida tens sobre os primeiros meses numa nova função?' },
 ];
 
+const JOURNEY_STEPS = [
+  { title: 'POTENCIAL', text: 'Descobre o teu potencial e aquilo que podes alcançar.' },
+  { title: 'DIREÇÃO', text: 'Encontra orientação para definir os teus objetivos profissionais.' },
+  { title: 'CONEXÃO', text: 'Liga-te a especialistas, mentores e profissionais experientes.' },
+  { title: 'CAPACITAÇÃO', text: 'Adquire conhecimentos e desenvolve competências através das Masterclasses.' },
+  { title: 'PRONTIDÃO', text: 'Ganha confiança e prepara-te para enfrentar os desafios do mercado.' },
+  { title: 'OPORTUNIDADES', text: 'Amplia os teus horizontes e fica mais aberto a novas oportunidades profissionais, pois quem está capacitado sorri para o mercado.' },
+];
+
 const BTN_BASE   = 'inline-block rounded-full bg-primary-500 text-white font-semibold text-base px-7 py-3.5 cursor-pointer no-underline hover:brightness-110 transition';
 const BTN_GHOST  = 'bg-transparent text-ink shadow-[inset_0_0_0_2px_var(--color-line)]';
 const BTN_SM     = 'px-[18px] py-[9px] text-sm';
@@ -49,7 +58,38 @@ export default function Landingpage() {
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [shareOpen, setShareOpen] = useState(false);
   const [imagesReady, setImagesReady] = useState(false);
+  const [activeJourney, setActiveJourney] = useState(null);
   const countdownInterval = useRef(null);
+
+ const VB_W = 1000;
+const VB_H = 220;
+const TOOLTIP_W = 240;
+
+const PAD_X = 40;
+const Y_VALUES = [140, 70, 110, 80, 90, 50]; // keep your original heights
+const STEP_X = (VB_W - PAD_X * 2) / (Y_VALUES.length - 1); // 184 → equal spacing
+
+// x: 40, 224, 408, 592, 776, 960
+const JOURNEY_POINTS = Y_VALUES.map((cy, i) => ({ cx: PAD_X + i * STEP_X, cy }));
+
+// Smooth curve (Catmull-Rom → cubic Bézier) passing through every point
+function buildSmoothPath(pts, t = 6) {
+  let d = `M${pts[0].cx} ${pts[0].cy}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] || p2;
+    const c1x = p1.cx + (p2.cx - p0.cx) / t;
+    const c1y = p1.cy + (p2.cy - p0.cy) / t;
+    const c2x = p2.cx - (p3.cx - p1.cx) / t;
+    const c2y = p2.cy - (p3.cy - p1.cy) / t;
+    d += ` C${c1x} ${c1y} ${c2x} ${c2y} ${p2.cx} ${p2.cy}`;
+  }
+  return d;
+}
+
+const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
 
   // Preload every image used on the page before revealing content
   useEffect(() => {
@@ -154,30 +194,52 @@ export default function Landingpage() {
                 Uma imersão de percurso profissional, alta performance e conexões para jovens que querem entrar no mercado com confiança.
               </p>
               <Link to="/registo" className={BTN_BASE}>Garantir o meu lugar</Link>
-              <div className="flex flex-wrap gap-y-2.5 gap-x-8.5 mt-8.5">
-                <div>
-                  <b className="block text-[1.05rem]">4 de Dezembro de 2026</b>
-                  <span className="text-ink-muted text-sm">às 14H00</span>
-                </div>
-                <div>
-                  <b className="block text-[1.05rem]">Hotel Cardoso</b>
-                  <span className="text-ink-muted text-sm">Maputo</span>
-                </div>
-                <div>
-                  <div className="flex gap-2.5 mt-1.5" aria-live="off">
-                    {countdown.days === 'Hoje' ? (
-                      <div className="bg-surface-soft rounded-count px-3.5 py-2.5 min-w-[68px] text-center"><b className="block text-[1.6rem] leading-none">Hoje</b><small className="text-ink-muted text-[.72rem]">é o dia</small></div>
-                    ) : (
-                      <>
-                        <div className="bg-surface-soft rounded-count px-3.5 py-2.5 min-w-[68px] text-center"><b className="block text-[1.6rem] leading-none">{countdown.days}</b><small className="text-ink-muted text-[.72rem]">dias</small></div>
-                        <div className="bg-surface-soft rounded-count px-3.5 py-2.5 min-w-[68px] text-center"><b className="block text-[1.6rem] leading-none">{countdown.hours}</b><small className="text-ink-muted text-[.72rem]">horas</small></div>
-                        <div className="bg-surface-soft rounded-count px-3.5 py-2.5 min-w-[68px] text-center"><b className="block text-[1.6rem] leading-none">{countdown.minutes}</b><small className="text-ink-muted text-[.72rem]">min</small></div>
-                        <div className="bg-surface-soft rounded-count px-3.5 py-2.5 min-w-[68px] text-center"><b className="block text-[1.6rem] leading-none">{countdown.seconds}</b><small className="text-ink-muted text-[.72rem]">seg</small></div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
+             
+             
+            
+            <div className="flex flex-wrap gap-y-2.5 gap-x-8.5 mt-8.5 max-md:bg-navy-800 max-md:text-white max-md:rounded-card max-md:p-8 max-md:gap-y-4 max-md:gap-x-6">
+  <div>
+    <b className="block text-[1.05rem]">4 de Dezembro de 2026</b>
+    <span className="text-ink-muted max-md:text-navy-100 text-sm">às 14H00</span>
+  </div>
+  <div>
+    <b className="block text-[1.05rem]">Hotel Cardoso</b>
+    <span className="text-ink-muted max-md:text-navy-100 text-sm">Maputo</span>
+  </div>
+  <div>
+    <div className="flex gap-2.5 mt-1.5 max-md:mt-0 " aria-live="off">
+      {countdown.days === 'Hoje' ? (
+        <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
+          <b className="block text-[1.6rem] leading-none">Hoje</b>
+          <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">é o dia</small>
+        </div>
+      ) : (
+        <>
+          <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
+            <b className="block text-[1.6rem] leading-none">{countdown.days}</b>
+            <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">dias</small>
+          </div>
+          <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
+            <b className="block text-[1.6rem] leading-none">{countdown.hours}</b>
+            <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">horas</small>
+          </div>
+          <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
+            <b className="block text-[1.6rem] leading-none">{countdown.minutes}</b>
+            <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">min</small>
+          </div>
+        
+         {/**  <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
+            <b className="block text-[1.6rem] leading-none">{countdown.seconds}</b>
+            <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">seg</small>
+          </div> */}
+        </>
+      )}
+    </div>
+  </div>
+</div>
+
+
+
             </div>
 
             <div className="relative w-full max-w-[420px] aspect-[1/1.08] ml-auto mx-auto md:mt-0 mt-2.5" aria-hidden="true">
@@ -188,15 +250,127 @@ export default function Landingpage() {
             </div>
           </div>
 
-          <svg className="block w-full h-auto mt-7.5" viewBox="0 0 1000 170" role="img" aria-label="Uma linha laranja liga estudante, mentor, palestrante e profissional">
-            <path d="M40 120 C160 120 170 40 290 50 S430 130 520 100 S700 20 790 60 S900 120 960 70" fill="none" stroke="var(--color-primary-500)" strokeWidth="4" strokeLinecap="round" strokeDasharray="1400" strokeDashoffset="1400" className="motion-safe:animate-[draw_2.6s_.3s_cubic-bezier(.6,0,.2,1)_forwards]" />
-            <circle cx="40" cy="120" r="12" fill="var(--color-navy-800)" /><circle cx="290" cy="50" r="12" fill="var(--color-navy-800)" /><circle cx="520" cy="100" r="12" fill="var(--color-navy-800)" /><circle cx="790" cy="60" r="12" fill="var(--color-navy-800)" /><circle cx="960" cy="70" r="12" fill="var(--color-navy-800)" />
-            <text x="20" y="152" fill="var(--color-ink)" fontSize="13" fontWeight="600" fontFamily="Montserrat, sans-serif">Estudante</text>
-            <text x="260" y="26" fill="var(--color-ink)" fontSize="13" fontWeight="600" fontFamily="Montserrat, sans-serif">Mentor</text>
-            <text x="478" y="136" fill="var(--color-ink)" fontSize="13" fontWeight="600" fontFamily="Montserrat, sans-serif">Palestrante</text>
-            <text x="748" y="36" fill="var(--color-ink)" fontSize="13" fontWeight="600" fontFamily="Montserrat, sans-serif">Profissional</text>
-            <text x="900" y="104" fill="var(--color-ink)" fontSize="13" fontWeight="600" fontFamily="Montserrat, sans-serif">Tu, daqui a um ano</text>
-          </svg>
+        {/* ── Journey steps with curved SVG line and floating tooltip ── */}
+
+        {/* ── Journey steps with curved SVG line and floating tooltip ── */}
+<div className="mt-14">
+  <div className="pt-28">
+    {/* This wrapper is the positioning context, so percentages match the SVG exactly */}
+    <div className="relative">
+      <svg
+        className="block w-full h-auto overflow-visible"
+        viewBox={`0 0 ${VB_W} ${VB_H}`}
+        role="img"
+        aria-label="Percurso: Potencial, Direção, Conexão, Capacitação, Prontidão, Oportunidades"
+      >
+       <path
+  d={JOURNEY_PATH}
+  pathLength={1400}
+  fill="none"
+  stroke="var(--color-primary-500)"
+  strokeWidth="4"
+  strokeLinecap="round"
+  strokeDasharray="1400"
+  strokeDashoffset="1400"
+  className="motion-safe:animate-[draw_2.6s_.3s_cubic-bezier(.6,0,.2,1)_forwards]"
+/>
+
+        {JOURNEY_STEPS.map((step, i) => {
+          const p = JOURNEY_POINTS[i];
+          const isFirst = i === 0;
+          const isLast = i === JOURNEY_STEPS.length - 1;
+          const labelY = p.cy < 110 ? p.cy - 22 : p.cy + 32;
+
+          // Keep first/last labels inside the viewBox
+          const anchor = isFirst ? 'start' : isLast ? 'end' : 'middle';
+          const labelX = isFirst ? p.cx - 12 : isLast ? p.cx + 12 : p.cx;
+
+          return (
+            <g
+              key={i}
+              className="cursor-pointer"
+              onMouseEnter={() => setActiveJourney(i)}
+              onMouseLeave={() => setActiveJourney(null)}
+              onFocus={() => setActiveJourney(i)}
+              onBlur={() => setActiveJourney(null)}
+              tabIndex={0}
+            >
+              {/* larger invisible hit area for easier hovering */}
+              <circle cx={p.cx} cy={p.cy} r="22" fill="transparent" />
+              <circle
+                cx={p.cx}
+                cy={p.cy}
+                r="12"
+                fill={activeJourney === i ? 'var(--color-primary-500)' : 'var(--color-navy-800)'}
+                className="transition-colors duration-200"
+              />
+              <text
+                x={labelX}
+                y={labelY}
+                textAnchor={anchor}
+                fill="var(--color-ink)"
+                fontSize="13"
+                fontWeight="700"
+                fontFamily="Montserrat, sans-serif"
+              >
+                {step.title}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+
+      {/* Floating tooltip: centered on the node, clamped to stay inside the container */}
+      {activeJourney !== null && (() => {
+        const p = JOURNEY_POINTS[activeJourney];
+        const half = TOOLTIP_W / 2;
+        const leftPct = (p.cx / VB_W) * 100;
+
+        // If the title sits above the node, lift the tooltip above the title too
+        const labelAbove = p.cy < 110;
+        const anchorY = labelAbove ? p.cy - 38 : p.cy - 18;
+        const topPct = (anchorY / VB_H) * 100;
+
+        return (
+          <>
+            <div
+              className="absolute z-10 pointer-events-none"
+              style={{
+                width: TOOLTIP_W,
+                // centered on the node, but never overflowing left/right
+                left: `clamp(${half}px, ${leftPct}%, calc(100% - ${half}px))`,
+                top: `${topPct}%`,
+                transform: 'translate(-50%, -100%)',
+                marginTop: -8,
+              }}
+            >
+              <div className="bg-navy-800 text-white rounded-inner px-4 py-3 shadow-lg text-[.85rem] leading-snug">
+                <div className="font-extrabold text-primary-300 text-[.75rem] mb-1 tracking-wide">
+                  {JOURNEY_STEPS[activeJourney].title}
+                </div>
+                {JOURNEY_STEPS[activeJourney].text}
+              </div>
+            </div>
+
+            {/* Arrow: separate element so it always points at the node, even when the box is clamped */}
+            <div
+              className="absolute z-10 pointer-events-none w-3 h-3 bg-navy-800"
+              style={{
+                left: `${leftPct}%`,
+                top: `${topPct}%`,
+                transform: 'translate(-50%, -50%) rotate(45deg)',
+                marginTop: -8,
+              }}
+            />
+          </>
+        );
+      })()}
+    </div>
+  </div>
+</div>
+
+
+
         </div>
 
         {/* F-07: vagas restantes */}
@@ -268,7 +442,8 @@ export default function Landingpage() {
         </section>
 
         {/* Desafios */}
-        <section className="py-16 md:py-20">
+      
+      <section className="py-16 md:py-20">
           <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-10">A que desafios responde o Career Connect.</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5.5 mt-10">
           {[
@@ -278,8 +453,13 @@ export default function Landingpage() {
           ].map((card, i) => (
             <div key={i} className="bg-surface-soft rounded-inner p-6.5">
               <h3 className="text-[1.1rem] font-extrabold mb-3">{card.title}</h3>
-              <ul className="m-0 pl-4.5 text-ink-muted space-y-1.5">
-                {card.items.map((item, j) => <li key={j}>{item}</li>)}
+              <ul className="m-0 pl-0 text-ink-muted space-y-1.5">
+                {card.items.map((item, j) => (
+                  <li key={j} className="flex items-start gap-2.5">
+                    <span className="mt-[0.55em] h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" />
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
           ))}
@@ -305,7 +485,8 @@ export default function Landingpage() {
                   <h3 className="text-[1.15rem] font-extrabold">{masterclass.title}</h3>
                   <p className="text-ink-muted text-[.9rem]">{masterclass.name} · {masterclass.role}</p>
                 </div>
-                <div className="text-[.82rem] text-ink-muted font-semibold col-start-2 md:col-start-auto">
+                {/** leave it hidden */}
+                <div className="text-[.82rem] hidden text-ink-muted font-semibold col-start-2 md:col-start-auto">
                   Com sessão iniciada
                 </div>
               </div>
@@ -367,7 +548,7 @@ export default function Landingpage() {
           <div className="bg-primary-500 text-white rounded-card p-10 md:p-14 text-center">
             <h2 className="text-[clamp(1.8rem,4.5vw,2.6rem)] font-extrabold mb-4">És profissional? Torna-te mentor.</h2>
             <p className="text-primary-100 text-lg max-w-[45ch] mx-auto mb-6">Influencia a carreira de alguém. 40 min no dia, 1 a 3 mentorados depois do evento.</p>
-            <Link to="/mentor" className={BTN_BASE}>Registar como mentor</Link>
+            <Link to="/mentor" className={`${BTN_BASE} !bg-primary-400`}>Registar como mentor</Link>
           </div>
         </section>
 
@@ -401,7 +582,11 @@ export default function Landingpage() {
                 </details>
               ))}
               </div>
+              <div className="mt-8">
+                <Link to="/registo" className={BTN_BASE}>Garantir o meu lugar</Link>
+              </div>
             </div>
+
             <div className="bg-navy-800 text-white rounded-card p-8">
               <small className="text-primary-300 font-semibold block">Data e hora</small>
               <b className="block text-2xl mb-3.5 mt-0.5">4 de Dezembro de 2026, 14H00</b>
@@ -412,11 +597,17 @@ export default function Landingpage() {
                 <a className={`${BTN_BASE} ${BTN_GHOST} ${BTN_SM} !text-white !shadow-[inset_0_0_0_2px_rgba(255,255,255,.4)]`} href="https://www.google.com/maps/search/?api=1&query=Hotel+Cardoso+Maputo" target="_blank" rel="noopener noreferrer">Ver no mapa</a>
               </div>
             </div>
+
           </div>
         </section>
 
         {/* Footer */}
-        <footer className="pt-8 pb-12 text-ink-muted text-sm">Career Connect® · 4 de Dezembro de 2026 · 14H00 · Hotel Cardoso, Maputo</footer>
+        <footer className="pt-8 pb-12 border-t border-line text-ink-muted text-sm">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-2">
+            <span>Career Connect® · Todos os direitos reservados</span>
+            <span>Tecnicol · Maputo, Moçambique</span>
+          </div>
+        </footer>
       </Container>
 
       {/* Toast for copy link */}

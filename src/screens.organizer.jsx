@@ -156,7 +156,7 @@ export const OrganizerLive = ({
               Terminar
             </button>
           </div>
-          <label className="flex gap-2.5 items-center text-[.85rem] mt-4">
+          <label className="flex gap-2.5 items-center text-[.85rem] mt-4 hidden">
             <input type="checkbox" checked={isRehearsal} onChange={(e) => { setIsRehearsal(e.target.checked); setSecondsLeft(e.target.checked ? 30 : 300); }} className="w-auto accent-primary-500" />
             Modo ensaio (rondas de 30 s)
           </label>

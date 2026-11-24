@@ -224,7 +224,7 @@ export function CareerConnectApp({ initialRole }) {
         }
       };
       syncRound();
-      const interval = setInterval(syncRound, 10000);
+      const interval = setInterval(syncRound, 3000);
       return () => { active = false; clearInterval(interval); };
     }
   }, [role]);

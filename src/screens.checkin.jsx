@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from './ui';
 import { ccGetProfile, ccCheckIn, ccGetRegistrationByTicket } from './api/client';
 
 export const CheckInScreen = () => {
+  const navigate = useNavigate();
   const [ticketCode, setTicketCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [isOrganizer, setIsOrganizer] = useState(false);
@@ -10,6 +12,7 @@ export const CheckInScreen = () => {
   const [registration, setRegistration] = useState(null);
   const [regLoading, setRegLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [autoChecked, setAutoChecked] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -53,6 +56,22 @@ export const CheckInScreen = () => {
     };
     loadRegistration();
   }, [ticketCode]);
+
+  useEffect(() => {
+    if (!isOrganizer || !registration || registration.status === 'present' || autoChecked || regLoading || notFound) return;
+    const doAutoCheckIn = async () => {
+      try {
+        await ccCheckIn({ ticket_code: ticketCode });
+        setChecked(true);
+        setRegistration({ ...registration, status: 'present' });
+        setAutoChecked(true);
+        setTimeout(() => navigate('/'), 3000);
+      } catch {
+        setAutoChecked(true);
+      }
+    };
+    doAutoCheckIn();
+  }, [isOrganizer, registration, ticketCode, regLoading, notFound, autoChecked, navigate]);
 
   const handleCheckIn = async () => {
     if (!ticketCode) return;
@@ -101,6 +120,12 @@ export const CheckInScreen = () => {
                   </div>
                   <p className="text-success font-semibold text-[1.1rem]">Já fez check-in</p>
                   <p className="text-ink-muted text-[.85rem] mt-1">Check-in efetuado em {registration.checked_in_at ? new Date(registration.checked_in_at).toLocaleString('pt-PT') : 'momentos atrás'}</p>
+                  <button
+                    onClick={() => navigate('/')}
+                    className="mt-4 w-full rounded-full font-bold text-[.82rem] h-12 bg-primary-500 text-white"
+                  >
+                    Voltar ao início
+                  </button>
                 </div>
               ) : isOrganizer ? (
                 <button

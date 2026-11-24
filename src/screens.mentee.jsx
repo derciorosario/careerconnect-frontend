@@ -216,7 +216,7 @@ export const MenteeHome = ({ showToast }) => {
             <h3 className="mt-1 text-[1.08rem] font-extrabold">{myName}</h3>
             <p className="text-[.85rem] text-navy-100">Mentorado · {myCourse}</p>
             <p className="font-extrabold text-[1.05rem] mt-3 tracking-widest">{ticketCode || 'CC-....'}</p>
-            <p className="text-[.76rem] text-navy-100 mt-0.5">Disponível sem rede</p>
+            <p className="text-[.76rem] text-navy-100 mt-0.5 hidden">Disponível sem rede</p>
           </div>
           <QrCode value={ticketCode || 'CC-7K2QF'} size={104} downloadable />
         </div>

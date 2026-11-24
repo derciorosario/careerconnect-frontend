@@ -115,8 +115,9 @@ export const QrCode = ({ value, size = 120, className = '', downloadable = false
   useEffect(() => {
     let active = true;
     if (!value) { setDataUrl(''); setDisplayUrl(''); return; }
-    // Generate checkin URL with relative path
-    const url = `/checkin?ticket_code=${encodeURIComponent(value)}`;
+    // Generate checkin URL with full app link so the QR code points to the deployed app
+    const appLink = typeof window !== 'undefined' ? window.location.origin : '';
+    const url = `${appLink}/checkin?ticket_code=${encodeURIComponent(value)}`;
     setDisplayUrl(url);
     QRCode.toDataURL(url, {
       errorCorrectionLevel: 'M',

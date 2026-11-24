@@ -272,7 +272,7 @@ export const MenteeHome = ({ showToast }) => {
         <div className="flex items-center justify-between mb-3.5"><b>Reservar masterclasses</b></div>
         <p className="text-ink-muted text-[.85rem] mb-2.5">Sem custo.</p>
         {masterclasses.length > 0 ? (
-          masterclasses.map((s) => {
+          masterclasses.filter(i=>i.type=="masterclass").map((s) => {
             const isBooked = bookedSessionIds.has(s.id);
             return (
               <div key={s.id} className="flex justify-between items-center mt-2.5 gap-2.5">

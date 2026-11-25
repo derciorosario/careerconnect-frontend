@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { ccGetLanding } from './api/client';
+import { imgSrc } from './ui';
 import mainLogo from './assets/patners/main.png';
 import logo from './assets/logo.png';
 import mentor1 from './assets/mentors/1.jpeg';
@@ -88,6 +90,30 @@ const BTN_GHOST  = 'bg-transparent text-ink shadow-[inset_0_0_0_2px_var(--color-
 const BTN_SM     = 'px-[18px] py-[9px] text-sm';
 const FIELD_BASE = 'w-full font-normal text-base text-ink bg-surface border-2 border-line rounded-field px-3.5 py-3 focus:border-primary-500 focus:outline-none';
 
+// Default content mirrors the backend seed; the page structure never changes.
+const DEFAULT_CONFIG = {
+  event: {
+    dateLabel: '04 de Dezembro de 2026',
+    timeLabel: 'Início às 14H00',
+    locationLabel: 'Hotel Cardoso | Maputo',
+    startAt: '2026-12-04T14:00:00+02:00',
+    venue: 'Hotel Cardoso',
+    venueFull: 'Hotel Cardoso, Maputo',
+    mapQuery: 'Hotel Cardoso Maputo',
+    calendarStart: '20261204T120000Z',
+    calendarEnd: '20261204T150000Z',
+  },
+  tutorialVideoUrl: TUTORIAL_VIDEO_URL,
+  axes: AXES,
+  benefits: BENEFITS,
+  faqs: FAQS,
+  masterclasses: MASTERCLASSES.map((m, i) => ({
+    ...m,
+    biography: BIOGRAPHIES[i]?.biography || '',
+    works: BIOGRAPHIES[i]?.works || '',
+  })),
+};
+
 // Constrained content wrapper reused by every non-bleed section
 const Container = ({ children }) => (
   <div className="max-w-[1180px] mx-auto px-[22px]">{children}</div>
@@ -110,12 +136,37 @@ const PinIcon = ({ className = 'w-5 h-5' }) => (
 
 export default function Landingpage() {
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [shareOpen, setShareOpen] = useState(false);
   const [imagesReady, setImagesReady] = useState(false);
   const [activeJourney, setActiveJourney] = useState(null);
   const countdownInterval = useRef(null);
   const journeyRef = useRef(null);
   const [journeyVisible, setJourneyVisible] = useState(false);
+
+  // Load landing content from the backend (structure stays the same; only data changes)
+  useEffect(() => {
+    let cancelled = false;
+    ccGetLanding({})
+      .then((resp) => {
+        if (cancelled) return;
+        const c = resp.data || {};
+        setConfig({
+          ...DEFAULT_CONFIG,
+          ...c,
+          event: { ...DEFAULT_CONFIG.event, ...(c.event || {}) },
+          axes: Array.isArray(c.axes) ? c.axes : DEFAULT_CONFIG.axes,
+          benefits: Array.isArray(c.benefits) ? c.benefits : DEFAULT_CONFIG.benefits,
+          faqs: Array.isArray(c.faqs) ? c.faqs : DEFAULT_CONFIG.faqs,
+          masterclasses: Array.isArray(c.masterclasses) ? c.masterclasses : DEFAULT_CONFIG.masterclasses,
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const { event, tutorialVideoUrl, axes, benefits, faqs, masterclasses } = config;
+  const heroImg = (i) => (masterclasses[i]?.photo_url ? imgSrc(masterclasses[i].photo_url) : IMAGES[i]);
 
   const VB_W = 1000;
   const VB_H = 220;
@@ -170,7 +221,7 @@ export default function Landingpage() {
 
   useEffect(() => {
     const tick = () => {
-      const difference = new Date('2026-12-04T14:00:00+02:00') - Date.now();
+      const difference = new Date(event.startAt) - Date.now();
       if (difference <= 0) {
         setCountdown({ days: 'Hoje', hours: '', minutes: '', seconds: '' });
         return;
@@ -185,7 +236,7 @@ export default function Landingpage() {
     tick();
     countdownInterval.current = setInterval(tick, 1000);
     return () => clearInterval(countdownInterval.current);
-  }, []);
+  }, [event.startAt]);
 
   // Only draw the curved SVG line once the Journey section enters the viewport
   useEffect(() => {
@@ -216,7 +267,7 @@ export default function Landingpage() {
   })();
   const vagasRestantes = Math.max(0, totalCapacity - registeredCount);
 
-  const shareText = 'Vou ao Career Connect — 4 de Dezembro, Hotel Cardoso, Maputo. Liga-te a mentores e dá o próximo passo na tua carreira.';
+  const shareText = `Vou ao Career Connect — ${event.dateLabel}, ${event.locationLabel}. Liga-te a mentores e dá o próximo passo na tua carreira.`;
   const shareUrl = window.location.origin;
 
   const handleShare = () => {
@@ -269,11 +320,11 @@ export default function Landingpage() {
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-5 text-primary-500 font-bold text-[1.05rem]">
                 <span className="inline-flex items-center gap-2">
                   <CalendarIcon />
-                  04 de Dezembro de 2026
+                  {event.dateLabel}
                 </span>
                 <span className="inline-flex items-center gap-2">
                   <PinIcon />
-                  Hotel Cardoso | Maputo
+                  {event.locationLabel}
                 </span>
               </div>
 
@@ -289,8 +340,8 @@ export default function Landingpage() {
 
               <div className="flex flex-wrap gap-y-2.5 gap-x-8.5 mt-8.5 max-md:bg-navy-800 max-md:text-white max-md:rounded-card max-md:p-8 max-md:gap-y-4 max-md:gap-x-6">
                 <div>
-                  <b className="block text-[1.05rem]">Início às 14H00</b>
-                  <span className="text-ink-muted max-md:text-navy-100 text-sm">4 de Dezembro de 2026</span>
+                  <b className="block text-[1.05rem]">{event.timeLabel}</b>
+                  <span className="text-ink-muted max-md:text-navy-100 text-sm">{event.dateLabel}</span>
                 </div>
                 <div>
                   <div className="flex gap-2.5 mt-1.5 max-md:mt-0 " aria-live="off">
@@ -326,9 +377,9 @@ export default function Landingpage() {
             </div>
 
             <div className="relative w-full max-w-[420px] aspect-[1/1.08] ml-auto mx-auto md:mt-0 mt-2.5" aria-hidden="true">
-              <img className="absolute w-[60%] left-0 top-0 rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-primary-500)]" src={IMAGES[0]} alt="" />
-              <img className="absolute w-[48%] right-0 top-[30%] rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-navy-800)]" src={IMAGES[1]} alt="" />
-              <img className="absolute w-[52%] left-[16%] bottom-0 rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-primary-500)]" src={IMAGES[2]} alt="" />
+              <img className="absolute w-[60%] left-0 top-0 rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-primary-500)]" src={heroImg(0)} alt="" />
+              <img className="absolute w-[48%] right-0 top-[30%] rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-navy-800)]" src={heroImg(1)} alt="" />
+              <img className="absolute w-[52%] left-[16%] bottom-0 rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-primary-500)]" src={heroImg(2)} alt="" />
               <i className="absolute w-[26px] h-[26px] rounded-full bg-primary-500 right-[30%] top-[12%]" />
             </div>
           </div>
@@ -490,7 +541,7 @@ export default function Landingpage() {
           <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-3.5">O Que Vais Ganhar com o Career Connect?</h2>
           <p className="text-ink-muted italic text-lg mb-10">Mais do que participar num evento, vais investir no teu futuro profissional.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5.5">
-            {BENEFITS.map((benefit, i) => (
+            {benefits.map((benefit, i) => (
               <div key={i} className="bg-surface-soft rounded-inner p-6">
                 <div className="w-10 h-10 rounded-full bg-primary-500 text-white grid place-items-center font-extrabold mb-4">{i + 1}</div>
                 <h3 className="text-[1.1rem] font-extrabold mb-2">{benefit.title}</h3>
@@ -531,8 +582,8 @@ export default function Landingpage() {
             <h3 className="text-2xl font-extrabold mb-2">Tutorial da Plataforma</h3>
             <p className="text-navy-100 mb-6 max-w-[56ch]">Vê o vídeo e aprende a manusear a app passo a passo.</p>
             <div className="w-full max-w-[760px] aspect-video rounded-card overflow-hidden bg-white/10">
-              {TUTORIAL_VIDEO_URL ? (
-                <video className="w-full h-full object-cover" src={TUTORIAL_VIDEO_URL} controls preload="metadata" />
+              {tutorialVideoUrl ? (
+                <video className="w-full h-full object-cover" src={tutorialVideoUrl} controls preload="metadata" />
               ) : (
                 <div className="w-full h-full grid place-items-center text-navy-100 text-center px-6">
                   Vídeo explicativo em breve
@@ -550,7 +601,7 @@ export default function Landingpage() {
           <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[25ch] mb-3.5">Eixos de Actuação</h2>
           <p className="text-primary-500 font-bold text-xl mb-10">Preparar. Posicionar. Desenvolver.</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5.5">
-            {AXES.map((card, i) => (
+            {axes.map((card, i) => (
               <div key={i} className="bg-surface-soft rounded-inner p-6.5">
                 <div className="w-10 h-10 rounded-full bg-primary-500 text-white grid place-items-center font-extrabold mb-4">{i + 1}</div>
                 <h3 className="text-[1.1rem] font-extrabold mb-3">{card.title}</h3>
@@ -591,10 +642,10 @@ export default function Landingpage() {
             Cria a tua conta para ver o programa completo, enviar perguntas aos palestrantes e reservar lugar em cada sessão.
           </p>
           <div className="grid gap-4.5">
-            {MASTERCLASSES.map(masterclass => (
+            {masterclasses.map(masterclass => (
               <div key={masterclass.id} className="grid grid-cols-[56px_1fr] md:grid-cols-[64px_1fr_auto] gap-4.5 items-center bg-surface-soft text-ink rounded-inner px-6 py-5">
                 <div className="w-14 md:w-16 h-14 md:h-16 rounded-full overflow-hidden bg-navy-800 shadow-[0_0_0_3px_var(--color-surface),0_0_0_5px_var(--color-primary-500)]">
-                  <img src={IMAGES[masterclass.id]} alt={masterclass.name} className="w-full h-full object-cover" />
+                  <img src={imgSrc(masterclass.photo_url) || IMAGES[masterclass.id]} alt={masterclass.name} className="w-full h-full object-cover" />
                 </div>
                 <div>
                   <div className="text-[.78rem] font-semibold text-primary-500">{masterclass.theme}</div>
@@ -616,17 +667,17 @@ export default function Landingpage() {
         <section className="py-16 md:py-20">
           <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-11">Oradores e Mentores de Destaque</h2>
           <div className="mt-11 space-y-14">
-            {MASTERCLASSES.map((masterclass, index) => {
+            {masterclasses.map((masterclass, index) => {
               const isReversed = index % 2 === 1;
               return (
                 <div key={masterclass.id} className={`grid grid-cols-1 md:grid-cols-[200px_minmax(0,1fr)] gap-8 md:gap-10 items-center ${isReversed ? 'md:grid-cols-[minmax(0,1fr)_200px]' : ''}`}>
-                  <img src={IMAGES[index]} alt={masterclass.name} className={`w-[200px] h-[200px] rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-primary-500)] mx-auto md:mx-0 ${isReversed ? 'md:order-2 md:justify-self-end' : ''}`} />
+                  <img src={imgSrc(masterclass.photo_url) || IMAGES[index]} alt={masterclass.name} className={`w-[200px] h-[200px] rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-primary-500)] mx-auto md:mx-0 ${isReversed ? 'md:order-2 md:justify-self-end' : ''}`} />
                   <div className={isReversed ? 'md:text-right' : ''}>
                     <h3 className="text-2xl font-extrabold">{masterclass.name}</h3>
                     <div className="text-primary-500 font-semibold text-[.92rem] my-1">{masterclass.role}</div>
                     <p className="mt-2 text-[.95rem]"><b>Tema:</b> {masterclass.title}</p>
-                    <p className="text-ink-muted mt-3">{BIOGRAPHIES[index].biography}</p>
-                    {BIOGRAPHIES[index].works && (<p className="mt-3 text-[.88rem] text-ink-muted">{BIOGRAPHIES[index].works}</p>)}
+                    <p className="text-ink-muted mt-3">{masterclass.biography}</p>
+                    {masterclass.works && (<p className="mt-3 text-[.88rem] text-ink-muted">{masterclass.works}</p>)}
                   </div>
                 </div>
               );
@@ -686,7 +737,7 @@ export default function Landingpage() {
             <div>
               <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-7">Perguntas Frequentes (FAQ)</h2>
               <div className="mt-7">
-                {FAQS.map((item, i) => (
+                {faqs.map((item, i) => (
                   <details key={i} open={i === 0} className="border-b border-line py-4">
                     <summary className="font-semibold cursor-pointer">{item.q}</summary>
                     <p className="text-ink-muted mt-2.5">{item.a}</p>
@@ -698,14 +749,14 @@ export default function Landingpage() {
 
             <div className="bg-navy-800 text-white rounded-card p-8">
               <small className="text-primary-300 font-semibold block">Próxima Masterclass</small>
-              <b className="block text-2xl mb-3.5 mt-0.5">Encontramo-nos no Hotel Cardoso</b>
+              <b className="block text-2xl mb-3.5 mt-0.5">Encontramo-nos no {event.venue}</b>
               <small className="text-primary-300 font-semibold block">Data e hora</small>
-              <b className="block text-2xl mb-3.5 mt-0.5">4 de Dezembro de 2026, 14H00</b>
+              <b className="block text-2xl mb-3.5 mt-0.5">{event.dateLabel}, {event.timeLabel}</b>
               <small className="text-primary-300 font-semibold block">Local</small>
-              <b className="block text-2xl mb-3.5 mt-0.5">Hotel Cardoso, Maputo</b>
+              <b className="block text-2xl mb-3.5 mt-0.5">{event.venueFull}</b>
               <div className="flex gap-2.5 flex-wrap mt-4.5">
-                <a className={`${BTN_BASE} ${BTN_SM}`} href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Career+Connect&dates=20261204T120000Z/20261204T150000Z&location=Hotel+Cardoso,+Maputo" target="_blank" rel="noopener noreferrer">Adicionar ao calendário</a>
-                <a className={`${BTN_BASE} ${BTN_GHOST} ${BTN_SM} !text-white !shadow-[inset_0_0_0_2px_rgba(255,255,255,.4)]`} href="https://www.google.com/maps/search/?api=1&query=Hotel+Cardoso+Maputo" target="_blank" rel="noopener noreferrer">Ver no mapa</a>
+                <a className={`${BTN_BASE} ${BTN_SM}`} href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=Career+Connect&dates=${event.calendarStart}/${event.calendarEnd}&location=${encodeURIComponent(event.venueFull)}`} target="_blank" rel="noopener noreferrer">Adicionar ao calendário</a>
+                <a className={`${BTN_BASE} ${BTN_GHOST} ${BTN_SM} !text-white !shadow-[inset_0_0_0_2px_rgba(255,255,255,.4)]`} href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.mapQuery)}`} target="_blank" rel="noopener noreferrer">Ver no mapa</a>
               </div>
             </div>
           </div>

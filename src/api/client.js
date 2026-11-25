@@ -194,6 +194,7 @@ export const ccMe = () => client.get('/auth/me');
 export const ccGetProfile = () => client.get('/users/profile');
 export const ccUpdateProfile = (data) => client.put('/users/profile', data);
 export const ccGetAllUsers = () => client.get('/users/');
+export const ccUpdateUser = (id, data) => client.put(`/users/${id}`, data);
 export const ccGetTestUsers = () => client.get('/auth/test-users');
 export const ccGetMenteeDashboard = () => client.get('/users/mentee/dashboard');
 export const ccGetMentorDashboard = () => client.get('/users/mentor/dashboard');
@@ -291,6 +292,10 @@ export const ccNotifySurvey = (data) => client.post('/survey/notify', data);
 // REGISTRATION CONFIG (editable form options)
 export const ccGetRegistrationConfig = (params) => client.get('/registration-config', { params });
 export const ccUpdateRegistrationConfig = (data) => client.put('/registration-config', data);
+
+// LANDING PAGE CONFIG
+export const ccGetLanding = (params) => client.get('/landing', { params });
+export const ccUpdateLanding = (data) => client.put('/landing', data);
 
 // NEXT STEPS
 export const ccCreateNextStep = (data) => client.post('/next-steps/', data);

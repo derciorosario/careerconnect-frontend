@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import { getInitials } from './data';
 import { API_URL } from './api/client';
 
-const imgSrc = (url) => {
+export const imgSrc = (url) => {
   if (!url) return null;
   if (/^https?:\/\//i.test(url)) return url;
   return `${API_URL.replace(/\/api$/, '')}${url.startsWith('/') ? '' : '/'}${url}`;

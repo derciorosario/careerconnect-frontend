@@ -24,6 +24,8 @@ import { OrganizerQuestions } from './screens/OrganizerQuestions';
 import { OrganizerQuestionnaire } from './screens/OrganizerQuestionnaire';
 import { OrganizerResponses } from './screens/OrganizerResponses';
 import { OrganizerConfig } from './screens/OrganizerConfig';
+import { OrganizerLanding } from './screens/OrganizerLanding';
+import { OrganizerUsers } from './screens/OrganizerUsers';
 import { OrganizerSessions } from './screens/OrganizerSessions';
 import WhatsApp from './whatsapp';
 import {
@@ -416,6 +418,10 @@ export function CareerConnectApp({ initialRole }) {
         return <OrganizerResponses {...common} />;
       case 'config':
         return <OrganizerConfig {...common} />;
+      case 'landing':
+        return <OrganizerLanding {...common} />;
+      case 'users':
+        return <OrganizerUsers {...common} />;
       case 'int':
         return <OrganizerInteraction {...common} announcements={announcements} setAnnouncements={setAnnouncements} questions={questions} pollVotes={pollVotes} totalPollVotes={totalPollVotes} />;
       case 'rep':

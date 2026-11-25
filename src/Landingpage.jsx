@@ -29,19 +29,58 @@ const BIOGRAPHIES = [
   { biography: "Licenciada em Ciências Políticas pela Universidade Eduardo Mondlane (UEM), construiu a sua carreira na Vale Moçambique e na Galp Moçambique. É fundadora da Salto Moçambique, dedicada à formação e à mentoria." }
 ];
 
+// Themes now match the "Eixos de Actuação"; titles come from the client guide (section 8)
 const MASTERCLASSES = [
-  { id: 0, initials: 'VS', name: 'Vicente Sitoe', role: 'Director Geral da SDO Moçambique', theme: 'Acesso ao mercado', title: 'Estratégias para encontrar o primeiro passo', topics: [['Preparar-se', 'Desenvolver competências técnicas e comportamentais e aprofundar o autoconhecimento.'], ['Construir a rede', 'Utilizar plataformas de contacto, redes de contactos e preparar um currículo competitivo.'], ['Destacar-se', 'Preparar-se para entrevistas e comunicar as suas competências com confiança.']], question: 'Qual é o teu maior obstáculo na procura do primeiro passo?' },
-  { id: 1, initials: 'AC', name: 'Arafat Cossa', role: 'Director da Arafat Executive Academy', theme: 'Competências e posicionamento', title: 'A arte de criar redes de contactos e transformar ligações em oportunidades', topics: [['Rede estratégica', 'Criar relações genuínas, assentes na confiança e na partilha de valor.'], ['Comunicação e marca pessoal', 'Apresentar-se e comunicar o seu valor com confiança.'], ['Ligações que geram oportunidades', 'Utilizar o LinkedIn, procurar mentoria e aproximar-se do mercado de trabalho.']], question: 'O que gostavas de saber dizer sobre ti em 30 segundos?' },
-  { id: 2, initials: 'MC', name: 'Marlena Chambule', role: 'Directora Executiva da Salto Moçambique', theme: 'Integração e crescimento', title: 'O próximo passo depois da contratação: construir uma carreira de sucesso', topics: [['Adaptação', 'Compreender a cultura organizacional e integrar-se nas equipas.'], ['Postura e desempenho', 'Agir com ética, pontualidade e proactividade.'], ['Carreira sustentável', 'Definir objectivos, apostar na aprendizagem contínua e construir uma boa reputação.']], question: 'Que dúvida tens sobre os primeiros meses numa nova função?' },
+  { id: 0, initials: 'VS', name: 'Vicente Sitoe', role: 'Director Geral da SDO Moçambique', theme: 'Preparação para o Mercado de Trabalho', title: 'Da Formação para o Mercado de Trabalho: Estratégias para Encontrar o Primeiro Emprego' },
+  { id: 1, initials: 'AC', name: 'Arafat Cossa', role: 'Director da Arafat Executive Academy', theme: 'Posicionamento e Oportunidades', title: 'A Arte do Networking: Como Transformar Conexões em Oportunidades de Carreira' },
+  { id: 2, initials: 'MC', name: 'Marlene Chambule', role: 'Directora Executiva da Salto Moçambique', theme: 'Desenvolvimento e Crescimento na Carreira', title: 'Fui Contratado. E Agora? Como Construir uma Carreira de Sucesso' },
 ];
 
+// Section 3 — Ciclo da Conexão: the five moments now live on the existing curved line
 const JOURNEY_STEPS = [
-  { title: 'POTENCIAL', text: 'Descobre o teu potencial e aquilo que podes alcançar.' },
-  { title: 'DIREÇÃO', text: 'Encontra orientação para definir os teus objetivos profissionais.' },
-  { title: 'CONEXÃO', text: 'Liga-te a especialistas, mentores e profissionais experientes.' },
-  { title: 'CAPACITAÇÃO', text: 'Adquire conhecimentos e desenvolve competências através das Masterclasses.' },
-  { title: 'PRONTIDÃO', text: 'Ganha confiança e prepara-te para enfrentar os desafios do mercado.' },
-  { title: 'OPORTUNIDADES', text: 'Amplia os teus horizontes e fica mais aberto a novas oportunidades profissionais, pois quem está capacitado sorri para o mercado.' },
+  { title: 'APRENDER', text: 'Participação em masterclasses e sessões inspiradoras com especialistas de referência.' },
+  { title: 'CONECTAR', text: 'Interação direta com profissionais experientes e potenciais mentores.' },
+  { title: 'DESCOBRIR', text: 'Exploração de novas áreas de interesse, oportunidades e tendências do mercado.' },
+  { title: 'PARTILHAR', text: 'Troca de experiências, conhecimentos e melhores práticas profissionais.' },
+  { title: 'EVOLUIR', text: 'Transformação das conexões criadas em oportunidades de mentoria e desenvolvimento contínuo.' },
+];
+
+// ── Section 4: O que vais ganhar ──
+const BENEFITS = [
+  { title: 'Encontrar um Mentor', text: 'Identifica profissionais experientes que podem orientar a tua jornada profissional.' },
+  { title: 'Construir Conexões Profissionais', text: 'Expande a tua rede de contactos através de networking estratégico.' },
+  { title: 'Participar em 4 Conversas Estratégicas', text: 'Interage com diferentes profissionais durante sessões rápidas de networking.' },
+  { title: 'Transformar Contactos em Oportunidades', text: 'Estabelece relações que poderão evoluir para mentoria, estágios ou oportunidades profissionais.' },
+  { title: 'Aprender com Líderes e Especialistas', text: 'Obtém conhecimentos práticos sobre empregabilidade, carreira e desenvolvimento pessoal.' },
+];
+
+// ── Section 5: Como funcionam as conexões ──
+const CONNECTION_STEPS = [
+  { step: '1', title: 'Regista-te', text: 'Cria a tua conta em menos de 5 minutos e escolhe o teu perfil:', profiles: ['Participante', 'Mentor'] },
+  { step: '2', title: 'Vive o Momento Conexão', text: 'Participa em rondas de networking estruturadas e conversa com diferentes profissionais.' },
+  { step: '3', title: 'Mantém a Conexão', text: 'Solicita acompanhamento, troca contactos e inicia uma relação de mentoria duradoura.' },
+];
+
+// Put the tutorial video URL here (mp4 file or hosted path). Leave empty to show a placeholder.
+const TUTORIAL_VIDEO_URL = '';
+
+// ── Section 6: Eixos de Actuação (replaces "A que desafios responde o Career Connect?") ──
+const AXES = [
+  { title: 'Preparação para o Mercado de Trabalho', items: ['Estratégias de procura de emprego', 'Construção de CV', 'Preparação para entrevistas'] },
+  { title: 'Posicionamento e Oportunidades', items: ['Marca pessoal & Comunicação profissional', 'LinkedIn e presença digital', 'Networking estratégico e desenvolvimento de conexões profissionais', 'Identificação e valorização de competências no mercado'] },
+  { title: 'Desenvolvimento e Crescimento na Carreira', items: ['Adaptação à cultura e ao ambiente organizacional', 'Postura profissional, responsabilidade e desempenho', 'Aprendizagem contínua, proactividade e planeamento de carreira'] },
+];
+
+// ── FAQ (from the client guide) ──
+const FAQS = [
+  { q: 'O que é o Career Connect?', a: 'É uma iniciativa da TECNICOL que conecta estudantes finalistas e jovens profissionais a executivos e especialistas de diversas áreas, através de um fórum presencial de capacitação, networking e um programa estruturado de mentoria.' },
+  { q: 'Quem pode participar?', a: 'O programa destina-se a estudantes finalistas universitários e do ensino técnico-profissional e jovens profissionais, que procuram a sua inserção no mercado de trabalho, bem como a profissionais experientes interessados em contribuir para o desenvolvimento da próxima geração de talentos, atuando como mentores.' },
+  { q: 'A participação tem algum custo?', a: 'As condições variam em cada evento. A 1ª edição é grátis, mas serão selecionados os graduados e mentores com o perfil mais adequado para os objectivos desta edição. Após o registo, a organização terá 48 horas para validar a inscrição.' },
+  { q: 'O que acontece durante o evento presencial?', a: 'Os participantes terão acesso a masterclasses com oradores de referência, dinâmicas de networking direcionado e momentos de interação direta com profissionais e mentores experientes.' },
+  { q: 'Como funciona o processo de mentoria?', a: 'Após a fase de candidatura, a organização realiza um processo de matching inteligente, ligando mentorados e mentores de acordo com os objetivos profissionais, interesses e áreas de competência, reduzindo a dependência dos modelos tradicionais de seleção baseados apenas em CVs.' },
+  { q: 'Ser selecionado garante um emprego ou estágio?', a: 'Não. O Career Connect não garante oportunidades de emprego ou estágio. O objetivo é proporcionar orientação, desenvolvimento de competências e acesso a uma rede de contactos que aumente a empregabilidade e a preparação profissional dos participantes.' },
+  { q: 'Como posso tornar-me mentor?', a:'Os profissionais interessados devem preencher o formulário de candidatura para mentores, indicando a sua experiência, área de especialização e disponibilidade.'},
+  { q: 'A mentoria termina no dia do evento?', a:'Não. O evento presencial marca apenas o início do programa. Após o fórum, mentor e mentorado seguem um plano de acompanhamento com objetivos, desafios práticos e sessões periódicas de desenvolvimento.'}
 ];
 
 const BTN_BASE   = 'inline-block rounded-full bg-primary-500 text-white font-semibold text-base px-7 py-3.5 cursor-pointer no-underline hover:brightness-110 transition';
@@ -51,7 +90,22 @@ const FIELD_BASE = 'w-full font-normal text-base text-ink bg-surface border-2 bo
 
 // Constrained content wrapper reused by every non-bleed section
 const Container = ({ children }) => (
-  <div className="max-w-[1080px] mx-auto px-[22px]">{children}</div>
+  <div className="max-w-[1180px] mx-auto px-[22px]">{children}</div>
+);
+
+// Small inline icons for the hero headline
+const CalendarIcon = ({ className = 'w-5 h-5' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="4.5" width="18" height="16" rx="2.5" />
+    <path d="M3 9.5h18M8 2.5v4M16 2.5v4" />
+  </svg>
+);
+
+const PinIcon = ({ className = 'w-5 h-5' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z" />
+    <circle cx="12" cy="9.5" r="2.5" />
+  </svg>
 );
 
 export default function Landingpage() {
@@ -63,35 +117,35 @@ export default function Landingpage() {
   const journeyRef = useRef(null);
   const [journeyVisible, setJourneyVisible] = useState(false);
 
- const VB_W = 1000;
-const VB_H = 220;
-const TOOLTIP_W = 240;
+  const VB_W = 1000;
+  const VB_H = 220;
+  const TOOLTIP_W = 240;
 
-const PAD_X = 40;
-const Y_VALUES = [140, 70, 110, 80, 90, 50]; // keep your original heights
-const STEP_X = (VB_W - PAD_X * 2) / (Y_VALUES.length - 1); // 184 → equal spacing
+  const PAD_X = 40;
+  const Y_VALUES = [140, 70, 110, 70, 90]; // 5 points, one per moment
+  const STEP_X = (VB_W - PAD_X * 2) / (Y_VALUES.length - 1); 
 
-// x: 40, 224, 408, 592, 776, 960
-const JOURNEY_POINTS = Y_VALUES.map((cy, i) => ({ cx: PAD_X + i * STEP_X, cy }));
+  // equal spacing across the viewBox
+  const JOURNEY_POINTS = Y_VALUES.map((cy, i) => ({ cx: PAD_X + i * STEP_X, cy }));
 
-// Smooth curve (Catmull-Rom → cubic Bézier) passing through every point
-function buildSmoothPath(pts, t = 6) {
-  let d = `M${pts[0].cx} ${pts[0].cy}`;
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[i - 1] || pts[i];
-    const p1 = pts[i];
-    const p2 = pts[i + 1];
-    const p3 = pts[i + 2] || p2;
-    const c1x = p1.cx + (p2.cx - p0.cx) / t;
-    const c1y = p1.cy + (p2.cy - p0.cy) / t;
-    const c2x = p2.cx - (p3.cx - p1.cx) / t;
-    const c2y = p2.cy - (p3.cy - p1.cy) / t;
-    d += ` C${c1x} ${c1y} ${c2x} ${c2y} ${p2.cx} ${p2.cy}`;
+  // Smooth curve (Catmull-Rom → cubic Bézier) passing through every point
+  function buildSmoothPath(pts, t = 6) {
+    let d = `M${pts[0].cx} ${pts[0].cy}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] || pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[i + 2] || p2;
+      const c1x = p1.cx + (p2.cx - p0.cx) / t;
+      const c1y = p1.cy + (p2.cy - p0.cy) / t;
+      const c2x = p2.cx - (p3.cx - p1.cx) / t;
+      const c2y = p2.cy - (p3.cy - p1.cy) / t;
+      d += ` C${c1x} ${c1y} ${c2x} ${c2y} ${p2.cx} ${p2.cy}`;
+    }
+    return d;
   }
-  return d;
-}
 
-const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
+  const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
 
   // Preload every image used on the page before revealing content
   useEffect(() => {
@@ -199,67 +253,76 @@ const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
             <div className="h-[20px] w-[1px] bg-gray-500 rounded-4xl mx-1"></div>
             <div>
               <Link to="https://tecnicol.co.mz">
-                  <img src={mainLogo} alt="Career Connect" className="h-10 md:h-12 w-auto" />
+                <img src={mainLogo} alt="Tecnicol" className="h-10 md:h-12 w-auto" />
               </Link>
-               
             </div>
           </div>
         </header>
 
+        {/* ── 1. Banner Principal (Hero) ── */}
         <div className="pt-10 overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-[1.2fr_.8fr] gap-7.5 items-center">
             <div>
-              <h1 className="text-[clamp(2.2rem,5.6vw,4rem)] font-extrabold tracking-tight max-w-[15ch] leading-[1.12]">O teu próximo passo começa numa ligação.</h1>
-              <p className="max-w-[52ch] mt-5.5 mb-7.5 text-ink-muted text-lg">
-                Uma imersão de percurso profissional, alta performance e conexões para jovens que querem entrar no mercado com confiança.
+              <h1 className="text-[clamp(2.2rem,5.6vw,4rem)] font-extrabold tracking-tight max-w-[15ch] leading-[1.12]">O teu próximo passo começa com uma Conexão</h1>
+
+              {/* Headline meta: calendar + location icons (per guide) */}
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-5 text-primary-500 font-bold text-[1.05rem]">
+                <span className="inline-flex items-center gap-2">
+                  <CalendarIcon />
+                  04 de Dezembro de 2026
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <PinIcon />
+                  Hotel Cardoso | Maputo
+                </span>
+              </div>
+
+              <p className="max-w-[52ch] mt-5 mb-7.5 text-ink-muted text-lg">
+                Uma experiência transformadora de aprendizagem, networking e mentoria que aproxima estudantes finalistas, profissionais júniores e executivos experientes, criando oportunidades reais de desenvolvimento profissional e crescimento de carreira.
               </p>
-              <Link to="/registo" className={BTN_BASE}>Garantir o meu lugar</Link>
-             
-             
-            
-            <div className="flex flex-wrap gap-y-2.5 gap-x-8.5 mt-8.5 max-md:bg-navy-800 max-md:text-white max-md:rounded-card max-md:p-8 max-md:gap-y-4 max-md:gap-x-6">
-  <div>
-    <b className="block text-[1.05rem]">4 de Dezembro de 2026</b>
-    <span className="text-ink-muted max-md:text-navy-100 text-sm">às 14H00</span>
-  </div>
-  <div>
-    <b className="block text-[1.05rem]">Hotel Cardoso</b>
-    <span className="text-ink-muted max-md:text-navy-100 text-sm">Maputo</span>
-  </div>
-  <div>
-    <div className="flex gap-2.5 mt-1.5 max-md:mt-0 " aria-live="off">
-      {countdown.days === 'Hoje' ? (
-        <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
-          <b className="block text-[1.6rem] leading-none">Hoje</b>
-          <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">é o dia</small>
-        </div>
-      ) : (
-        <>
-          <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
-            <b className="block text-[1.6rem] leading-none">{countdown.days}</b>
-            <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">dias</small>
-          </div>
-          <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
-            <b className="block text-[1.6rem] leading-none">{countdown.hours}</b>
-            <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">horas</small>
-          </div>
-          <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
-            <b className="block text-[1.6rem] leading-none">{countdown.minutes}</b>
-            <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">min</small>
-          </div>
-        
-         {/**  <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
-            <b className="block text-[1.6rem] leading-none">{countdown.seconds}</b>
-            <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">seg</small>
-          </div> */}
-        </>
-      )}
-    </div>
-  </div>
-</div>
 
+              <p className="font-bold mb-3">Participa nesta Experiência:</p>
+              <div className="flex flex-wrap  gap-3">
+                <Link to="/registo" className={`${BTN_BASE} text-center`}>Inscrever-me como Participante</Link>
+                <Link to="/registo/mentor" className={`${BTN_BASE} ${BTN_GHOST} text-center`}>Candidatar-me como Mentor</Link>
+              </div>
 
+              <div className="flex flex-wrap gap-y-2.5 gap-x-8.5 mt-8.5 max-md:bg-navy-800 max-md:text-white max-md:rounded-card max-md:p-8 max-md:gap-y-4 max-md:gap-x-6">
+                <div>
+                  <b className="block text-[1.05rem]">Início às 14H00</b>
+                  <span className="text-ink-muted max-md:text-navy-100 text-sm">4 de Dezembro de 2026</span>
+                </div>
+                <div>
+                  <div className="flex gap-2.5 mt-1.5 max-md:mt-0 " aria-live="off">
+                    {countdown.days === 'Hoje' ? (
+                      <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
+                        <b className="block text-[1.6rem] leading-none">Hoje</b>
+                        <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">é o dia</small>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
+                          <b className="block text-[1.6rem] leading-none">{countdown.days}</b>
+                          <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">dias</small>
+                        </div>
+                        <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
+                          <b className="block text-[1.6rem] leading-none">{countdown.hours}</b>
+                          <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">horas</small>
+                        </div>
+                        <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
+                          <b className="block text-[1.6rem] leading-none">{countdown.minutes}</b>
+                          <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">min</small>
+                        </div>
 
+                          <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
+                          <b className="block text-[1.6rem] leading-none">{countdown.seconds}</b>
+                          <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">seg</small>
+                        </div> 
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="relative w-full max-w-[420px] aspect-[1/1.08] ml-auto mx-auto md:mt-0 mt-2.5" aria-hidden="true">
@@ -270,127 +333,128 @@ const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
             </div>
           </div>
 
-        {/* ── Journey steps with curved SVG line and floating tooltip ── */}
+          {/* ── Journey steps with curved SVG line and floating tooltip ── */}
+          <div className="mt-14" ref={journeyRef}>
+            {/* 3. Experiência Career Connect | Ciclo da Conexão */}
+            <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[22ch] mb-3.5">Experiência Career Connect | Ciclo da Conexão</h2>
+            <p className="text-primary-500 font-bold text-xl mb-4">Uma Experiência. Cinco Momentos de Impacto.</p>
+            <p className="text-ink-muted text-lg max-w-[60ch]">
+              O Career Connect foi concebido para proporcionar uma jornada completa de desenvolvimento profissional através de cinco momentos complementares:
+            </p>
+            <div className="pt-28">
+              {/* This wrapper is the positioning context, so percentages match the SVG exactly */}
+              <div className="relative">
+                <svg
+                  className="block w-full h-auto overflow-visible"
+                  viewBox={`0 0 ${VB_W} ${VB_H}`}
+                  role="img"
+                  aria-label="Ciclo da Conexão: Aprender, Conectar, Descobrir, Partilhar, Evoluir"
+                >
+                  <path
+                    d={JOURNEY_PATH}
+                    pathLength={1400}
+                    fill="none"
+                    stroke="var(--color-primary-500)"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    strokeDasharray="1400"
+                    strokeDashoffset="1400"
+                    className={journeyVisible ? 'draw-animate' : ''}
+                  />
 
-        {/* ── Journey steps with curved SVG line and floating tooltip ── */}
-<div className="mt-14" ref={journeyRef}>
-  <div className="pt-28">
-    {/* This wrapper is the positioning context, so percentages match the SVG exactly */}
-    <div className="relative">
-      <svg
-        className="block w-full h-auto overflow-visible"
-        viewBox={`0 0 ${VB_W} ${VB_H}`}
-        role="img"
-        aria-label="Percurso: Potencial, Direção, Conexão, Capacitação, Prontidão, Oportunidades"
-      >
-       <path
-  d={JOURNEY_PATH}
-  pathLength={1400}
-  fill="none"
-  stroke="var(--color-primary-500)"
-  strokeWidth="4"
-  strokeLinecap="round"
-  strokeDasharray="1400"
-  strokeDashoffset="1400"
-  className={journeyVisible ? 'draw-animate' : ''}
-/>
+                  {JOURNEY_STEPS.map((step, i) => {
+                    const p = JOURNEY_POINTS[i];
+                    const isFirst = i === 0;
+                    const isLast = i === JOURNEY_STEPS.length - 1;
+                    const labelY = p.cy < 110 ? p.cy - 22 : p.cy + 32;
 
-        {JOURNEY_STEPS.map((step, i) => {
-          const p = JOURNEY_POINTS[i];
-          const isFirst = i === 0;
-          const isLast = i === JOURNEY_STEPS.length - 1;
-          const labelY = p.cy < 110 ? p.cy - 22 : p.cy + 32;
+                    // Keep first/last labels inside the viewBox
+                    const anchor = isFirst ? 'start' : isLast ? 'end' : 'middle';
+                    const labelX = isFirst ? p.cx - 12 : isLast ? p.cx + 12 : p.cx;
 
-          // Keep first/last labels inside the viewBox
-          const anchor = isFirst ? 'start' : isLast ? 'end' : 'middle';
-          const labelX = isFirst ? p.cx - 12 : isLast ? p.cx + 12 : p.cx;
+                    return (
+                      <g
+                        key={i}
+                        className="cursor-pointer"
+                        onMouseEnter={() => setActiveJourney(i)}
+                        onMouseLeave={() => setActiveJourney(null)}
+                        onFocus={() => setActiveJourney(i)}
+                        onBlur={() => setActiveJourney(null)}
+                        tabIndex={0}
+                      >
+                        {/* larger invisible hit area for easier hovering */}
+                        <circle cx={p.cx} cy={p.cy} r="22" fill="transparent" />
+                        <circle
+                          cx={p.cx}
+                          cy={p.cy}
+                          r="12"
+                          fill={activeJourney === i ? 'var(--color-primary-500)' : 'var(--color-navy-800)'}
+                          className="transition-colors duration-200"
+                        />
+                        <text
+                          x={labelX}
+                          y={labelY}
+                          textAnchor={anchor}
+                          fill="var(--color-ink)"
+                          fontSize="13"
+                          fontWeight="700"
+                          fontFamily="Montserrat, sans-serif"
+                        >
+                          {step.title}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
 
-          return (
-            <g
-              key={i}
-              className="cursor-pointer"
-              onMouseEnter={() => setActiveJourney(i)}
-              onMouseLeave={() => setActiveJourney(null)}
-              onFocus={() => setActiveJourney(i)}
-              onBlur={() => setActiveJourney(null)}
-              tabIndex={0}
-            >
-              {/* larger invisible hit area for easier hovering */}
-              <circle cx={p.cx} cy={p.cy} r="22" fill="transparent" />
-              <circle
-                cx={p.cx}
-                cy={p.cy}
-                r="12"
-                fill={activeJourney === i ? 'var(--color-primary-500)' : 'var(--color-navy-800)'}
-                className="transition-colors duration-200"
-              />
-              <text
-                x={labelX}
-                y={labelY}
-                textAnchor={anchor}
-                fill="var(--color-ink)"
-                fontSize="13"
-                fontWeight="700"
-                fontFamily="Montserrat, sans-serif"
-              >
-                {step.title}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+                {/* Floating tooltip: centered on the node, clamped to stay inside the container */}
+                {activeJourney !== null && (() => {
+                  const p = JOURNEY_POINTS[activeJourney];
+                  const half = TOOLTIP_W / 2;
+                  const leftPct = (p.cx / VB_W) * 100;
 
-      {/* Floating tooltip: centered on the node, clamped to stay inside the container */}
-      {activeJourney !== null && (() => {
-        const p = JOURNEY_POINTS[activeJourney];
-        const half = TOOLTIP_W / 2;
-        const leftPct = (p.cx / VB_W) * 100;
+                  // If the title sits above the node, lift the tooltip above the title too
+                  const labelAbove = p.cy < 110;
+                  const anchorY = labelAbove ? p.cy - 38 : p.cy - 18;
+                  const topPct = (anchorY / VB_H) * 100;
 
-        // If the title sits above the node, lift the tooltip above the title too
-        const labelAbove = p.cy < 110;
-        const anchorY = labelAbove ? p.cy - 38 : p.cy - 18;
-        const topPct = (anchorY / VB_H) * 100;
+                  return (
+                    <>
+                      <div
+                        className="absolute z-10 pointer-events-none"
+                        style={{
+                          width: TOOLTIP_W,
+                          // centered on the node, but never overflowing left/right
+                          left: `clamp(${half}px, ${leftPct}%, calc(100% - ${half}px))`,
+                          top: `${topPct}%`,
+                          transform: 'translate(-50%, -100%)',
+                          marginTop: -8,
+                        }}
+                      >
+                        <div className="bg-navy-800 text-white rounded-inner px-4 py-3 shadow-lg text-[.85rem] leading-snug">
+                          <div className="font-extrabold text-primary-300 text-[.75rem] mb-1 tracking-wide">
+                            {JOURNEY_STEPS[activeJourney].title}
+                          </div>
+                          {JOURNEY_STEPS[activeJourney].text}
+                        </div>
+                      </div>
 
-        return (
-          <>
-            <div
-              className="absolute z-10 pointer-events-none"
-              style={{
-                width: TOOLTIP_W,
-                // centered on the node, but never overflowing left/right
-                left: `clamp(${half}px, ${leftPct}%, calc(100% - ${half}px))`,
-                top: `${topPct}%`,
-                transform: 'translate(-50%, -100%)',
-                marginTop: -8,
-              }}
-            >
-              <div className="bg-navy-800 text-white rounded-inner px-4 py-3 shadow-lg text-[.85rem] leading-snug">
-                <div className="font-extrabold text-primary-300 text-[.75rem] mb-1 tracking-wide">
-                  {JOURNEY_STEPS[activeJourney].title}
-                </div>
-                {JOURNEY_STEPS[activeJourney].text}
+                      {/* Arrow: separate element so it always points at the node, even when the box is clamped */}
+                      <div
+                        className="absolute z-10 pointer-events-none w-3 h-3 bg-navy-800"
+                        style={{
+                          left: `${leftPct}%`,
+                          top: `${topPct}%`,
+                          transform: 'translate(-50%, -50%) rotate(45deg)',
+                          marginTop: -8,
+                        }}
+                      />
+                    </>
+                  );
+                })()}
               </div>
             </div>
-
-            {/* Arrow: separate element so it always points at the node, even when the box is clamped */}
-            <div
-              className="absolute z-10 pointer-events-none w-3 h-3 bg-navy-800"
-              style={{
-                left: `${leftPct}%`,
-                top: `${topPct}%`,
-                transform: 'translate(-50%, -50%) rotate(45deg)',
-                marginTop: -8,
-              }}
-            />
-          </>
-        );
-      })()}
-    </div>
-  </div>
-</div>
-
-
-
+          </div>
         </div>
 
         {/* F-07: vagas restantes */}
@@ -404,16 +468,29 @@ const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
           </div>
         </div>
 
-        {/* F-02: O que ganhas */}
+        {/* ── 2. Sobre o Career Connect ── */}
         <section className="py-16 md:py-20">
-          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-10">O que ganhas no Career Connect</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5.5">
-            {[
-              { title: 'Encontrar um mentor', text: 'Profissionais aprovados que orientam a tua carreira antes, durante e depois do evento.' },
-              { title: 'Fazer conexões profissionais', text: 'Rondas de 5 minutos com mentores e contacto direto com quem já está no mercado.' },
-              { title: '8 conversas num só dia', text: 'Dois intervalos de 20 minutos com 4 rondas cada para conhecer vários mentores.' },
-              { title: 'Dar o próximo passo', text: 'solicitada mentoria, troca contactos e continua a ligação depois do evento.' },
-            ].map((benefit, i) => (
+          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-3.5">Sobre o Career Connect</h2>
+          <p className="text-primary-500 font-bold text-xl mb-6">Onde o Talento Encontra Oportunidades</p>
+          <div className="max-w-[68ch] space-y-4 text-ink-muted text-lg">
+            <p>
+              O Career Connect é uma iniciativa da TECNICOL que liga jovens talentos a profissionais experientes através de capacitação, networking estruturado, programas de mentoria e oportunidades de estágio pré-profissional.
+            </p>
+            <p>
+              O objetivo é reduzir a distância entre a formação académica e as exigências do mercado de trabalho, promovendo conexões que geram aprendizagem, crescimento e oportunidades.
+            </p>
+          </div>
+        </section>
+      </Container>
+
+      {/* ── Constrained ── */}
+      <Container>
+        {/* ── 4. O Que Vais Ganhar com o Career Connect? ── */}
+        <section className="py-16 md:py-20">
+          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-3.5">O Que Vais Ganhar com o Career Connect?</h2>
+          <p className="text-ink-muted italic text-lg mb-10">Mais do que participar num evento, vais investir no teu futuro profissional.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5.5">
+            {BENEFITS.map((benefit, i) => (
               <div key={i} className="bg-surface-soft rounded-inner p-6">
                 <div className="w-10 h-10 rounded-full bg-primary-500 text-white grid place-items-center font-extrabold mb-4">{i + 1}</div>
                 <h3 className="text-[1.1rem] font-extrabold mb-2">{benefit.title}</h3>
@@ -424,65 +501,84 @@ const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
         </section>
       </Container>
 
-      {/* ── F-04: full-width band ── */}
+      {/* ── 5. Como funcionam as conexões: full-width band ── */}
       <section className="py-16 md:py-20 bg-navy-800 text-white w-full">
         <Container>
-          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-10">Como funcionam as ligações</h2>
+          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-3.5">Como funcionam as conexões?</h2>
+          <p className="text-primary-300 font-bold text-xl mb-10">Três Passos para Criar Conexões Valiosas</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { step: '1', title: 'Regista-te', text: 'Cria a tua conta na landing principal em menos de 2 minutos e escolhe se és mentorado ou mentor.' },
-              { step: '2', title: 'Conversa nos intervalos', text: 'Durante os dois intervalos de 20 minutos, fale com mentores em rondas de 5 minutos, numa mesa numerada.' },
-              { step: '3', title: 'Continua a conexão', text: 'Marca "quero continuar", troca códigos ou pede mentoria e mantém a ligação depois do evento.' },
-            ].map((step, i) => (
+            {CONNECTION_STEPS.map((step, i) => (
               <div key={i} className="relative pt-[52px]">
                 <div className="absolute top-0 left-0 w-10 h-10 rounded-full bg-primary-500 text-white grid place-items-center font-extrabold">{step.step}</div>
                 <h3 className="text-[1.15rem] font-extrabold mb-2">{step.title}</h3>
                 <p className="text-navy-100 text-[.9rem]">{step.text}</p>
+                {step.profiles && (
+                  <ul className="mt-3 pl-0 space-y-1.5 list-none">
+                    {step.profiles.map((profile) => (
+                      <li key={profile} className="flex items-center gap-2.5 text-[.9rem] font-semibold">
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary-300" aria-hidden="true" />
+                        {profile}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             ))}
+          </div>
+
+          {/* Tutorial da Plataforma */}
+          <div className="mt-16">
+            <h3 className="text-2xl font-extrabold mb-2">Tutorial da Plataforma</h3>
+            <p className="text-navy-100 mb-6 max-w-[56ch]">Vê o vídeo e aprende a manusear a app passo a passo.</p>
+            <div className="w-full max-w-[760px] aspect-video rounded-card overflow-hidden bg-white/10">
+              {TUTORIAL_VIDEO_URL ? (
+                <video className="w-full h-full object-cover" src={TUTORIAL_VIDEO_URL} controls preload="metadata" />
+              ) : (
+                <div className="w-full h-full grid place-items-center text-navy-100 text-center px-6">
+                  Vídeo explicativo em breve
+                </div>
+              )}
+            </div>
           </div>
         </Container>
       </section>
 
       {/* ── Constrained ── */}
       <Container>
-        {/* Duas formas de ligação */}
+        {/* ── 6. Eixos de Actuação (replaces "A que desafios responde o Career Connect?") ── */}
         <section className="py-16 md:py-20">
-          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-10">Uma plataforma. Duas formas de ligação.</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-7 mt-10">
-            <div className="border-l-4 border-primary-500 pl-5">
-              <h3 className="text-xl font-extrabold mb-2">Encontros presenciais</h3>
-              <p className="text-ink-muted">Masterclasses, experiências práticas e momentos organizados para criar redes de contactos entre estudantes e profissionais experientes.</p>
-            </div>
-            <div className="border-l-4 border-primary-500 pl-5">
-              <h3 className="text-xl font-extrabold mb-2">Plataforma digital</h3>
-              <p className="text-ink-muted">Correspondência de perfis para identificar mentores e talentos e manter as ligações activas antes, durante e depois dos encontros.</p>
-            </div>
+          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[25ch] mb-3.5">Eixos de Actuação</h2>
+          <p className="text-primary-500 font-bold text-xl mb-10">Preparar. Posicionar. Desenvolver.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5.5">
+            {AXES.map((card, i) => (
+              <div key={i} className="bg-surface-soft rounded-inner p-6.5">
+                <div className="w-10 h-10 rounded-full bg-primary-500 text-white grid place-items-center font-extrabold mb-4">{i + 1}</div>
+                <h3 className="text-[1.1rem] font-extrabold mb-3">{card.title}</h3>
+                <ul className="m-0 pl-0 text-ink-muted space-y-1.5 list-none">
+                  {card.items.map((item, j) => (
+                    <li key={j} className="flex items-start gap-2.5">
+                      <span className="mt-[0.55em] h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </section>
 
-        {/* Desafios */}
-      
-      <section className="py-16 md:py-20">
-          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[25ch] mb-10">A que desafios responde o Career Connect? - 1ª Edição</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5.5 mt-10">
-          {[
-            { title: 'Acesso ao mercado', items: ['Dificuldade em conseguir o primeiro passo', 'Pouca experiência profissional', 'Preparação insuficiente para entrevistas'] },
-            { title: 'Competências e posicionamento', items: ['Dificuldade em comunicar competências', 'Marca pessoal e rede de contactos por construir', 'Dificuldade em demonstrar o seu valor'] },
-            { title: 'Integração e crescimento', items: ['Adaptação ao ambiente profissional', 'Gestão do desempenho', 'Planeamento de uma carreira sustentável'] },
-          ].map((card, i) => (
-            <div key={i} className="bg-surface-soft rounded-inner p-6.5">
-              <h3 className="text-[1.1rem] font-extrabold mb-3">{card.title}</h3>
-              <ul className="m-0 pl-0 text-ink-muted space-y-1.5">
-                {card.items.map((item, j) => (
-                  <li key={j} className="flex items-start gap-2.5">
-                    <span className="mt-[0.55em] h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
+        {/* ── 7. Uma plataforma. Duas formas de conexão. ── */}
+        <section className="pb-16 md:pb-20">
+          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-10">Uma plataforma. Duas formas de conexão.</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-7 mt-10">
+            <div className="border-l-4 border-primary-500 pl-5">
+              <h3 className="text-xl font-extrabold mb-2">Conexão Presencial</h3>
+              <p className="text-ink-muted">Encontros, masterclasses, conferências, experiências práticas e momentos de networking que promovem a partilha de conhecimento tácito, aproximam diferentes gerações profissionais e criam oportunidades diretas de conexão.</p>
             </div>
-          ))}
+            <div className="border-l-4 border-primary-500 pl-5">
+              <h3 className="text-xl font-extrabold mb-2">Conexão Digital</h3>
+              <p className="text-ink-muted">Uma plataforma de correspondência de perfis (matching) que facilita a identificação de talentos e potenciais mentores sem burocracia, promovendo conexões relevantes e mantendo as relações ativas antes, durante e depois dos encontros presenciais.</p>
+            </div>
           </div>
         </section>
       </Container>
@@ -490,7 +586,7 @@ const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
       {/* Masterclasses: full-width band */}
       <section className="py-16 md:py-20 bg-navy-800 text-white w-full">
         <Container>
-          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-3.5">Para cada desafio, uma masterclass.</h2>
+          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-3.5">Para cada eixo, uma masterclass.</h2>
           <p className="text-navy-100 mt-3.5 max-w-[56ch] mb-10">
             Cria a tua conta para ver o programa completo, enviar perguntas aos palestrantes e reservar lugar em cada sessão.
           </p>
@@ -515,10 +611,10 @@ const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
         </Container>
       </section>
 
-      {/* Quem te vai orientar */}
+      {/* ── 8. Oradores e Mentores de Destaque ── */}
       <Container>
         <section className="py-16 md:py-20">
-          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-11">Quem te vai orientar.</h2>
+          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-11">Oradores e Mentores de Destaque</h2>
           <div className="mt-11 space-y-14">
             {MASTERCLASSES.map((masterclass, index) => {
               const isReversed = index % 2 === 1;
@@ -526,10 +622,10 @@ const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
                 <div key={masterclass.id} className={`grid grid-cols-1 md:grid-cols-[200px_minmax(0,1fr)] gap-8 md:gap-10 items-center ${isReversed ? 'md:grid-cols-[minmax(0,1fr)_200px]' : ''}`}>
                   <img src={IMAGES[index]} alt={masterclass.name} className={`w-[200px] h-[200px] rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-primary-500)] mx-auto md:mx-0 ${isReversed ? 'md:order-2 md:justify-self-end' : ''}`} />
                   <div className={isReversed ? 'md:text-right' : ''}>
-                    <div className="text-[.78rem] font-semibold text-primary-500">{masterclass.theme}</div>
                     <h3 className="text-2xl font-extrabold">{masterclass.name}</h3>
                     <div className="text-primary-500 font-semibold text-[.92rem] my-1">{masterclass.role}</div>
-                    <p className="text-ink-muted">{BIOGRAPHIES[index].biography}</p>
+                    <p className="mt-2 text-[.95rem]"><b>Tema:</b> {masterclass.title}</p>
+                    <p className="text-ink-muted mt-3">{BIOGRAPHIES[index].biography}</p>
                     {BIOGRAPHIES[index].works && (<p className="mt-3 text-[.88rem] text-ink-muted">{BIOGRAPHIES[index].works}</p>)}
                   </div>
                 </div>
@@ -568,7 +664,7 @@ const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
           <div className="bg-primary-500 text-white rounded-card p-10 md:p-14 text-center">
             <h2 className="text-[clamp(1.8rem,4.5vw,2.6rem)] font-extrabold mb-4">És profissional? Torna-te mentor.</h2>
             <p className="text-primary-100 text-lg max-w-[45ch] mx-auto mb-6">Influencia a carreira de alguém. 40 min no dia, 1 a 3 mentorados depois do evento.</p>
-            <Link to="/mentor" className={`${BTN_BASE} !bg-primary-400`}>Registar como mentor</Link>
+            <Link to="/registo/mentor" className={`${BTN_BASE} !bg-primary-400`}>Candidatar-me como Mentor</Link>
           </div>
         </section>
 
@@ -585,29 +681,24 @@ const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
         </section>
 
         {/* Venue + FAQ */}
-        <section className="pt-5 pb-16 md:pb-20">
+        <section className="pt-5 pb-4 md:pb-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-9 items-start">
             <div>
-              <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-7">Próxima Masterclass - Encontramo-nos no Hotel Cardoso.</h2>
+              <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-7">Perguntas Frequentes (FAQ)</h2>
               <div className="mt-7">
-              {[
-                { q: 'Para quem é o Career Connect?', a: 'Para jovens que querem preparar-se para o primeiro passo profissional e ligar-se a oportunidades reais.' },
-                { q: 'O que acontece no encontro presencial?', a: 'Masterclasses, experiências práticas e momentos organizados para criar redes de contactos entre estudantes e profissionais experientes.' },
-                { q: 'Sair do evento garante-me trabalho? Não…', a: 'O Career Connect foca-se no percurso e na orientação de carreira, não na colocação direta de emprego.' },
-                { q: 'Como reservo lugar nas masterclasses?', a: 'Cria a tua conta na secção de registo, inicia sessão e reserva cada masterclass na tua área pessoal.' },
-              ].map((item, i) => (
-                <details key={i} open={i === 0} className="border-b border-line py-4">
-                  <summary className="font-semibold cursor-pointer">{item.q}</summary>
-                  <p className="text-ink-muted mt-2.5">{item.a}</p>
-                </details>
-              ))}
+                {FAQS.map((item, i) => (
+                  <details key={i} open={i === 0} className="border-b border-line py-4">
+                    <summary className="font-semibold cursor-pointer">{item.q}</summary>
+                    <p className="text-ink-muted mt-2.5">{item.a}</p>
+                  </details>
+                ))}
               </div>
-              <div className="mt-8">
-                <Link to="/registo" className={BTN_BASE}>Garantir o meu lugar</Link>
-              </div>
+            
             </div>
 
             <div className="bg-navy-800 text-white rounded-card p-8">
+              <small className="text-primary-300 font-semibold block">Próxima Masterclass</small>
+              <b className="block text-2xl mb-3.5 mt-0.5">Encontramo-nos no Hotel Cardoso</b>
               <small className="text-primary-300 font-semibold block">Data e hora</small>
               <b className="block text-2xl mb-3.5 mt-0.5">4 de Dezembro de 2026, 14H00</b>
               <small className="text-primary-300 font-semibold block">Local</small>
@@ -617,9 +708,18 @@ const JOURNEY_PATH = buildSmoothPath(JOURNEY_POINTS);
                 <a className={`${BTN_BASE} ${BTN_GHOST} ${BTN_SM} !text-white !shadow-[inset_0_0_0_2px_rgba(255,255,255,.4)]`} href="https://www.google.com/maps/search/?api=1&query=Hotel+Cardoso+Maputo" target="_blank" rel="noopener noreferrer">Ver no mapa</a>
               </div>
             </div>
-
           </div>
         </section>
+
+
+        <div className="pb-16 md:pb-20">
+          
+             <div className="mt-8 flex flex-wrap gap-3">
+                <Link to="/registo" className={BTN_BASE}>Inscrever-me como Participante</Link>
+                <Link to="/registo/mentor" className={`${BTN_BASE} ${BTN_GHOST}`}>Candidatar-me como Mentor</Link>
+             </div>
+              
+        </div>
 
         {/* Footer */}
         <footer className="pt-8 pb-12 border-t border-line text-ink-muted text-sm">

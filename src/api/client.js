@@ -304,3 +304,16 @@ export const ccGetOrganizerReports = () => client.get('/organizer/reports');
 
 // TV
 export const ccGetTVData = (params) => client.get('/tv/', { params });
+
+// WHATSAPP BOT (external microservice)
+export const WHATSAPP_BOT_API = 'https://meucasamento-whatsapp-bot-api.derflash.com' //env == "dev" ? "http://localhost:3001" : "https://career-tecnicol-whatsapp.derflash.com";
+
+const whatsappClient = axios.create({
+  baseURL: WHATSAPP_BOT_API,
+  headers: { "Content-Type": "application/json" },
+});
+
+export const getWhatsAppQr = () => whatsappClient.get('/qr');
+export const getWhatsAppStatus = () => whatsappClient.get('/status');
+export const sendWhatsAppTest = (chatId, message) => whatsappClient.post('/send', { chatId, message });
+export const logoutWhatsApp = () => whatsappClient.post('/logout');

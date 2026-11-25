@@ -49,6 +49,12 @@ export default function Register() {
   const location = useLocation();
   const isMentor = location.pathname.includes('mentor');
 
+  useEffect(()=>{
+
+    window.scrollTo(0, 0)
+     
+  },[])
+
   const [step, setStep] = useState(1);
   const [dialog, setDialog] = useState(null); // null | 'mentee-success' | 'mentor-pending'
   const [form, setForm] = useState({
@@ -78,6 +84,8 @@ export default function Register() {
     if (!/^\S+@\S+\.\S+$/.test(form.email)) return setError('Email inválido.');
     if (form.password.length < 6) return setError('A palavra-passe precisa de pelo menos 6 caracteres.');
 
+    window.scrollTo(0, 0)
+    
     setStep(2);
   };
 
@@ -430,7 +438,7 @@ export default function Register() {
     <div className="min-h-screen bg-surface text-ink font-sans bg-navy-950">
       <div className="max-w-[480px] mx-auto pt-[18px] px-4 pb-10">
         <div className="font-extrabold text-[1.35rem] italic tracking-tight leading-none mb-6">
-         <img src={logo} alt="Career Connect" className="h-7 md:h-8 w-auto" />
+         <Link to="/" aria-label="Página inicial"><img src={logo} alt="Career Connect" className="h-7 md:h-8 w-auto" /></Link>
         </div>
         {step === 1 ? renderScreen1() : step === 2 ? renderScreen2() : renderScreen3()}
       </div>

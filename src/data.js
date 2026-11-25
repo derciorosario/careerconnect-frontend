@@ -92,6 +92,7 @@ export const ORGANIZER_TABS = [
   { key: 'questions', label: 'Perguntas' },
   { key: 'int',  label: 'Interação' },
   { key: 'rep',  label: 'Relatórios' },
+  { key: 'whatsapp', label: 'WhatsApp' },
 ];
 
 // ─────────────────────────────────────────────

@@ -124,7 +124,7 @@ export default function Login() {
     <div className="min-h-screen bg-navy-950 text-ink font-sans">
       <div className="max-w-[480px] mx-auto pt-[18px] px-4 pb-10">
         <div className="font-extrabold text-[1.35rem] italic tracking-tight leading-none mb-6 text-white">
-           <img src={logo} alt="Career Connect" className="h-7 md:h-8 w-auto" />
+           <Link to="/" aria-label="Página inicial"><img src={logo} alt="Career Connect" className="h-7 md:h-8 w-auto" /></Link>
         </div>
 
         <h1 className="text-[1.5rem] font-extrabold tracking-tight mb-2 text-white">

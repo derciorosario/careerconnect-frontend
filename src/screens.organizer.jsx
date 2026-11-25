@@ -1042,7 +1042,10 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
     <>
       <h2 className="text-[1.45rem] font-extrabold tracking-tight">Perfil</h2>
       <Card className="mt-4">
+        <label className="block cursor-pointer">
         <PersonRow name={profile?.name || 'Utilizador'} subtitle={subtitle} photoUrl={profile?.photo_url} />
+        <input type="file" accept="image/*" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; const fd = new FormData(); fd.append('photo', f); try { const resp = await uploadClient.put('/users/profile', fd); const user = resp.data?.user; if (user) setProfile(user); showToast('Foto actualizada.'); } catch (err) { showToast(err.response?.data?.message || 'Erro ao guardar foto.'); } }} />
+      </label>
 
         {isMentor ? (
           <div className="mt-4 space-y-3">
@@ -1075,7 +1078,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
               </div>
             </div>
             <div><label className={labelCls}>LinkedIn</label><input value={form.linkedin_url} onChange={set('linkedin_url')} placeholder="https://linkedin.com/in/..." className={inputCls} /></div>
-            <div><label className={labelCls}>Foto</label><input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) setPhotoFile(f); }} className="block w-full text-sm text-ink-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-500 file:text-white hover:file:bg-primary-600" /></div>
+
           </div>
         ) : (
           <div className="mt-4 space-y-3">
@@ -1104,7 +1107,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
               </select>
             </div>
             <div><label className={labelCls}>Pitch (120 caracteres)</label><textarea value={form.pitch} onChange={set('pitch')} maxLength={120} rows="3" className={inputCls} /></div>
-            <div><label className={labelCls}>Foto</label><input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) setPhotoFile(f); }} className="block w-full text-sm text-ink-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-500 file:text-white hover:file:bg-primary-600" /></div>
+
           </div>
         )}
 

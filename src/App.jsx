@@ -21,6 +21,7 @@ import {
 import { OrganizerPools } from './screens/OrganizerPools';
 import { OrganizerQuestions } from './screens/OrganizerQuestions';
 import { OrganizerSessions } from './screens/OrganizerSessions';
+import WhatsApp from './whatsapp';
 import {
   SurveyScreen, NextStepScreen, DailySummaryScreen,
 } from './screens.fecho';
@@ -378,6 +379,8 @@ export function CareerConnectApp({ initialRole }) {
         return <OrganizerInteraction {...common} announcements={announcements} setAnnouncements={setAnnouncements} questions={questions} pollVotes={pollVotes} totalPollVotes={totalPollVotes} />;
       case 'rep':
         return <OrganizerReports {...common} furthestRoundCompleted={furthestRoundCompleted} connections={[]} checkins={{}} mentorshipRequests={[]} />;
+      case 'whatsapp':
+        return <WhatsApp {...common} />;
       default:
         return null;
     }

@@ -56,7 +56,7 @@ const MENTORS = [
 export const OrganizerLive = ({
   phaseLabel, secondsLeft, currentRound, roundsPerBreak = 4, isPaused, isRehearsal,
   setIsRehearsal, setSecondsLeft, setIsPaused, showToast,
-  advanceRound, handlePause, restartSimulation,
+  advanceRound, handlePause, restartSimulation, onRoundMinutesSaved,
 }) => {
   const [rounds, setRounds] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
@@ -87,7 +87,9 @@ export const OrganizerLive = ({
   const saveRoundMinutes = async () => {
     setSavingMinutes(true);
     try {
-      await ccConfigureEvent({ round_minutes: Number(roundMinutes) });
+      const mins = Number(roundMinutes);
+      await ccConfigureEvent({ round_minutes: mins });
+      if (onRoundMinutesSaved) onRoundMinutesSaved(mins);
       showToast('Duração das rondas atualizada.');
     } catch (err) {
       showToast(err.response?.data?.message || 'Erro ao guardar duração.');
@@ -134,9 +136,9 @@ export const OrganizerLive = ({
   const handleGenerate = async () => {
     setGenerating(true);
     try {
-      await ccGenerateMatches();
+      const resp = await ccGenerateMatches();
       await loadRounds();
-      showToast('Pares gerados para todas as rondas.');
+      showToast(resp.data?.message || 'Pares gerados para todas as rondas.');
     } catch (err) {
       showToast(err.response?.data?.message || 'Erro ao gerar pares.');
     } finally {

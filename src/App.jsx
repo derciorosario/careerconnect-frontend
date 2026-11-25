@@ -345,6 +345,29 @@ export function CareerConnectApp({ initialRole }) {
     setSecondsLeft(isRehearsal ? 30 : roundMinutes * 60);
   };
 
+  // Called by OrganizerLive after the round duration is saved. Updates the
+  // shared round state (duration, countdown, current round and rounds/break).
+  const handleRoundMinutesSaved = async (minutes) => {
+    const mins = Number(minutes) || 5;
+    setRoundMinutes(mins);
+    setSecondsLeft(mins * 60);
+    // Refresh rounds so roundsPerBreak (max round_no) is re-read from the DB.
+    setRoundDataVersion((v) => v + 1);
+    // Re-sync the current round immediately instead of waiting for the poll.
+    try {
+      const resp = await ccGetCurrentRound({});
+      const round = resp.data?.round;
+      if (round) {
+        const mapped = (round.break_no || 0) > 0 ? round.round_no : 0;
+        setCurrentRound(mapped);
+      } else {
+        setCurrentRound((prev) => (prev >= 1 && prev <= roundsPerBreak ? prev : prev > roundsPerBreak ? roundsPerBreak + 1 : 0));
+      }
+    } catch {
+      // Non-blocking
+    }
+  };
+
   const common = { showToast };
 
   const renderMenteeContent = () => {
@@ -399,7 +422,7 @@ export function CareerConnectApp({ initialRole }) {
     const activeOrgTab = ORGANIZER_TABS.find((t) => t.key === activeTab) ? activeTab : 'live';
     switch (activeOrgTab) {
       case 'live':
-        return <OrganizerLive {...common} phaseLabel={phaseLabel} secondsLeft={secondsLeft} currentRound={currentRound} roundsPerBreak={roundsPerBreak} isPaused={isPaused} isRehearsal={isRehearsal} setIsRehearsal={setIsRehearsal} setSecondsLeft={setSecondsLeft} setIsPaused={setIsPaused} advanceRound={advanceRound} handlePause={handlePause} restartSimulation={restartSimulation} />;
+        return <OrganizerLive {...common} phaseLabel={phaseLabel} secondsLeft={secondsLeft} currentRound={currentRound} roundsPerBreak={roundsPerBreak} isPaused={isPaused} isRehearsal={isRehearsal} setIsRehearsal={setIsRehearsal} setSecondsLeft={setSecondsLeft} setIsPaused={setIsPaused} advanceRound={advanceRound} handlePause={handlePause} restartSimulation={restartSimulation} onRoundMinutesSaved={handleRoundMinutesSaved} />;
       case 'events':
         return <OrganizerEvents {...common} />;
       case 'reg':

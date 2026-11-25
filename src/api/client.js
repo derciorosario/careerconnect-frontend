@@ -195,6 +195,8 @@ export const ccGetProfile = () => client.get('/users/profile');
 export const ccUpdateProfile = (data) => client.put('/users/profile', data);
 export const ccGetAllUsers = () => client.get('/users/');
 export const ccUpdateUser = (id, data) => client.put(`/users/${id}`, data);
+export const ccSetUserStatus = (id, isActive) => client.put(`/users/${id}/status`, { is_active: isActive });
+export const ccDeleteUser = (id) => client.delete(`/users/${id}`);
 export const ccGetTestUsers = () => client.get('/auth/test-users');
 export const ccGetMenteeDashboard = () => client.get('/users/mentee/dashboard');
 export const ccGetMentorDashboard = () => client.get('/users/mentor/dashboard');

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ccGetAllUsers, ccGetRegistrationConfig, uploadClient } from '../api/client';
+import { ccGetAllUsers, ccGetRegistrationConfig, ccSetUserStatus, ccDeleteUser, uploadClient } from '../api/client';
 import { Card, PersonRow, imgSrc } from '../ui';
 
 const FIELD = 'w-full bg-surface border-2 border-line rounded-[10px] px-3 py-2 text-[.88rem] focus:border-primary-500 focus:outline-none';
@@ -29,6 +29,7 @@ export const OrganizerUsers = ({ showToast }) => {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [landingOnly, setLandingOnly] = useState(false);
+  const [actionId, setActionId] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -136,6 +137,35 @@ export const OrganizerUsers = ({ showToast }) => {
   };
 
   const term = search.trim().toLowerCase();
+
+  const handleToggleActive = async (u) => {
+    setActionId(u.id);
+    try {
+      const next = u.is_active === false;
+      await ccSetUserStatus(u.id, next);
+      setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, is_active: next } : x)));
+      showToast(next ? 'Utilizador activado.' : 'Utilizador desactivado.');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao alterar estado.');
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleDelete = async (u) => {
+    if (!window.confirm(`Eliminar ${u.name}? Todo o conteúdo criado com ou para este utilizador será removido. Esta acção não pode ser desfeita.`)) return;
+    setActionId(u.id);
+    try {
+      await ccDeleteUser(u.id);
+      setUsers((prev) => prev.filter((x) => x.id !== u.id));
+      showToast('Utilizador eliminado.');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao eliminar.');
+    } finally {
+      setActionId(null);
+    }
+  };
+
   const filtered = users.filter((u) => {
     if (roleFilter !== 'all' && u.role !== roleFilter) return false;
     if (landingOnly && !(u.role === 'mentor' && u.mentorProfile?.show_on_landing)) return false;
@@ -173,18 +203,39 @@ export const OrganizerUsers = ({ showToast }) => {
       ) : (
         <div className="space-y-2.5">
           {filtered.map((u) => (
-            <Card key={u.id}>
+            <Card key={u.id} className={u.is_active === false ? 'opacity-60' : ''}>
               <PersonRow
                 name={u.name}
                 subtitle={u.role === 'mentor' ? 'Mentor' : 'Mentorado'}
                 photoUrl={u.photo_url}
                 onClick={() => openUser(u)}
                 extra={
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    {u.is_active === false && (
+                      <span className="rounded-full px-2.5 py-[3px] text-[.68rem] font-bold bg-red-500 text-white">Desactivado</span>
+                    )}
                     {u.role === 'mentor' && u.mentorProfile?.show_on_landing && (
                       <span className="rounded-full px-2.5 py-[3px] text-[.68rem] font-bold bg-primary-500 text-white">Landing</span>
                     )}
                     <button onClick={() => openUser(u)} className={`${BTN} bg-surface2 text-ink`}>Editar</button>
+                    {u.role !== 'organizer' && (
+                      <>
+                        <button
+                          onClick={() => handleToggleActive(u)}
+                          disabled={actionId === u.id}
+                          className={`${BTN} ${u.is_active === false ? 'bg-success text-white' : 'bg-surface2 text-ink'} disabled:opacity-50`}
+                        >
+                          {u.is_active === false ? 'Activar' : 'Desactivar'}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(u)}
+                          disabled={actionId === u.id}
+                          className={`${BTN} bg-red-600 text-white disabled:opacity-50`}
+                        >
+                          Eliminar
+                        </button>
+                      </>
+                    )}
                   </div>
                 }
               />

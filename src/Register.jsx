@@ -57,7 +57,6 @@ export default function Register() {
     jobTitle: '', company: '', sector: '', years: '', mentorInterests: [], canHelpGoals: [], supportType: '',
     photo: '', photoFile: null, linkedin: '',
   });
-  console.lo
   const [error, setError] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -207,7 +206,7 @@ export default function Register() {
               <option value="mentor">Mentor (profissional)</option>
             </select>
         </div>
-        <div className="flex flex-col gap-1.5 hidden">
+        <div className="flex flex-col gap-1.5">
           <label className="text-[.85rem] font-semibold">Foto (opcional)</label>
           <input type="file" accept="image/*" onChange={(e) => {
             const file = e.target.files?.[0];

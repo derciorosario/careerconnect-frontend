@@ -130,7 +130,7 @@ export const MentorHome = ({ showToast }) => {
         <div className="flex gap-3 items-center">
           <div className="flex-1 min-w-0">
             <div className="text-[.76rem] font-bold text-primary-300 uppercase tracking-wide">Bilhete</div>
-            <h3 className="mt-1 text-[1.08rem] font-extrabold">{me?.name || 'Mentor'}</h3>
+            <PersonRow name={me?.name || 'Mentor'} photoUrl={me?.photo_url} />
             <p className="text-[.85rem] text-navy-100">{tableNo ? `Mesa ${tableNo} fixa nos dois intervalos` : 'Mesa a atribuir no evento'}</p>
           </div>
           {me?.registrations?.[0]?.ticket_code ? (
@@ -304,7 +304,7 @@ export const MentorLive = ({ currentRound, secondsLeft, phaseLabel, showToast })
       {mentees.map((mentee) => (
         <div key={mentee.user_id}>
           <Card>
-            <PersonRow name={mentee.name || 'Mentorado'} subtitle={mentee.goal || ''} />
+            <PersonRow name={mentee.name || 'Mentorado'} subtitle={mentee.goal || ''} photoUrl={mentee.photo_url} />
             <p className="text-[.85rem] mt-3"><b>Objetivo:</b> {mentee.goal || 'Não definido'}</p>
             <p className="text-[.85rem] mt-1"><b>Pitch:</b> {mentee.pitch || 'Não definido'}</p>
             <div className="flex gap-1.5 flex-wrap mt-2.5">
@@ -452,7 +452,7 @@ export const MentorRequests = ({ showToast }) => {
         const subtitle = [menteeGoal, menteeCourse && `${menteeCourse}${menteeInstitution ? ` · ${menteeInstitution}` : ''}`].filter(Boolean).join(' · ');
         return (
           <Card key={request.id}>
-            <PersonRow name={request.mentee?.name || 'Mentorado'} subtitle={subtitle} />
+            <PersonRow name={request.mentee?.name || 'Mentorado'} subtitle={subtitle} photoUrl={request.mentee?.photo_url} />
             <p className="text-[.85rem] mt-3 mb-2.5">"{request.message || ''}"</p>
             {request.status != "pending" && <span className={`text-[.72rem] font-bold px-3 py-1 rounded-full mb-2 inline-block ${request.status === 'accepted' ? 'bg-success/15 text-success' : request.status === 'declined' ? 'bg-surface2 text-ink-muted' : 'bg-primary-50/15 text-primary-500'}`}>
               {request.status === 'accepted' ? 'Aceite' : request.status === 'declined' ? 'Recusado' : 'Pendente'}

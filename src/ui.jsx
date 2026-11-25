@@ -1,10 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import { getInitials } from './data';
+import { API_URL } from './api/client';
 
-export const Avatar = ({ name, size = 'md', variant = 'navy' }) => {
+const imgSrc = (url) => {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${API_URL.replace(/\/api$/, '')}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
+export const Avatar = ({ name, size = 'md', variant = 'navy', photoUrl = null }) => {
   const sizeClass = size === 'lg' ? 'w-16 h-16 text-xl' : 'w-[46px] h-[46px] text-sm';
   const variantClass = variant === 'orange' ? 'bg-primary-500' : 'bg-navy-800';
+  const src = imgSrc(photoUrl);
+  if (src) {
+    return <img src={src} alt={name || ''} className={`${sizeClass} rounded-full object-cover shrink-0`} />;
+  }
   return (
     <div className={`${sizeClass} ${variantClass} text-white rounded-full grid place-items-center font-extrabold shrink-0 tracking-wide`}>
       {getInitials(name)}
@@ -12,9 +23,9 @@ export const Avatar = ({ name, size = 'md', variant = 'navy' }) => {
   );
 };
 
-export const PersonRow = ({ name, subtitle, extra = null }) => (
+export const PersonRow = ({ name, subtitle, extra = null, photoUrl = null }) => (
   <div className="flex gap-3 items-center">
-    <Avatar name={name} />
+    <Avatar name={name} photoUrl={photoUrl} />
     <div className="flex-1 min-w-0">
       <b>{name}</b>
       <div className="text-ink-muted text-[.85rem] mt-px">{subtitle}</div>

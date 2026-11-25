@@ -9,7 +9,7 @@ import {
   ccGetOrganizerDashboard, ccGetOrganizerRegistrations, ccApproveMentor,
   ccGetOrganizerRounds, ccGetOrganizerReports, ccGetAnnouncements,
   ccCreateAnnouncement, ccGetQuestions, ccGetPolls, ccGetBadges,
-  ccGetProfile, ccUpdateProfile,
+  ccGetProfile, ccUpdateProfile, uploadClient,
   ccCheckIn, ccCancelCheckIn, ccWalkIn,
   ccCreatePoll, ccModerateQuestion,
   ccGetTVData, ccGetPollResults,
@@ -18,7 +18,7 @@ import {
   isNative,
   ccCreateRound, ccUpdateRound, ccDeleteRound,
 } from './api/client';
-import { PersonRow, ProgressBar, Card, AnnouncementInput } from './ui';
+import { PersonRow, ProgressBar, Card, AnnouncementInput, Avatar } from './ui';
 
 // ── skeleton primitives ──────────────────────
 const SkeletonBar = ({ w = '100%', h = 14, r = 7, className = '', style }) => (
@@ -200,7 +200,86 @@ export const OrganizerLive = ({
   );
 };
 
-// ── ORGANIZER REG ────────────────────────────
+// ── REGISTRATION DETAILS DIALOG ────────────────
+const RegistrationDetailsDialog = ({ reg, onClose }) => {
+  const user = reg?.user || {};
+  const isMentor = user.role === 'mentor';
+  const profile = isMentor ? user.mentorProfile : user.menteeProfile;
+  const profileLabel = isMentor ? 'Perfil de mentor' : 'Perfil de mentorado';
+
+  const rows = [
+    { label: 'Nome', value: user.name || '–' },
+    { label: 'E-mail', value: user.email || '–' },
+    { label: 'Telefone', value: user.phone || '–' },
+    { label: 'Perfil', value: isMentor ? 'Mentor' : 'Mentorado' },
+    { label: 'Bilhete', value: reg?.ticket_code || '–' },
+    { label: 'Estado', value: reg?.status || '–' },
+    { label: 'Check-in', value: reg?.checked_in_at ? new Date(reg.checked_in_at).toLocaleString('pt-PT') : 'Não feito' },
+    { label: 'LinkedIn', value: user.linkedin_url || '–' },
+  ];
+
+  const profileRows = [];
+  if (isMentor && profile) {
+    profileRows.push(
+      { label: 'Cargo', value: profile.job_title || '–' },
+      { label: 'Empresa', value: profile.company || '–' },
+      { label: 'Setor', value: profile.sector || '–' },
+      { label: 'Anos de experiência', value: profile.years != null ? String(profile.years) : '–' },
+      { label: 'Tipo de apoio', value: profile.support_type || '–' },
+      { label: 'Áreas de ajuda', value: Array.isArray(profile.interests) ? profile.interests.join(', ') || '–' : '–' },
+      { label: 'Aprovação', value: profile.approval || '–' }
+    );
+  } else if (!isMentor && profile) {
+    profileRows.push(
+      { label: 'Situação', value: profile.level || '–' },
+      { label: 'Curso', value: profile.course || '–' },
+      { label: 'Instituição', value: profile.institution || '–' },
+      { label: 'Áreas de interesse', value: Array.isArray(profile.interests) ? profile.interests.join(', ') || '–' : '–' },
+      { label: 'Objetivo', value: profile.goal || '–' },
+      { label: 'Pitch', value: profile.pitch || '–' }
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-surface rounded-[24px] p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-[1.1rem] font-extrabold">Detalhes da inscrição</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-surface2 text-ink flex items-center justify-center hover:bg-primary-500 hover:text-white transition">
+            ✕
+          </button>
+        </div>
+        <div className="flex flex-col items-center mb-6">
+          <Avatar name={user.name || 'Participante'} photoUrl={user.photo_url} size="lg" variant="orange" />
+          <span className="mt-2.5 text-[.9rem] font-bold">{user.name || 'Participante'}</span>
+          <span className="text-ink-muted text-[.8rem]">{user.role === 'mentor' ? 'Mentor' : 'Mentorado'}</span>
+        </div>
+        <div className="space-y-2">
+          {rows.map((r) => (
+            <div key={r.label} className="flex justify-between text-[.85rem]">
+              <span className="text-ink-muted">{r.label}</span>
+              <span className="text-ink whitespace-nowrap">{r.value}</span>
+            </div>
+          ))}
+        </div>
+        {profileRows.length > 0 && (
+          <div className="mt-6 pt-4 border-t border-line">
+            <h4 className="text-[.8rem] font-bold text-primary-300 uppercase tracking-wide mb-3">{profileLabel}</h4>
+            <div className="space-y-2">
+              {profileRows.map((r) => (
+                <div key={r.label} className="flex justify-between text-[.85rem]">
+                  <span className="text-ink-muted">{r.label}</span>
+                  <span className="text-ink whitespace-nowrap">{r.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ── ORGANIZER REG ────────────────────────────
 export const OrganizerReg = ({ showToast }) => {
   const [registrations, setRegistrations] = useState([]);
@@ -209,6 +288,7 @@ export const OrganizerReg = ({ showToast }) => {
   const [search, setSearch] = useState('');
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState(null);
+  const [selectedReg, setSelectedReg] = useState(null);
 
   const qrScannerRef = useRef(null);
   const handledRef = useRef(false);          // prevents duplicate decode callbacks
@@ -382,7 +462,7 @@ export const OrganizerReg = ({ showToast }) => {
         {pendingMentors.length > 0 ? (
           pendingMentors.map((r) => (
             <div key={r.id} className="flex justify-between items-center mt-3">
-              <PersonRow name={r.user?.name || 'Mentor'} subtitle={r.user?.mentorProfile?.company || '-'} />
+              <PersonRow name={r.user?.name || 'Mentor'} subtitle={r.user?.mentorProfile?.company || '-'} photoUrl={r.user?.photo_url} />
               <button
                 onClick={async () => {
                   try {
@@ -441,7 +521,12 @@ export const OrganizerReg = ({ showToast }) => {
     <tbody>
       {filteredRegs.map((reg) => (
         <tr key={reg.id} className="border-b border-line last:border-0">
-          <td className="py-[11px] px-2 whitespace-nowrap">{reg.user?.name || '–'}</td>
+          <td className="py-[11px] px-2" onClick={() => setSelectedReg(reg)} style={{ cursor: 'pointer' }}>
+            <div className="flex items-center gap-2">
+              <Avatar name={reg.user?.name || 'Participante'} photoUrl={reg.user?.photo_url} />
+              <span className="whitespace-nowrap text-[.82rem]">{reg.user?.name || '–'}</span>
+            </div>
+          </td>
           <td className="py-[11px] px-2 text-ink-muted text-[.85rem]">{reg.user?.role === 'mentor' ? 'Mentor' : 'Mentorado'}</td>
           <td className="py-[11px] px-2 text-[.82rem] font-mono text-ink-muted">{reg.ticket_code || '–'}</td>
           <td className="py-[11px] px-2 text-right">
@@ -477,6 +562,9 @@ export const OrganizerReg = ({ showToast }) => {
       </Card>
 
       {scanning && renderScanner()}
+      {selectedReg && (
+        <RegistrationDetailsDialog reg={selectedReg} onClose={() => setSelectedReg(null)} />
+      )}
     </>
   );
 };
@@ -815,16 +903,17 @@ const SUPPORT_TYPES = ['Mentor', 'Coach', 'Orientação pontual'];
 // ── PROFILE (shared) ─────────────────────────
 const EMPTY_MENTOR = {
   name: '', phone: '', job_title: '', company: '', sector: '', years: '',
-  support_type: '', interests: [], can_help_goals: [], linkedin_url: '',
+  support_type: '', interests: [], can_help_goals: [], linkedin_url: '', photo_url: '',
 };
 const EMPTY_MENTEE = {
-  name: '', phone: '', level: '', course: '', institution: '', interests: [], goal: '', pitch: '',
+  name: '', phone: '', level: '', course: '', institution: '', interests: [], goal: '', pitch: '', linkedin_url: '', photo_url: '',
 };
 
 export const ProfileScreen = ({ asRole, setRole, showToast }) => {
   const isMentor = asRole === 'mentor';
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState(isMentor ? EMPTY_MENTOR : EMPTY_MENTEE);
+  const [photoFile, setPhotoFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -848,6 +937,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
             interests: Array.isArray(mp.interests) ? mp.interests : [],
             can_help_goals: Array.isArray(mp.can_help_goals) ? mp.can_help_goals : [],
             linkedin_url: user?.linkedin_url || '',
+            photo_url: user?.photo_url || '',
           });
         } else {
           const mp = user?.menteeProfile || {};
@@ -860,6 +950,8 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
             interests: Array.isArray(mp.interests) ? mp.interests : [],
             goal: mp.goal || '',
             pitch: mp.pitch || '',
+            linkedin_url: user?.linkedin_url || '',
+            photo_url: user?.photo_url || '',
           });
         }
       } catch (err) {
@@ -889,38 +981,35 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      let payload;
-      if (isMentor) {
-        payload = {
-          name: form.name,
-          phone: form.phone,
-          linkedin_url: form.linkedin_url,
-          mentorProfile: {
-            job_title: form.job_title,
-            company: form.company,
-            sector: form.sector,
-            years: form.years ? Number(form.years) : null,
-            support_type: form.support_type,
-            interests: form.interests,
-            can_help_goals: form.can_help_goals,
-          },
-        };
-      } else {
-        payload = {
-          name: form.name,
-          phone: form.phone,
-          menteeProfile: {
-            level: form.level || null,
-            course: form.course,
-            institution: form.institution,
-            interests: form.interests,
-            goal: form.goal,
-            pitch: form.pitch,
-          },
-        };
-      }
-      await ccUpdateProfile(payload);
-      showToast('Alterações guardadas.');
+   const fd = new FormData();
+    fd.append('name', form.name);
+    fd.append('phone', form.phone);
+    fd.append('linkedin_url', form.linkedin_url || '');
+    if (photoFile) fd.append('photo', photoFile);
+    if (isMentor) {
+      fd.append('mentorProfile', JSON.stringify({
+        job_title: form.job_title,
+        company: form.company,
+        sector: form.sector,
+        years: form.years ? Number(form.years) : null,
+        support_type: form.support_type,
+        interests: form.interests,
+        can_help_goals: form.can_help_goals,
+      }));
+    } else {
+      fd.append('menteeProfile', JSON.stringify({
+        level: form.level || null,
+        course: form.course,
+        institution: form.institution,
+        interests: form.interests,
+        goal: form.goal,
+        pitch: form.pitch,
+      }));
+    }
+    const resp = await uploadClient.put('/users/profile', fd);
+    const user = resp.data?.user;
+    if (user) setProfile(user);
+    showToast('Alterações guardadas.');
     } catch (err) {
       showToast(err.response?.data?.message || 'Erro ao guardar.');
     } finally {
@@ -953,7 +1042,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
     <>
       <h2 className="text-[1.45rem] font-extrabold tracking-tight">Perfil</h2>
       <Card className="mt-4">
-        <PersonRow name={profile?.name || 'Utilizador'} subtitle={subtitle} />
+        <PersonRow name={profile?.name || 'Utilizador'} subtitle={subtitle} photoUrl={profile?.photo_url} />
 
         {isMentor ? (
           <div className="mt-4 space-y-3">
@@ -986,6 +1075,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
               </div>
             </div>
             <div><label className={labelCls}>LinkedIn</label><input value={form.linkedin_url} onChange={set('linkedin_url')} placeholder="https://linkedin.com/in/..." className={inputCls} /></div>
+            <div><label className={labelCls}>Foto</label><input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) setPhotoFile(f); }} className="block w-full text-sm text-ink-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-500 file:text-white hover:file:bg-primary-600" /></div>
           </div>
         ) : (
           <div className="mt-4 space-y-3">
@@ -1014,6 +1104,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
               </select>
             </div>
             <div><label className={labelCls}>Pitch (120 caracteres)</label><textarea value={form.pitch} onChange={set('pitch')} maxLength={120} rows="3" className={inputCls} /></div>
+            <div><label className={labelCls}>Foto</label><input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) setPhotoFile(f); }} className="block w-full text-sm text-ink-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-500 file:text-white hover:file:bg-primary-600" /></div>
           </div>
         )}
 

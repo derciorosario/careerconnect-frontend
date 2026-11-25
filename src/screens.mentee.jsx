@@ -211,10 +211,9 @@ export const MenteeHome = ({ showToast }) => {
 
       <Card variant="navy">
         <div className="flex gap-3 items-center">
-          <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0">
             <div className="text-[.76rem] font-bold text-primary-300 uppercase tracking-wide">Bilhete</div>
-            <h3 className="mt-1 text-[1.08rem] font-extrabold">{myName}</h3>
-            <p className="text-[.85rem] text-navy-100">Mentorado · {myCourse}</p>
+            <PersonRow name={myName} subtitle={`Mentorado · ${myCourse}`} photoUrl={profile?.photo_url} />
             <p className="font-extrabold text-[1.05rem] mt-3 tracking-widest">{ticketCode || 'CC-....'}</p>
             <p className="text-[.76rem] text-navy-100 mt-0.5 hidden">Disponível sem rede</p>
           </div>
@@ -674,6 +673,7 @@ export const MenteeMentors = ({ showToast }) => {
             <PersonRow
               name={mentor.name}
               subtitle={[mentor.mentorProfile?.job_title, mentor.mentorProfile?.company].filter(Boolean).join(', ') || 'Mentor'}
+              photoUrl={mentor.photo_url}
               extra={
                 <button
                   onClick={async () => {

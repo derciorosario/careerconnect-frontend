@@ -190,7 +190,7 @@ export const MentorHome = ({ showToast }) => {
 };
 
 // ── LIVE ─────────────────────────────────────
-export const MentorLive = ({ currentRound, secondsLeft, phaseLabel, showToast }) => {
+export const MentorLive = ({ currentRound, roundsPerBreak = 4, secondsLeft, phaseLabel, showToast }) => {
   const [myMatch, setMyMatch] = useState(null);
   const [loading, setLoading] = useState(false);
   const [feedbackStatus, setFeedbackStatus] = useState({});
@@ -205,7 +205,7 @@ export const MentorLive = ({ currentRound, secondsLeft, phaseLabel, showToast })
     // unchanged — but since the component unmounts on tab-away, a fresh
     // mount starts with loadedRoundRef === null and refetches, so the
     // skeleton shows on every entry as requested.
-    if (currentRound < 1 || currentRound > 4) {
+    if (currentRound < 1 || currentRound > roundsPerBreak) {
       setLoading(false);
       return;
     }
@@ -228,7 +228,7 @@ export const MentorLive = ({ currentRound, secondsLeft, phaseLabel, showToast })
     return () => { cancelled = true; };
   }, [currentRound]);
 
-  if (currentRound === 0 || currentRound > 4) {
+  if (currentRound === 0 || currentRound > roundsPerBreak) {
     return (
       <>
         <h2 className="text-[1.45rem] font-extrabold tracking-tight">A minha mesa</h2>
@@ -281,7 +281,7 @@ export const MentorLive = ({ currentRound, secondsLeft, phaseLabel, showToast })
 
       <Card variant="navy">
         <div className="flex justify-between items-center">
-          <span className="text-[.76rem] font-bold text-primary-300 uppercase tracking-wide">Ronda {currentRound} de 4</span>
+          <span className="text-[.76rem] font-bold text-primary-300 uppercase tracking-wide">Ronda {currentRound} de {roundsPerBreak}</span>
           <span className="font-extrabold text-[1.7rem]">{formatTime(secondsLeft)}</span>
         </div>
         <div className="flex gap-3 items-center mt-3.5">

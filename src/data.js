@@ -93,6 +93,8 @@ export const ORGANIZER_TABS = [
   { key: 'pools', label: 'Pools' },
   { key: 'sessions', label: 'Sessões' },
   { key: 'questions', label: 'Perguntas' },
+  { key: 'questionnaire', label: 'Questionário' },
+  { key: 'responses', label: 'Respostas' },
   { key: 'int',  label: 'Interação' },
   { key: 'rep',  label: 'Relatórios' },
   { key: 'whatsapp', label: 'WhatsApp' },

@@ -262,7 +262,7 @@ export const MenteeHome = ({ showToast }) => {
 
 // ── LIVE ─────────────────────────────────────
 export const MenteeLive = ({
-  currentRound, secondsLeft, isRehearsal, announcements, phaseLabel,
+  currentRound, roundsPerBreak = 4, roundMinutes = 5, secondsLeft, isRehearsal, announcements, phaseLabel,
   mentorForMenteeRound, setActiveTab, showToast,
   questions, setQuestions, pollOptions, setPollOptions, pollVotes, setPollVotes, votedOption, setVotedOption, totalPollVotes,
   roundDataVersion,
@@ -275,7 +275,7 @@ export const MenteeLive = ({
   // Skeleton only matters for the async round card. Starts true on mount
   // when there is a round to load.
   const [loadingRound, setLoadingRound] = useState(
-    currentRound >= 1 && currentRound <= 4
+    currentRound >= 1 && currentRound <= roundsPerBreak
   );
 
   const showToastRef = useRef(showToast);
@@ -305,7 +305,7 @@ export const MenteeLive = ({
   useEffect(() => {
     let cancelled = false;
     const loadRound = async () => {
-      if (currentRound >= 1 && currentRound <= 4) {
+      if (currentRound >= 1 && currentRound <= roundsPerBreak) {
         setLoadingRound(true);
         try {
           const [roundResp, matchResp] = await Promise.all([
@@ -332,7 +332,7 @@ export const MenteeLive = ({
 
   // Realtime polling for questions and polls during live rounds
   useEffect(() => {
-    if (currentRound < 1 || currentRound > 4) return;
+    if (currentRound < 1 || currentRound > roundsPerBreak) return;
     let active = true;
     const interval = setInterval(async () => {
       try {
@@ -363,7 +363,7 @@ export const MenteeLive = ({
 
   let body = null;
 
-  if (currentRound >= 1 && currentRound <= 4 && loadingRound) {
+  if (currentRound >= 1 && currentRound <= roundsPerBreak && loadingRound) {
     body = (
       <SkeletonCard navy>
         <div className="flex justify-between items-center">
@@ -389,7 +389,7 @@ export const MenteeLive = ({
         <p className="text-[.85rem] text-navy-100 mt-1.5">Quando o organizador iniciar, vês aqui com quem falas e em que mesa.</p>
       </Card>
     );
-  } else if (currentRound > 4) {
+  } else if (currentRound > roundsPerBreak) {
     body = (
       <Card variant="navy">
         <h3 className="text-[1.08rem] font-extrabold">Intervalo concluído</h3>
@@ -408,10 +408,10 @@ export const MenteeLive = ({
       body = (
         <Card variant="navy">
           <div className="flex justify-between items-center">
-            <span className="text-[.76rem] font-bold text-primary-300 uppercase tracking-wide">Ronda {currentRound} de 4</span>
+            <span className="text-[.76rem] font-bold text-primary-300 uppercase tracking-wide">Ronda {currentRound} de {roundsPerBreak}</span>
             <span className="font-extrabold text-[1.7rem]">{formatTime(secondsLeft)}</span>
           </div>
-          <div className="my-3 mb-4"><ProgressBar value={(secondsLeft / (isRehearsal ? 30 : 300)) * 100} /></div>
+          <div className="my-3 mb-4"><ProgressBar value={(secondsLeft / (isRehearsal ? 30 : roundMinutes * 60)) * 100} /></div>
           <div className="text-center py-6">
             <p className="text-ink-muted text-[.85rem] mb-2">À espera de atribuição de mesa…</p>
             <p className="text-[.85rem] text-ink-muted">O organizador ainda não atribuiu um mentor para esta ronda.</p>
@@ -423,10 +423,10 @@ export const MenteeLive = ({
         <>
           <Card variant="navy">
             <div className="flex justify-between items-center">
-              <span className="text-[.76rem] font-bold text-primary-300 uppercase tracking-wide">Ronda {currentRound} de 4</span>
+              <span className="text-[.76rem] font-bold text-primary-300 uppercase tracking-wide">Ronda {currentRound} de {roundsPerBreak}</span>
               <span className="font-extrabold text-[1.7rem]">{formatTime(secondsLeft)}</span>
             </div>
-            <div className="my-3 mb-4"><ProgressBar value={(secondsLeft / (isRehearsal ? 30 : 300)) * 100} /></div>
+            <div className="my-3 mb-4"><ProgressBar value={(secondsLeft / (isRehearsal ? 30 : roundMinutes * 60)) * 100} /></div>
             <div className="flex gap-3 items-center">
                 <div className="inline-grid place-items-center w-16 h-16 rounded-[18px] bg-primary-500 text-white text-[1.8rem] font-extrabold shrink-0">
                   {tableNo}

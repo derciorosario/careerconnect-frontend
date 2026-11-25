@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from './ui';
+import { ccGetQuestionnaire, ccSubmitSurvey } from './api/client';
 
 const BTN_BASE = 'inline-block rounded-full bg-primary-500 text-white font-semibold text-base px-7 py-3.5 cursor-pointer no-underline hover:brightness-110 transition';
 const FIELD_BASE = 'w-full font-normal text-base text-ink bg-surface border-2 border-line rounded-field px-3.5 py-3 focus:border-primary-500 focus:outline-none';
@@ -145,11 +146,17 @@ const IMPACT = {
 const IMPACT_SIM_NAO = ['Sim', 'Não'];
 const IMPACT_APLICACAO = ['Sim', 'Parcialmente', 'Não'];
 
+const DEFAULT_CONTENT = {
+  participant: PARTICIPANT_SURVEY,
+  mentor: MENTOR_SURVEY,
+  impact: IMPACT,
+};
+
 export const SurveyScreen = ({ showToast }) => {
   const role = localStorage.getItem('userRole') || '';
   const isMentor = role === 'mentor';
-  const survey = isMentor ? MENTOR_SURVEY : PARTICIPANT_SURVEY;
 
+  const [content, setContent] = useState(DEFAULT_CONTENT);
   const [answers, setAnswers] = useState({});
   const [ratings, setRatings] = useState({});
   const [comment, setComment] = useState('');
@@ -158,10 +165,53 @@ export const SurveyScreen = ({ showToast }) => {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const resp = await ccGetQuestionnaire({});
+        const data = resp.data?.content;
+        if (!cancelled && data && Array.isArray(data.participant) && Array.isArray(data.mentor)) {
+          setContent({ ...DEFAULT_CONTENT, ...data, impact: { ...DEFAULT_CONTENT.impact, ...(data.impact || {}) } });
+        }
+      } catch (err) {
+        // Fallback to defaults silently
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  const survey = isMentor ? content.mentor : content.participant;
+  const impactText = isMentor ? content.impact.mentor : content.impact.mentee;
+
   const setAnswer = (id, val) => setAnswers((p) => ({ ...p, [id]: val }));
   const setRating = (id, val) => setRatings((p) => ({ ...p, [id]: val }));
   const setImpactAnswer = (id, val) => setImpact((p) => ({ ...p, [id]: val }));
-  const impactText = isMentor ? IMPACT.mentor : IMPACT.mentee;
+
+  const handleSubmit = async (toastMsg) => {
+    setLoading(true);
+    try {
+      await ccSubmitSurvey({
+        event_id: 'current',
+        comment,
+        answers: {
+          role: isMentor ? 'mentor' : 'mentee',
+          fields: answers,
+          ratings,
+          comment,
+          impact,
+          impactComment,
+        },
+      });
+      setSubmitted(true);
+      showToast(toastMsg || 'Inquérito submetido.');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao submeter.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (submitted) {
     return (
@@ -214,16 +264,7 @@ export const SurveyScreen = ({ showToast }) => {
         </SurveyField>
 
         <button
-          onClick={async () => {
-            setLoading(true);
-            try {
-              // Frontend-only: no backend call. Persist nothing.
-              setSubmitted(true);
-              showToast('Inquérito submetido.');
-            } finally {
-              setLoading(false);
-            }
-          }}
+          onClick={() => handleSubmit('Inquérito submetido.')}
           disabled={loading}
           className={`${BTN_BASE} w-full mt-2`}
         >
@@ -250,16 +291,7 @@ export const SurveyScreen = ({ showToast }) => {
         </SurveyField>
 
         <button
-          onClick={async () => {
-            setLoading(true);
-            try {
-              // Frontend-only: no backend call. Persist nothing.
-              setSubmitted(true);
-              showToast('Avaliação de impacto submetida.');
-            } finally {
-              setLoading(false);
-            }
-          }}
+          onClick={() => handleSubmit('Avaliação de impacto submetida.')}
           disabled={loading}
           className={`${BTN_BASE} w-full mt-2`}
         >

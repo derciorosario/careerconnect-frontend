@@ -283,6 +283,8 @@ export const ccCreateAnnouncement = (data) => client.post('/announcements/', dat
 // SURVEY
 export const ccSubmitSurvey = (data) => client.post('/survey/', data);
 export const ccGetSurveyResults = (params) => client.get('/survey/', { params });
+export const ccGetQuestionnaire = (params) => client.get('/survey/questionnaire', { params });
+export const ccUpdateQuestionnaire = (data) => client.put('/survey/questionnaire', data);
 
 // NEXT STEPS
 export const ccCreateNextStep = (data) => client.post('/next-steps/', data);

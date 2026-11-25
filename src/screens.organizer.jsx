@@ -17,6 +17,7 @@ import {
   setStoredToken,
   isNative,
   ccCreateRound, ccUpdateRound, ccDeleteRound,
+  ccGetEvent, ccConfigureEvent,
 } from './api/client';
 import { PersonRow, ProgressBar, Card, AnnouncementInput, Avatar } from './ui';
 
@@ -52,13 +53,42 @@ const MENTORS = [
 
 // ── ORGANIZER LIVE ───────────────────────────
 export const OrganizerLive = ({
-  phaseLabel, secondsLeft, currentRound, isPaused, isRehearsal,
+  phaseLabel, secondsLeft, currentRound, roundsPerBreak = 4, isPaused, isRehearsal,
   setIsRehearsal, setSecondsLeft, setIsPaused, showToast,
   advanceRound, handlePause, restartSimulation,
 }) => {
   const [rounds, setRounds] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [usersById, setUsersById] = useState({});
+  const [roundMinutes, setRoundMinutes] = useState(5);
+  const [savingMinutes, setSavingMinutes] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const loadEvent = async () => {
+      try {
+        const resp = await ccGetEvent({});
+        const ev = resp.data?.event || resp.data?.events?.[0] || null;
+        if (active && ev?.round_minutes != null) setRoundMinutes(ev.round_minutes);
+      } catch (err) {
+        // Non-blocking
+      }
+    };
+    loadEvent();
+    return () => { active = false; };
+  }, []);
+
+  const saveRoundMinutes = async () => {
+    setSavingMinutes(true);
+    try {
+      await ccConfigureEvent({ round_minutes: Number(roundMinutes) });
+      showToast('Duração das rondas atualizada.');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao guardar duração.');
+    } finally {
+      setSavingMinutes(false);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -129,11 +159,11 @@ export const OrganizerLive = ({
               onClick={() => (currentRound >= 5 ? restartSimulation() : advanceRound())}
               className="rounded-full font-bold text-[.92rem] h-12 px-5 bg-primary-500 text-white"
             >
-              {currentRound === 0 ? 'Iniciar intervalo 1' : currentRound < 4 ? `Avançar ronda ${currentRound + 1}` : currentRound === 4 ? 'Terminar intervalo' : 'Reiniciar'}
+              {currentRound === 0 ? 'Iniciar intervalo 1' : currentRound < roundsPerBreak ? `Avançar ronda ${currentRound + 1}` : currentRound === roundsPerBreak ? 'Terminar intervalo' : 'Reiniciar'}
             </button>
             <button
               onClick={handlePause}
-              disabled={currentRound < 1 || currentRound > 4}
+              disabled={currentRound < 1 || currentRound > roundsPerBreak}
               className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-surface2 text-ink disabled:opacity-40"
             >
               {isPaused ? 'Retomar' : 'Pausar'}
@@ -156,6 +186,23 @@ export const OrganizerLive = ({
               className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-red-600 text-white"
             >
               Terminar
+            </button>
+          </div>
+          <div className="flex items-center gap-2.5 mt-4">
+            <label className="text-[.85rem] font-semibold whitespace-nowrap">Duração das rondas (min)</label>
+            <input
+              type="number"
+              min="1"
+              value={roundMinutes}
+              onChange={(e) => setRoundMinutes(e.target.value)}
+              className="w-20 bg-surface border-2 border-line rounded-[10px] px-2.5 py-1.5 text-base focus:border-primary-500 focus:outline-none"
+            />
+            <button
+              onClick={saveRoundMinutes}
+              disabled={savingMinutes}
+              className="rounded-full font-bold text-[.78rem] h-9 px-3.5 bg-surface2 text-ink disabled:opacity-50"
+            >
+              {savingMinutes ? '...' : 'Guardar'}
             </button>
           </div>
           <label className="flex gap-2.5 items-center text-[.85rem] mt-4 hidden">
@@ -1188,7 +1235,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
   );
 };
 // ── TV / PROJECTOR ───────────────────────────
-export const TvScreen = ({ announcements, phaseLabel, currentRound, secondsLeft, showToast }) => {
+export const TvScreen = ({ announcements, phaseLabel, currentRound, roundsPerBreak = 4, secondsLeft, showToast }) => {
   const [tvData, setTvData] = useState(null);
 
   useEffect(() => {
@@ -1240,7 +1287,7 @@ export const TvScreen = ({ announcements, phaseLabel, currentRound, secondsLeft,
         </div>
       )}
       <p className="mt-[30px] text-[1.3rem] text-navy-100">{tvPhase}</p>
-      {currentRound >= 1 && currentRound <= 4 ? (
+      {currentRound >= 1 && currentRound <= roundsPerBreak ? (
         <>
           <div className="font-extrabold text-[clamp(4.5rem,16vw,11rem)] text-primary-500 leading-none" style={{ textShadow: '0 10px 40px rgba(242,107,15,.4)' }}>
             {formatTime(secondsLeft)}

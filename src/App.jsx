@@ -21,6 +21,8 @@ import {
 } from './screens.organizer';
 import { OrganizerPools } from './screens/OrganizerPools';
 import { OrganizerQuestions } from './screens/OrganizerQuestions';
+import { OrganizerQuestionnaire } from './screens/OrganizerQuestionnaire';
+import { OrganizerResponses } from './screens/OrganizerResponses';
 import { OrganizerSessions } from './screens/OrganizerSessions';
 import WhatsApp from './whatsapp';
 import {
@@ -31,7 +33,7 @@ import Landingpage from './Landingpage';
 import MentorLanding from './MentorLanding';
 import Register from './Register';
 import Login from './Login';
-import { ccMe, setStoredToken, getStoredToken, getStoredRefreshToken, ccGetQuestions, ccGetPolls, ccGetPollResults, ccAdvanceRound, ccPauseRound, ccResumeRound, ccGetCurrentRound, ccGenerateMatches, ccResetRounds } from './api/client';
+import { ccMe, setStoredToken, getStoredToken, getStoredRefreshToken, ccGetQuestions, ccGetPolls, ccGetPollResults, ccAdvanceRound, ccPauseRound, ccResumeRound, ccGetCurrentRound, ccGenerateMatches, ccResetRounds, ccGetRounds, ccGetEvent } from './api/client';
 
 import logo from './assets/logo.png';
 
@@ -125,6 +127,8 @@ export function CareerConnectApp({ initialRole }) {
 
   // Event / simulation state
   const [currentRound, setCurrentRound] = useState(0);
+  const [roundsPerBreak, setRoundsPerBreak] = useState(4);
+  const [roundMinutes, setRoundMinutes] = useState(5);
   const [secondsLeft, setSecondsLeft] = useState(300);
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -231,6 +235,33 @@ export function CareerConnectApp({ initialRole }) {
     }
   }, [role]);
 
+  // Load the number of rounds per break and round duration from the database
+  useEffect(() => {
+    let active = true;
+    const loadRounds = async () => {
+      try {
+        const resp = await ccGetRounds({});
+        if (!active) return;
+        const rounds = resp.data?.rounds || [];
+        const maxRoundNo = rounds.reduce((max, r) => Math.max(max, r.round_no || 0), 0);
+        if (maxRoundNo > 0) setRoundsPerBreak(maxRoundNo);
+      } catch (err) {
+        // Non-blocking
+      }
+      try {
+        const evResp = await ccGetEvent({});
+        const ev = evResp.data?.event;
+        if (active && ev?.round_minutes != null && Number(ev.round_minutes) > 0) {
+          setRoundMinutes(Number(ev.round_minutes));
+        }
+      } catch (err) {
+        // Non-blocking
+      }
+    };
+    loadRounds();
+    return () => { active = false; };
+  }, [roundDataVersion]);
+
   const advanceRound = async () => {
     try {
       await ccAdvanceRound({});
@@ -244,7 +275,7 @@ export function CareerConnectApp({ initialRole }) {
         setFurthestRoundCompleted((f) => Math.max(f, mapped > 0 ? mapped - 1 : 0));
         setIsRunning(true);
         setIsPaused(false);
-        setSecondsLeft(isRehearsal ? 30 : 300);
+        setSecondsLeft(isRehearsal ? 30 : roundMinutes * 60);
         // Generate matches for the new running round
         try {
           await ccGenerateMatches({});
@@ -278,8 +309,8 @@ export function CareerConnectApp({ initialRole }) {
 
   const phaseLabel = () => {
     if (currentRound === 0) return 'Antes do intervalo';
-    if (currentRound > 4) return 'Intervalo concluído';
-    return `Intervalo 1 · ronda ${currentRound} de 4`;
+    if (currentRound > roundsPerBreak) return 'Intervalo concluído';
+    return `Intervalo 1 · ronda ${currentRound} de ${roundsPerBreak}`;
   };
 
   const handlePause = async () => {
@@ -308,7 +339,7 @@ export function CareerConnectApp({ initialRole }) {
     setFurthestRoundCompleted(0);
     setIsRunning(false);
     setIsPaused(false);
-    setSecondsLeft(isRehearsal ? 30 : 300);
+    setSecondsLeft(isRehearsal ? 30 : roundMinutes * 60);
   };
 
   const common = { showToast };
@@ -319,7 +350,7 @@ export function CareerConnectApp({ initialRole }) {
       case 'home':
         return <MenteeHome {...common} />;
       case 'live':
-        return <MenteeLive {...common} currentRound={currentRound} secondsLeft={secondsLeft} isRehearsal={isRehearsal} announcements={announcements} phaseLabel={phaseLabel} setActiveTab={setActiveTab} questions={questions} setQuestions={setQuestions} pollOptions={pollOptions} setPollOptions={setPollOptions} pollVotes={pollVotes} setPollVotes={setPollVotes} votedOption={votedOption} setVotedOption={setVotedOption} totalPollVotes={totalPollVotes} roundDataVersion={roundDataVersion} />;
+        return <MenteeLive {...common} currentRound={currentRound} roundsPerBreak={roundsPerBreak} roundMinutes={roundMinutes} secondsLeft={secondsLeft} isRehearsal={isRehearsal} announcements={announcements} phaseLabel={phaseLabel} setActiveTab={setActiveTab} questions={questions} setQuestions={setQuestions} pollOptions={pollOptions} setPollOptions={setPollOptions} pollVotes={pollVotes} setPollVotes={setPollVotes} votedOption={votedOption} setVotedOption={setVotedOption} totalPollVotes={totalPollVotes} roundDataVersion={roundDataVersion} />;
       case 'participantes':
         return <Participantes {...common} />;
       case 'met':
@@ -343,7 +374,7 @@ export function CareerConnectApp({ initialRole }) {
       case 'home':
         return <MentorHome {...common} />;
       case 'live':
-        return <MentorLive {...common} currentRound={currentRound} secondsLeft={secondsLeft} phaseLabel={phaseLabel} />;
+        return <MentorLive {...common} currentRound={currentRound} roundsPerBreak={roundsPerBreak} secondsLeft={secondsLeft} phaseLabel={phaseLabel} />;
       case 'req':
         return <MentorRequests {...common} />;
       case 'participantes':
@@ -365,7 +396,7 @@ export function CareerConnectApp({ initialRole }) {
     const activeOrgTab = ORGANIZER_TABS.find((t) => t.key === activeTab) ? activeTab : 'live';
     switch (activeOrgTab) {
       case 'live':
-        return <OrganizerLive {...common} phaseLabel={phaseLabel} secondsLeft={secondsLeft} currentRound={currentRound} isPaused={isPaused} isRehearsal={isRehearsal} setIsRehearsal={setIsRehearsal} setSecondsLeft={setSecondsLeft} setIsPaused={setIsPaused} advanceRound={advanceRound} handlePause={handlePause} restartSimulation={restartSimulation} />;
+        return <OrganizerLive {...common} phaseLabel={phaseLabel} secondsLeft={secondsLeft} currentRound={currentRound} roundsPerBreak={roundsPerBreak} isPaused={isPaused} isRehearsal={isRehearsal} setIsRehearsal={setIsRehearsal} setSecondsLeft={setSecondsLeft} setIsPaused={setIsPaused} advanceRound={advanceRound} handlePause={handlePause} restartSimulation={restartSimulation} />;
       case 'reg':
         return <OrganizerReg {...common} />;
       case 'pools':
@@ -374,6 +405,10 @@ export function CareerConnectApp({ initialRole }) {
         return <OrganizerSessions {...common} />;
       case 'questions':
         return <OrganizerQuestions {...common} />;
+      case 'questionnaire':
+        return <OrganizerQuestionnaire {...common} />;
+      case 'responses':
+        return <OrganizerResponses {...common} />;
       case 'int':
         return <OrganizerInteraction {...common} announcements={announcements} setAnnouncements={setAnnouncements} questions={questions} pollVotes={pollVotes} totalPollVotes={totalPollVotes} />;
       case 'rep':
@@ -397,7 +432,7 @@ export function CareerConnectApp({ initialRole }) {
   } else if (role === 'tv') {
     content = (
       <TvScreen
-        announcements={announcements} phaseLabel={phaseLabel} currentRound={currentRound}
+        announcements={announcements} phaseLabel={phaseLabel} currentRound={currentRound} roundsPerBreak={roundsPerBreak}
         secondsLeft={secondsLeft} furthestRoundCompleted={furthestRoundCompleted}
         connections={[]} showToast={showToast}
       />

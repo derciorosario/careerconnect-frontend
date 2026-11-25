@@ -4,7 +4,7 @@ import { Card } from '../ui';
 
 export const OrganizerSessions = ({ showToast }) => {
   const [sessions, setSessions] = useState([]);
-  const [speakers, setSpeakers] = useState([]);
+  const [mentors, setMentors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingSession, setEditingSession] = useState(null);
@@ -14,12 +14,12 @@ export const OrganizerSessions = ({ showToast }) => {
     order: 0,
     challenge: '',
     starts_at: '',
-    speaker_id: '',
+    mentor_id: '',
   });
 
   useEffect(() => {
     loadSessions();
-    loadSpeakers();
+    loadMentors();
   }, []);
 
   const loadSessions = async () => {
@@ -32,14 +32,14 @@ export const OrganizerSessions = ({ showToast }) => {
     }
   };
 
-  const loadSpeakers = async () => {
+  const loadMentors = async () => {
     try {
       const resp = await ccGetAllUsers({});
       const allUsers = resp.data?.users || [];
-      const speakerUsers = allUsers.filter(u => u.role === 'mentor' || u.role === 'organizer');
-      setSpeakers(speakerUsers);
+      const mentorUsers = allUsers.filter(u => u.role === 'mentor');
+      setMentors(mentorUsers);
     } catch (err) {
-      console.error('Failed to load speakers:', err);
+      console.error('Failed to load mentors:', err);
     }
   };
 
@@ -50,7 +50,7 @@ export const OrganizerSessions = ({ showToast }) => {
       const payload = {
         ...formData,
         order: Number(formData.order),
-        speaker_id: formData.speaker_id || null,
+        mentor_id: formData.mentor_id || null,
         starts_at: formData.starts_at || null,
       };
       if (editingSession) {
@@ -62,7 +62,7 @@ export const OrganizerSessions = ({ showToast }) => {
       }
       setShowForm(false);
       setEditingSession(null);
-      setFormData({ title: '', type: 'masterclass', order: 0, challenge: '', starts_at: '', speaker_id: '' });
+      setFormData({ title: '', type: 'masterclass', order: 0, challenge: '', starts_at: '', mentor_id: '' });
       loadSessions();
     } catch (err) {
       showToast(err.response?.data?.message || 'Erro ao guardar sessão.');
@@ -79,7 +79,7 @@ export const OrganizerSessions = ({ showToast }) => {
       order: session.order,
       challenge: session.challenge || '',
       starts_at: session.starts_at ? new Date(session.starts_at).toISOString().slice(0, 16) : '',
-      speaker_id: session.speaker_id || '',
+      mentor_id: session.mentor_id || '',
     });
     setShowForm(true);
   };
@@ -98,7 +98,7 @@ export const OrganizerSessions = ({ showToast }) => {
   const handleCancel = () => {
     setShowForm(false);
     setEditingSession(null);
-    setFormData({ title: '', type: 'masterclass', order: 0, challenge: '', starts_at: '', speaker_id: '' });
+    setFormData({ title: '', type: 'masterclass', order: 0, challenge: '', starts_at: '', mentor_id: '' });
   };
 
   const typeLabels = {
@@ -112,7 +112,7 @@ export const OrganizerSessions = ({ showToast }) => {
       <Card>
         <div className="flex items-center justify-between mb-3.5">
           <b>Sessões</b>
-          <button onClick={() => { setShowForm(true); setEditingSession(null); setFormData({ title: '', type: 'masterclass', order: 0, challenge: '', starts_at: '', speaker_id: '' }); }} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white">
+          <button onClick={() => { setShowForm(true); setEditingSession(null); setFormData({ title: '', type: 'masterclass', order: 0, challenge: '', starts_at: '', mentor_id: '' }); }} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white">
             + Nova Sessão
           </button>
         </div>
@@ -140,10 +140,10 @@ export const OrganizerSessions = ({ showToast }) => {
                 <input type="datetime-local" value={formData.starts_at} onChange={(e) => setFormData({ ...formData, starts_at: e.target.value })} className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none" />
               </div>
               <div>
-                <label className="block text-[.85rem] font-semibold mb-1.5">Orador</label>
-                <select value={formData.speaker_id} onChange={(e) => setFormData({ ...formData, speaker_id: e.target.value })} className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none">
+                <label className="block text-[.85rem] font-semibold mb-1.5">Mentor</label>
+                <select value={formData.mentor_id} onChange={(e) => setFormData({ ...formData, mentor_id: e.target.value })} className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none">
                   <option value="">-- Selecionar --</option>
-                  {speakers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  {mentors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
               </div>
             </div>
@@ -168,7 +168,7 @@ export const OrganizerSessions = ({ showToast }) => {
                 <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Tipo</th>
                 <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Ordem</th>
                 <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Início</th>
-                <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Orador</th>
+                <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Mentor</th>
                 <th className="text-right text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Ações</th>
               </tr>
             </thead>
@@ -185,7 +185,7 @@ export const OrganizerSessions = ({ showToast }) => {
                     </td>
                     <td className="py-[11px] px-2">{session.order}</td>
                     <td className="py-[11px] px-2 text-[.82rem] text-ink-muted">{session.starts_at ? new Date(session.starts_at).toLocaleString('pt-PT') : '–'}</td>
-                    <td className="py-[11px] px-2 text-[.82rem]">{session.speaker?.name || '–'}</td>
+                    <td className="py-[11px] px-2 text-[.82rem]">{session.mentor?.name || '–'}</td>
                     <td className="py-[11px] px-2 text-right">
                       <div className="flex gap-2 justify-end">
                         <button onClick={() => handleEdit(session)} className="rounded-full font-bold text-[.72rem] h-[30px] px-3 bg-primary-500 text-white">Editar</button>

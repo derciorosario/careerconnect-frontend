@@ -203,6 +203,10 @@ export const ccGetMentorDashboard = () => client.get('/users/mentor/dashboard');
 export const ccGetEvent = () => client.get('/events/');
 export const ccGetProgram = () => client.get('/events/program');
 export const ccConfigureEvent = (data) => client.put('/events/configure', data);
+export const ccGetAllEvents = () => client.get('/events/all');
+export const ccCreateEvent = (data) => client.post('/events/', data);
+export const ccUpdateEvent = (id, data) => client.put(`/events/${id}`, data);
+export const ccDeleteEvent = (id) => client.delete(`/events/${id}`);
 
 // REGISTRATIONS
 export const ccRegisterForEvent = (data) => client.post('/registrations/', data);

@@ -89,6 +89,7 @@ export const NAV_MENTOR = [
 
 export const ORGANIZER_TABS = [
   { key: 'live', label: 'Ao vivo' },
+  { key: 'events', label: 'Eventos' },
   { key: 'reg',  label: 'Inscritos' },
   { key: 'pools', label: 'Pools' },
   { key: 'sessions', label: 'Sessões' },

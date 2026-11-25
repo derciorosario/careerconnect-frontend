@@ -18,6 +18,7 @@ import {
   isNative,
   ccCreateRound, ccUpdateRound, ccDeleteRound,
   ccGetEvent, ccConfigureEvent,
+  ccGetAllEvents, ccCreateEvent, ccUpdateEvent, ccDeleteEvent,
 } from './api/client';
 import { PersonRow, ProgressBar, Card, AnnouncementInput, Avatar } from './ui';
 
@@ -1341,6 +1342,251 @@ export const TvScreen = ({ announcements, phaseLabel, currentRound, roundsPerBre
         </>
       )}
     </div>
+  );
+};
+
+// ── ORGANIZER EVENTS (CRUD) ──────────────────
+const EMPTY_EVENT = {
+  name: '',
+  starts_at: '',
+  ends_at: '',
+  venue: '',
+  map_url: '',
+  capacity: 100,
+  status: 'draft',
+  round_minutes: 5,
+  rounds_per_break: 4,
+  warn_seconds: 30,
+  tables_count: 10,
+};
+
+export const OrganizerEvents = ({ showToast }) => {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [formData, setFormData] = useState(EMPTY_EVENT);
+
+  useEffect(() => {
+    loadEvents();
+  }, []);
+
+  const loadEvents = async () => {
+    try {
+      const resp = await ccGetAllEvents();
+      setEvents(resp.data?.events || []);
+    } catch (err) {
+      console.error('Failed to load events:', err);
+      showToast('Erro ao carregar eventos.');
+    }
+  };
+
+  const toLocalInput = (value) => {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    const offset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+  };
+
+  const openCreate = () => {
+    setEditingEvent(null);
+    setFormData(EMPTY_EVENT);
+    setShowForm(true);
+  };
+
+  const openEdit = (event) => {
+    setEditingEvent(event);
+    setFormData({
+      name: event.name || '',
+      starts_at: toLocalInput(event.starts_at),
+      ends_at: toLocalInput(event.ends_at),
+      venue: event.venue || '',
+      map_url: event.map_url || '',
+      capacity: event.capacity != null ? event.capacity : 100,
+      status: event.status || 'draft',
+      round_minutes: event.round_minutes != null ? event.round_minutes : 5,
+      rounds_per_break: event.rounds_per_break != null ? event.rounds_per_break : 4,
+      warn_seconds: event.warn_seconds != null ? event.warn_seconds : 30,
+      tables_count: event.tables_count != null ? event.tables_count : 10,
+    });
+    setShowForm(true);
+  };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setEditingEvent(null);
+    setFormData(EMPTY_EVENT);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const payload = {
+        ...formData,
+        capacity: Number(formData.capacity),
+        round_minutes: Number(formData.round_minutes),
+        rounds_per_break: Number(formData.rounds_per_break),
+        warn_seconds: Number(formData.warn_seconds),
+        tables_count: Number(formData.tables_count),
+        starts_at: formData.starts_at ? new Date(formData.starts_at).toISOString() : null,
+        ends_at: formData.ends_at ? new Date(formData.ends_at).toISOString() : null,
+      };
+      if (editingEvent) {
+        await ccUpdateEvent(editingEvent.id, payload);
+        showToast('Evento atualizado.');
+      } else {
+        await ccCreateEvent(payload);
+        showToast('Evento criado.');
+      }
+      setShowForm(false);
+      setEditingEvent(null);
+      setFormData(EMPTY_EVENT);
+      loadEvents();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao guardar evento.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (event) => {
+    if (!window.confirm(`Remover evento "${event.name}"?`)) return;
+    try {
+      await ccDeleteEvent(event.id);
+      showToast('Evento removido.');
+      loadEvents();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao remover evento.');
+    }
+  };
+
+  const inputCls = 'w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none';
+  const labelCls = 'block text-[.85rem] font-semibold mb-1.5';
+
+  const statusLabels = {
+    draft: 'Rascunho',
+    active: 'Ativo',
+    finished: 'Concluído',
+    closed: 'Fechado',
+  };
+
+  return (
+    <>
+      <Card>
+        <div className="flex items-center justify-between mb-3.5">
+          <b>Eventos</b>
+          <button onClick={openCreate} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white">
+            + Novo Evento
+          </button>
+        </div>
+        {showForm && (
+          <form onSubmit={handleSubmit} className="space-y-3 mb-4 p-4 bg-surface rounded-[14px] border border-line">
+            <div>
+              <label className={labelCls}>Nome</label>
+              <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className={inputCls} required maxLength={200} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Início</label>
+                <input type="datetime-local" value={formData.starts_at} onChange={(e) => setFormData({ ...formData, starts_at: e.target.value })} className={inputCls} required />
+              </div>
+              <div>
+                <label className={labelCls}>Fim</label>
+                <input type="datetime-local" value={formData.ends_at} onChange={(e) => setFormData({ ...formData, ends_at: e.target.value })} className={inputCls} required />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>Local</label>
+              <input type="text" value={formData.venue} onChange={(e) => setFormData({ ...formData, venue: e.target.value })} className={inputCls} required maxLength={200} />
+            </div>
+            <div>
+              <label className={labelCls}>URL do mapa</label>
+              <input type="text" value={formData.map_url} onChange={(e) => setFormData({ ...formData, map_url: e.target.value })} className={inputCls} placeholder="https://..." />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Capacidade</label>
+                <input type="number" min="1" value={formData.capacity} onChange={(e) => setFormData({ ...formData, capacity: e.target.value })} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Estado</label>
+                <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className={inputCls}>
+                  <option value="draft">Rascunho</option>
+                  <option value="active">Ativo</option>
+                  <option value="finished">Concluído</option>
+                  <option value="closed">Fechado</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Duração das rondas (min)</label>
+                <input type="number" min="1" value={formData.round_minutes} onChange={(e) => setFormData({ ...formData, round_minutes: e.target.value })} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Rondas por intervalo</label>
+                <input type="number" min="1" value={formData.rounds_per_break} onChange={(e) => setFormData({ ...formData, rounds_per_break: e.target.value })} className={inputCls} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Aviso (segundos)</label>
+                <input type="number" min="0" value={formData.warn_seconds} onChange={(e) => setFormData({ ...formData, warn_seconds: e.target.value })} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Número de mesas</label>
+                <input type="number" min="1" value={formData.tables_count} onChange={(e) => setFormData({ ...formData, tables_count: e.target.value })} className={inputCls} />
+              </div>
+            </div>
+            <div className="flex gap-2.5 justify-end mt-2">
+              <button type="button" onClick={handleCancel} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-surface2 text-ink">Cancelar</button>
+              <button type="submit" disabled={loading} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white disabled:opacity-50">
+                {loading ? 'A guardar...' : editingEvent ? 'Atualizar' : 'Criar'}
+              </button>
+            </div>
+          </form>
+        )}
+        <div className="overflow-x-auto">
+          <table className="w-full text-[.88rem] border-collapse">
+            <thead>
+              <tr>
+                <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Nome</th>
+                <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Início</th>
+                <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Local</th>
+                <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Estado</th>
+                <th className="text-right text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {events.length > 0 ? (
+                events.map((event) => (
+                  <tr key={event.id} className="border-b border-line last:border-0">
+                    <td className="py-[11px] px-2"><b>{event.name}</b></td>
+                    <td className="py-[11px] px-2 text-[.82rem] text-ink-muted">{event.starts_at ? new Date(event.starts_at).toLocaleString('pt-PT') : '–'}</td>
+                    <td className="py-[11px] px-2 text-[.82rem]">{event.venue || '–'}</td>
+                    <td className="py-[11px] px-2">
+                      <span className="rounded-full px-2 py-0.5 text-[.68rem] font-semibold bg-primary-100 text-primary-700">
+                        {statusLabels[event.status] || event.status}
+                      </span>
+                    </td>
+                    <td className="py-[11px] px-2 text-right">
+                      <div className="flex gap-2 justify-end">
+                        <button onClick={() => openEdit(event)} className="rounded-full font-bold text-[.72rem] h-[30px] px-3 bg-primary-500 text-white">Editar</button>
+                        <button onClick={() => handleDelete(event)} className="rounded-full font-bold text-[.72rem] h-[30px] px-3 bg-red-500 text-white">Remover</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr><td colSpan="5" className="py-3 text-center text-ink-muted text-[.85rem]">Sem eventos criados.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </>
   );
 };
 

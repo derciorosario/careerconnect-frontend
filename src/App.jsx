@@ -17,7 +17,7 @@ import {
 import { Participantes } from './screens.participantes';
 import {
   OrganizerLive, OrganizerReg, OrganizerInteraction, OrganizerReports,
-  ProfileScreen, TvScreen, OrganizerShell,
+  ProfileScreen, TvScreen, OrganizerShell, OrganizerEvents,
 } from './screens.organizer';
 import { OrganizerPools } from './screens/OrganizerPools';
 import { OrganizerQuestions } from './screens/OrganizerQuestions';
@@ -404,6 +404,8 @@ export function CareerConnectApp({ initialRole }) {
     switch (activeOrgTab) {
       case 'live':
         return <OrganizerLive {...common} phaseLabel={phaseLabel} secondsLeft={secondsLeft} currentRound={currentRound} roundsPerBreak={roundsPerBreak} isPaused={isPaused} isRehearsal={isRehearsal} setIsRehearsal={setIsRehearsal} setSecondsLeft={setSecondsLeft} setIsPaused={setIsPaused} advanceRound={advanceRound} handlePause={handlePause} restartSimulation={restartSimulation} />;
+      case 'events':
+        return <OrganizerEvents {...common} />;
       case 'reg':
         return <OrganizerReg {...common} />;
       case 'pools':

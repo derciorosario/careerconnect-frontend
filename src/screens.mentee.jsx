@@ -4,7 +4,7 @@ import {
 } from './data';
 import {
   ccGetProfile, ccUpdateProfile,
-  ccGetEvent, ccGetProgram,
+  ccGetEvent,
   ccGetMyMatch, ccGetMentorDirectory, ccAddWish, ccRemoveWish, ccGetMyWishes,
   ccGetCurrentRound,
   ccSubmitFeedback, ccGetMyFeedback,
@@ -16,11 +16,10 @@ import {
   ccGetAnnouncements,
   ccSubmitSurvey, ccGetSurveyResults,
   ccCreateNextStep, ccGetMyNextStep,
-  ccBookSession, ccGetMyBookings,
   ccGetBadges,
   setStoredToken,
 } from './api/client';
-import { Avatar, PersonRow, ProgressBar, ChecklistItem, Card, QuestionInput, QrCode } from './ui';
+import { Avatar, PersonRow, PersonDetailsDialog, ProgressBar, ChecklistItem, Card, QuestionInput, QrCode } from './ui';
 
 const AREAS = [
   'Tecnologia e TI',
@@ -87,11 +86,8 @@ export const MenteeHome = ({ showToast }) => {
   const [conversationsDone, setConversationsDone] = useState(0);
   const [connections, setConnections] = useState([]);
   const [badgeData, setBadgeData] = useState([]);
-  const [masterclasses, setMasterclasses] = useState([]);
   const [ticketCode, setTicketCode] = useState(null);
-  const [bookings, setBookings] = useState([]);
   const [wishes, setWishes] = useState([]);
-  const [bookingLoading, setBookingLoading] = useState({});
   // Skeleton shows on every mount (tab entry). Re-renders of an already
   // mounted page don't re-run the fetch effect, so no blink.
   const [loading, setLoading] = useState(true);
@@ -106,13 +102,11 @@ export const MenteeHome = ({ showToast }) => {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [profResp, connResp, feedbackResp, badgeResp, progResp, bookingResp, wishResp] = await Promise.all([
+        const [profResp, connResp, feedbackResp, badgeResp, wishResp] = await Promise.all([
           ccGetProfile(),
           ccGetConnections(),
           ccGetMyFeedback(),
           ccGetBadges({ user_id: localStorage.getItem('userId') || '' }),
-          ccGetProgram(),
-          ccGetMyBookings(),
           ccGetMyWishes(),
         ]);
         if (cancelled) return;
@@ -122,8 +116,6 @@ export const MenteeHome = ({ showToast }) => {
         const done = feedbacks.filter((f) => f.wants_to_continue).length;
         setConversationsDone(done);
         setBadgeData(badgeResp.data?.badges || []);
-        setMasterclasses(progResp.data?.event?.sessions || []);
-        setBookings(bookingResp.data?.bookings || []);
         setWishes(wishResp.data?.wishes || []);
         const reg = profResp.data?.user?.registrations?.[0];
         setTicketCode(reg?.ticket_code || null);
@@ -137,7 +129,6 @@ export const MenteeHome = ({ showToast }) => {
     return () => { cancelled = true; };
   }, []); // run once per mount
 
-  const bookedSessionIds = new Set(bookings.map((b) => b.session_id));
   const wishedMentorIds = new Set(wishes.map((w) => w.mentor_id));
 
   const myName = profile?.name || 'Utilizador';
@@ -247,7 +238,6 @@ export const MenteeHome = ({ showToast }) => {
           <ChecklistItem label="Perfil completo" done={!!profile} />
           <ChecklistItem label="Pitch escrito" done={!!(profile?.menteeProfile?.pitch)} />
           <ChecklistItem label="3 mentores marcados" done={wishedMentorIds.size >= 3} />
-          <ChecklistItem label="Masterclasses reservadas" done={bookings.length > 0} />
         </div>
       </Card>
 
@@ -266,42 +256,6 @@ export const MenteeHome = ({ showToast }) => {
           ))}
         </div>
       </Card>
-
-      <Card>
-        <div className="flex items-center justify-between mb-3.5"><b>Reservar masterclasses</b></div>
-        <p className="text-ink-muted text-[.85rem] mb-2.5">Sem custo.</p>
-        {masterclasses.length > 0 ? (
-          masterclasses.filter(i=>i.type=="masterclass").map((s) => {
-            const isBooked = bookedSessionIds.has(s.id);
-            return (
-              <div key={s.id} className="flex justify-between items-center mt-2.5 gap-2.5">
-                <span className="text-[.85rem] flex-1">{s.title}</span>
-                <button
-                  onClick={async () => {
-                    setBookingLoading((p) => ({ ...p, [s.id]: true }));
-                    try {
-                      await ccBookSession({ session_id: s.id });
-                      setBookings((prev) => [...prev, { session_id: s.id }]);
-                      bookedSessionIds.add(s.id);
-                      showToastRef.current('Masterclass reservada.');
-                    } catch (err) {
-                      showToastRef.current(err.response?.data?.message || 'Erro ao reservar.');
-                    } finally {
-                      setBookingLoading((p) => { const { [s.id]: _, ...rest } = p; return rest; });
-                    }
-                  }}
-                  className={`rounded-full font-bold text-[.76rem] h-[34px] px-3.5 ${isBooked || bookingLoading[s.id] ? 'bg-surface2 text-ink-muted' : 'bg-primary-500 text-white'}`}
-                  disabled={isBooked || bookingLoading[s.id]}
-                >
-                  {isBooked ? 'Reservado' : bookingLoading[s.id] ? 'A reservar...' : 'Reservar'}
-                </button>
-              </div>
-            );
-          })
-        ) : (
-          <p className="text-ink-muted text-[.85rem] mt-2">Sem masterclasses disponíveis.</p>
-        )}
-      </Card>
     </>
   );
 };
@@ -317,6 +271,7 @@ export const MenteeLive = ({
   const [mentorDirectory, setMentorDirectory] = useState([]);
   const [myMatches, setMyMatches] = useState(null);
   const [feedbackStatus, setFeedbackStatus] = useState(null);
+  const [checkedIn, setCheckedIn] = useState(false);
   // Skeleton only matters for the async round card. Starts true on mount
   // when there is a round to load.
   const [loadingRound, setLoadingRound] = useState(
@@ -325,6 +280,27 @@ export const MenteeLive = ({
 
   const showToastRef = useRef(showToast);
   useEffect(() => { showToastRef.current = showToast; });
+
+  // Load mentor list (for question targeting) and the mentee's check-in status
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [dirResp, profResp] = await Promise.all([
+          ccGetMentorDirectory({}),
+          ccGetProfile(),
+        ]);
+        if (cancelled) return;
+        setMentorDirectory(dirResp.data?.mentors || []);
+        const regs = profResp.data?.user?.registrations || [];
+        setCheckedIn(regs.some((r) => r.status === 'present'));
+      } catch (err) {
+        if (!cancelled) console.error('Failed to load mentors/check-in:', err);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -540,7 +516,12 @@ export const MenteeLive = ({
         )}
         {questions.map((question, index) => (
           <div key={question.id || index} className="flex justify-between items-center mt-3 gap-2.5">
-            <span className="text-[.85rem] flex-1">{question.body || question.text}</span>
+            <div className="flex-1 min-w-0">
+              <span className="text-[.85rem]">{question.body || question.text}</span>
+              {question.mentor?.name && (
+                <div className="text-[.72rem] text-primary-500 font-semibold mt-0.5">Para: {question.mentor.name}</div>
+              )}
+            </div>
             <button
               onClick={async () => {
                 try {
@@ -556,16 +537,21 @@ export const MenteeLive = ({
             </button>
           </div>
         ))}
-        <QuestionInput onSubmit={async (text) => {
-          try {
-            const resp = await ccCreateQuestion({ session_id: 'current', body: text });
-            const created = resp.data?.question;
-            setQuestions((previous) => [...previous, { ...created, votes: 0, mine: true }]);
-            showToastRef.current('Pergunta enviada.');
-          } catch (err) {
-            showToastRef.current(err.response?.data?.message || 'Erro ao enviar pergunta.');
-          }
-        }} />
+        <QuestionInput
+          mentors={mentorDirectory}
+          disabled={checkedIn}
+          disabledMessage="Já fez check-in. As perguntas só podem ser enviadas antes do evento."
+          onSubmit={async (text, mentorId) => {
+            try {
+              const resp = await ccCreateQuestion({ session_id: 'current', body: text, mentor_id: mentorId });
+              const created = resp.data?.question;
+              setQuestions((previous) => [...previous, { ...created, votes: 0, mine: true }]);
+              showToastRef.current('Pergunta enviada.');
+            } catch (err) {
+              showToastRef.current(err.response?.data?.message || 'Erro ao enviar pergunta.');
+            }
+          }}
+        />
       </Card>
 
       <Card>
@@ -616,6 +602,7 @@ export const MenteeMentors = ({ showToast }) => {
   const [mentors, setMentors] = useState([]);
   const [wished, setWished] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMentor, setSelectedMentor] = useState(null);
 
   const showToastRef = useRef(showToast);
   useEffect(() => { showToastRef.current = showToast; });
@@ -674,6 +661,7 @@ export const MenteeMentors = ({ showToast }) => {
               name={mentor.name}
               subtitle={[mentor.mentorProfile?.job_title, mentor.mentorProfile?.company].filter(Boolean).join(', ') || 'Mentor'}
               photoUrl={mentor.photo_url}
+              onClick={() => setSelectedMentor({ ...mentor, role: 'mentor' })}
               extra={
                 <button
                   onClick={async () => {
@@ -706,9 +694,28 @@ export const MenteeMentors = ({ showToast }) => {
               <span className="bg-surface text-ink-muted border border-line rounded-full px-3 py-[5px] text-[.74rem] font-semibold">{mentor.mentorProfile?.sector || 'Área'}</span>
               <span className="bg-surface text-ink-muted border border-line rounded-full px-3 py-[5px] text-[.74rem] font-semibold">compatível</span>
             </div>
+            {(mentor.phone || mentor.email) && (
+              <div className="mt-2.5 space-y-1">
+                {mentor.phone && (
+                  <a href={`tel:${mentor.phone}`} className="flex items-center gap-2 text-[.82rem] font-semibold text-primary-500 hover:underline">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    {mentor.phone}
+                  </a>
+                )}
+                {mentor.email && (
+                  <a href={`mailto:${mentor.email}`} className="flex items-center gap-2 text-[.82rem] font-semibold text-primary-500 hover:underline break-all">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+                    {mentor.email}
+                  </a>
+                )}
+              </div>
+            )}
           </Card>
         );
       })}
+      {selectedMentor && (
+        <PersonDetailsDialog user={selectedMentor} onClose={() => setSelectedMentor(null)} />
+      )}
     </>
   );
 };
@@ -718,6 +725,7 @@ export const MenteeMet = ({ showToast }) => {
   const [connections, setConnections] = useState([]);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedContact, setSelectedContact] = useState(null);
 
   const showToastRef = useRef(showToast);
   useEffect(() => { showToastRef.current = showToast; });
@@ -782,7 +790,7 @@ export const MenteeMet = ({ showToast }) => {
         const req = requests.find((r) => r.mentor_id === contact.id);
         return (
           <Card key={c.id}>
-            <PersonRow name={contact.name} subtitle={contact.role || ''} />
+            <PersonRow name={contact.name} subtitle={contact.role || ''} photoUrl={contact.photo_url} onClick={() => setSelectedContact(contact)} />
             {(req?.status !== 'accepted' && req?.status !== 'pending') && (
               <textarea rows="2" placeholder="Nota privada, só tu vês" className="w-full mt-3 mb-0 text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none" />
             )}
@@ -813,6 +821,9 @@ export const MenteeMet = ({ showToast }) => {
           </Card>
         );
       })}
+      {selectedContact && (
+        <PersonDetailsDialog user={selectedContact} onClose={() => setSelectedContact(null)} />
+      )}
     </>
   );
 };

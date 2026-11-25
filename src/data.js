@@ -18,6 +18,7 @@ const ICONS = {
   hoje: Calendar,
   mesa: Table,
   req: Inbox,
+  mentees: Users,
 };
 
 export const EVENT_DATE = new Date('2026-12-04T14:00:00+02:00');
@@ -79,6 +80,7 @@ export const NAV_MENTOR = [
   { key: 'home',    label: 'Hoje',      icon: ICONS.hoje },
   { key: 'live',    label: 'Mesa',      icon: ICONS.mesa },
   { key: 'req',     label: 'Pedidos',   icon: ICONS.req },
+  { key: 'mentees', label: 'Mentees',   icon: ICONS.mentees },
   { key: 'conn',    label: 'Conexões',  icon: ICONS.conn },
   { key: 'msg',     label: 'Mensagens',  icon: ICONS.msg },
   { key: 'profile', label: 'Perfil',    icon: ICONS.profile },

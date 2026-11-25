@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ccGetQuestions, ccCreateQuestion, ccUpdateQuestion, ccDeleteQuestion, ccDeleteAllQuestions } from '../api/client';
+import { ccGetQuestions, ccCreateQuestion, ccUpdateQuestion, ccDeleteQuestion, ccDeleteAllQuestions, ccGetAllUsers } from '../api/client';
 import { Card } from '../ui';
 
 export const OrganizerQuestions = ({ showToast }) => {
   const [questions, setQuestions] = useState([]);
+  const [mentors, setMentors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
@@ -12,11 +13,22 @@ export const OrganizerQuestions = ({ showToast }) => {
     status: 'visible',
     projected: false,
     anonymous: false,
+    mentor_id: '',
   });
 
   useEffect(() => {
     loadQuestions();
+    loadMentors();
   }, []);
+
+  const loadMentors = async () => {
+    try {
+      const resp = await ccGetAllUsers();
+      setMentors((resp.data?.users || []).filter((u) => u.role === 'mentor'));
+    } catch (err) {
+      console.error('Failed to load mentors:', err);
+    }
+  };
 
   const loadQuestions = async () => {
     try {
@@ -41,7 +53,7 @@ export const OrganizerQuestions = ({ showToast }) => {
       }
       setShowForm(false);
       setEditingQuestion(null);
-      setFormData({ body: '', status: 'visible', projected: false, anonymous: false });
+      setFormData({ body: '', status: 'visible', projected: false, anonymous: false, mentor_id: '' });
       loadQuestions();
     } catch (err) {
       showToast(err.response?.data?.message || 'Erro ao guardar pergunta.');
@@ -57,6 +69,7 @@ export const OrganizerQuestions = ({ showToast }) => {
       status: question.status,
       projected: question.projected,
       anonymous: question.anonymous,
+      mentor_id: question.mentor_id || '',
     });
     setShowForm(true);
   };
@@ -86,7 +99,7 @@ export const OrganizerQuestions = ({ showToast }) => {
   const handleCancel = () => {
     setShowForm(false);
     setEditingQuestion(null);
-    setFormData({ body: '', status: 'visible', projected: false, anonymous: false });
+    setFormData({ body: '', status: 'visible', projected: false, anonymous: false, mentor_id: '' });
   };
 
   const statusColors = {
@@ -112,7 +125,7 @@ export const OrganizerQuestions = ({ showToast }) => {
                 Remover todas
               </button>
             )}
-            <button onClick={() => { setShowForm(true); setEditingQuestion(null); setFormData({ body: '', status: 'visible', projected: false, anonymous: false }); }} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white">
+            <button onClick={() => { setShowForm(true); setEditingQuestion(null); setFormData({ body: '', status: 'visible', projected: false, anonymous: false, mentor_id: '' }); }} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white">
               + Nova Pergunta
             </button>
           </div>
@@ -122,6 +135,15 @@ export const OrganizerQuestions = ({ showToast }) => {
             <div>
               <label className="block text-[.85rem] font-semibold mb-1.5">Texto da pergunta</label>
               <textarea value={formData.body} onChange={(e) => setFormData({ ...formData, body: e.target.value })} rows="3" className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none" required maxLength={500} />
+            </div>
+            <div>
+              <label className="block text-[.85rem] font-semibold mb-1.5">Mentor (opcional)</label>
+              <select value={formData.mentor_id} onChange={(e) => setFormData({ ...formData, mentor_id: e.target.value })} className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none">
+                <option value="">Pergunta ao orador (sem mentor)</option>
+                {mentors.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
             </div>
             <div className="grid grid-cols-4 gap-3">
               <div>
@@ -172,6 +194,11 @@ export const OrganizerQuestions = ({ showToast }) => {
                     <div className="text-[.72rem] text-ink-muted mt-1">
                       Por: {question.user?.name || 'Desconhecido'} · {question.votes || 0} votos · {new Date(question.created_at).toLocaleString('pt-PT')}
                     </div>
+                    {question.mentor?.name && (
+                      <div className="text-[.72rem] text-primary-500 font-semibold mt-0.5">
+                        Para: {question.mentor.name}
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button onClick={() => handleEdit(question)} className="rounded-full font-bold text-[.72rem] h-[30px] px-3 bg-primary-500 text-white">Editar</button>

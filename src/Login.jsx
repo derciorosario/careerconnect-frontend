@@ -93,14 +93,14 @@ export default function Login() {
     setError('');
     setSuccess('');
     if (!email) {
-      setError('Insira o email primeiro.');
+      setError('Insira o email ou WhatsApp primeiro.');
       return;
     }
     setSendingOtp(true);
     try {
       await ccRequestOTP({ email });
       setOtpSent(true);
-      setSuccess('Código OTP enviado por email.');
+      setSuccess('Código OTP enviado por email e WhatsApp.');
     } catch (err) {
       setError(err.response?.data?.message || 'Erro ao enviar OTP.');
     } finally {
@@ -170,12 +170,13 @@ export default function Login() {
           {/* Email */}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="email" className="text-[.85rem] font-semibold">
-              Email
+              Email ou WhatsApp
             </label>
             <input
               id="email"
-              type="email"
-              autoComplete="email"
+              type="text"
+              autoComplete="username"
+              placeholder="email ou número de WhatsApp"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={FIELD_BASE}
@@ -229,7 +230,7 @@ export default function Login() {
                   className={FIELD_BASE}
                 />
                 <p className="text-[.8rem] text-ink-muted">
-                  Insira o código recebido por email.
+                  Insira o código recebido por email ou WhatsApp.
                 </p>
               </div>
               <button

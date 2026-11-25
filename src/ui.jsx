@@ -23,16 +23,97 @@ export const Avatar = ({ name, size = 'md', variant = 'navy', photoUrl = null })
   );
 };
 
-export const PersonRow = ({ name, subtitle, extra = null, photoUrl = null }) => (
+export const PersonRow = ({ name, subtitle, extra = null, photoUrl = null, onClick }) => (
   <div className="flex gap-3 items-center">
-    <Avatar name={name} photoUrl={photoUrl} />
-    <div className="flex-1 min-w-0">
-      <b>{name}</b>
-      <div className="text-ink-muted text-[.85rem] mt-px">{subtitle}</div>
+    <div
+      className="flex gap-3 items-center flex-1 min-w-0"
+      onClick={onClick}
+      style={onClick ? { cursor: 'pointer' } : undefined}
+    >
+      <Avatar name={name} photoUrl={photoUrl} />
+      <div className="flex-1 min-w-0">
+        <b>{name}</b>
+        <div className="text-ink-muted text-[.85rem] mt-px">{subtitle}</div>
+      </div>
     </div>
     {extra}
   </div>
 );
+
+export const PersonDetailsDialog = ({ user, onClose }) => {
+  if (!user) return null;
+  const isMentor = user.role === 'mentor';
+  const profile = isMentor ? user.mentorProfile : user.menteeProfile;
+  const profileLabel = isMentor ? 'Perfil de mentor' : 'Perfil de mentorado';
+
+  const rows = [
+    { label: 'Nome', value: user.name || '–' },
+    { label: 'E-mail', value: user.email || '–' },
+    { label: 'Telefone', value: user.phone || '–' },
+    { label: 'Perfil', value: isMentor ? 'Mentor' : 'Mentorado' },
+    { label: 'LinkedIn', value: user.linkedin_url || '–' },
+  ];
+
+  const profileRows = [];
+  if (isMentor && profile) {
+    profileRows.push(
+      { label: 'Cargo', value: profile.job_title || '–' },
+      { label: 'Empresa', value: profile.company || '–' },
+      { label: 'Setor', value: profile.sector || '–' },
+      { label: 'Anos de experiência', value: profile.years != null ? String(profile.years) : '–' },
+      { label: 'Tipo de apoio', value: profile.support_type || '–' },
+      { label: 'Áreas de ajuda', value: Array.isArray(profile.interests) ? profile.interests.join(', ') || '–' : '–' },
+    );
+  } else if (!isMentor && profile) {
+    profileRows.push(
+      { label: 'Situação', value: profile.level || '–' },
+      { label: 'Curso', value: profile.course || '–' },
+      { label: 'Instituição', value: profile.institution || '–' },
+      { label: 'Áreas de interesse', value: Array.isArray(profile.interests) ? profile.interests.join(', ') || '–' : '–' },
+      { label: 'Objetivo', value: profile.goal || '–' },
+      { label: 'Pitch', value: profile.pitch || '–' },
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-surface rounded-[24px] p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-[1.1rem] font-extrabold">Detalhes</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-surface2 text-ink flex items-center justify-center hover:bg-primary-500 hover:text-white transition">
+            ✕
+          </button>
+        </div>
+        <div className="flex flex-col items-center mb-6">
+          <Avatar name={user.name || 'Participante'} photoUrl={user.photo_url} size="lg" variant="orange" />
+          <span className="mt-2.5 text-[.9rem] font-bold">{user.name || 'Participante'}</span>
+          <span className="text-ink-muted text-[.8rem]">{isMentor ? 'Mentor' : 'Mentorado'}</span>
+        </div>
+        <div className="space-y-2">
+          {rows.map((r) => (
+            <div key={r.label} className="flex justify-between text-[.85rem]">
+              <span className="text-ink-muted">{r.label}</span>
+              <span className="text-ink whitespace-nowrap">{r.value}</span>
+            </div>
+          ))}
+        </div>
+        {profileRows.length > 0 && (
+          <div className="mt-6 pt-4 border-t border-line">
+            <h4 className="text-[.8rem] font-bold text-primary-300 uppercase tracking-wide mb-3">{profileLabel}</h4>
+            <div className="space-y-2">
+              {profileRows.map((r) => (
+                <div key={r.label} className="flex justify-between text-[.85rem]">
+                  <span className="text-ink-muted">{r.label}</span>
+                  <span className="text-ink whitespace-nowrap">{r.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export const ProgressBar = ({ value }) => (
   <div className="h-2 rounded-full bg-line overflow-hidden">
@@ -67,28 +148,52 @@ export const Toast = ({ message }) => (
   </div>
 );
 
-export const QuestionInput = ({ onSubmit }) => {
+export const QuestionInput = ({ onSubmit, mentors = [], disabled = false, disabledMessage }) => {
   const [value, setValue] = useState('');
+  const [mentorId, setMentorId] = useState('');
+
+  if (disabled) {
+    return (
+      <div className="mt-3.5 rounded-[14px] border-2 border-dashed border-line px-3.5 py-3 text-[.85rem] text-ink-muted">
+        {disabledMessage || 'Faça check-in para enviar perguntas.'}
+      </div>
+    );
+  }
+
   return (
-    <div className="flex gap-2 mt-3.5">
-      <input
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-        maxLength={200}
-        placeholder="A tua pergunta (máx. 200)"
-        className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none"
-      />
-      <button
-        onClick={() => {
-          const trimmed = value.trim();
-          if (!trimmed) return;
-          onSubmit(trimmed);
-          setValue('');
-        }}
-        className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white shrink-0"
-      >
-        Enviar
-      </button>
+    <div className="mt-3.5 space-y-2">
+      {mentors.length > 0 && (
+        <select
+          value={mentorId}
+          onChange={(event) => setMentorId(event.target.value)}
+          className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none"
+        >
+          <option value="">Pergunta ao orador (opcional)</option>
+          {mentors.map((m) => (
+            <option key={m.id} value={m.id}>{m.name}</option>
+          ))}
+        </select>
+      )}
+      <div className="flex gap-2">
+        <input
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          maxLength={200}
+          placeholder="A tua pergunta (máx. 200)"
+          className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none"
+        />
+        <button
+          onClick={() => {
+            const trimmed = value.trim();
+            if (!trimmed) return;
+            onSubmit(trimmed, mentorId || null);
+            setValue('');
+          }}
+          className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white shrink-0"
+        >
+          Enviar
+        </button>
+      </div>
     </div>
   );
 };

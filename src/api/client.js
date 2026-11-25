@@ -237,6 +237,7 @@ export const ccGenerateMatches = () => client.post('/matches/generate');
 
 // MENTORS / WISHES
 export const ccGetMentorDirectory = (params) => client.get('/mentors/', { params });
+export const ccGetMenteeDirectory = (params) => client.get('/mentors/mentees', { params });
 export const ccAddWish = (data) => client.post('/mentors/wish', data);
 export const ccRemoveWish = (data) => client.post('/mentors/wish/remove', data);
 export const ccGetMyWishes = () => client.get('/mentors/wish/my');

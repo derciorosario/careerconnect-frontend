@@ -888,15 +888,28 @@ export const OrganizerReports = ({ showToast }) => {
 };
 
 // ── PROFILE (shared) ─────────────────────────
-const AREAS = [
+/*const AREAS = [ Do not delete this commented list.
   'Tecnologia e TI', 'Finanças e Banca', 'Engenharia', 'Saúde', 'Direito',
   'Marketing e Comunicação', 'Gestão e Empreendedorismo', 'Recursos Humanos',
   'Energia e Recursos Naturais', 'Educação', 'Agricultura', 'Logística',
+];*/
+
+const AREAS = [
+  'Recursos Humanos',
+  'Secretariado',
+  'Contabilidade',
+  'Relações Públicas e Marketing',
+  'Tecnologia (Redes e Hardware)',
+  'Marketing Digital',
+  'Programação Web',
 ];
+
+
 const GOALS = [
   'Escolher a minha área', 'Preparar o primeiro estágio', 'Construir a minha marca pessoal',
   'Desenvolver competências', 'Mudar de percurso', 'Criar o meu negócio',
 ];
+
 const LEVELS = ['Estudante', 'Recém-graduado'];
 const SUPPORT_TYPES = ['Mentor', 'Coach', 'Orientação pontual'];
 
@@ -938,6 +951,8 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
             can_help_goals: Array.isArray(mp.can_help_goals) ? mp.can_help_goals : [],
             linkedin_url: user?.linkedin_url || '',
             photo_url: user?.photo_url || '',
+            notify_email: user?.notify_email !== false,
+            notify_whatsapp: user?.notify_whatsapp !== false,
           });
         } else {
           const mp = user?.menteeProfile || {};
@@ -952,6 +967,8 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
             pitch: mp.pitch || '',
             linkedin_url: user?.linkedin_url || '',
             photo_url: user?.photo_url || '',
+            notify_email: user?.notify_email !== false,
+            notify_whatsapp: user?.notify_whatsapp !== false,
           });
         }
       } catch (err) {
@@ -985,6 +1002,8 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
     fd.append('name', form.name);
     fd.append('phone', form.phone);
     fd.append('linkedin_url', form.linkedin_url || '');
+    fd.append('notify_email', form.notify_email ? 'true' : 'false');
+    fd.append('notify_whatsapp', form.notify_whatsapp ? 'true' : 'false');
     if (photoFile) fd.append('photo', photoFile);
     if (isMentor) {
       fd.append('mentorProfile', JSON.stringify({
@@ -1119,6 +1138,51 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
           {saving ? 'A guardar...' : 'Guardar'}
         </button>
       </Card>
+
+      <Card className="mt-4">
+        <h3 className="text-[1.05rem] font-extrabold tracking-tight mb-1">Notificações</h3>
+        <p className="text-[.82rem] text-ink-muted mb-3">
+          Escolhe como queres receber as notificações da plataforma. Os códigos de confirmação (email e WhatsApp) são sempre enviados.
+        </p>
+        <div className="flex items-center justify-between py-3 border-t border-line">
+          <div>
+            <p className="text-[.92rem] font-semibold">Notificações por email</p>
+            <p className="text-[.78rem] text-ink-muted">Mensagens, pedidos de mentoria e ligações.</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={form.notify_email}
+            onClick={() => setForm((p) => ({ ...p, notify_email: !p.notify_email }))}
+            className={`relative w-12 h-7 rounded-full transition shrink-0 ${form.notify_email ? 'bg-primary-500' : 'bg-line'}`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow transition ${form.notify_email ? 'translate-x-5' : 'translate-x-0'}`} />
+          </button>
+        </div>
+        <div className="flex items-center justify-between py-3 border-t border-line">
+          <div>
+            <p className="text-[.92rem] font-semibold">Notificações por WhatsApp</p>
+            <p className="text-[.78rem] text-ink-muted">Mensagens, pedidos de mentoria e ligações.</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={form.notify_whatsapp}
+            onClick={() => setForm((p) => ({ ...p, notify_whatsapp: !p.notify_whatsapp }))}
+            className={`relative w-12 h-7 rounded-full transition shrink-0 ${form.notify_whatsapp ? 'bg-primary-500' : 'bg-line'}`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow transition ${form.notify_whatsapp ? 'translate-x-5' : 'translate-x-0'}`} />
+          </button>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="mt-3 rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white disabled:opacity-50"
+        >
+          {saving ? 'A guardar...' : 'Guardar preferências'}
+        </button>
+      </Card>
+
       <button onClick={() => { setStoredToken(null); localStorage.removeItem('refresh_token'); localStorage.removeItem('userRole'); setRole(null); window.location.href = '/entrar'; }} className="w-full rounded-full font-bold text-[.92rem] h-12 bg-surface2 text-ink">Sair</button>
     </>
   );

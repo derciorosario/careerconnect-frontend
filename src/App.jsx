@@ -12,7 +12,7 @@ import {
 } from './screens.mentee';
 import {
   MentorHome, MentorLive, MentorRequests, MentorConnections,
-  MentorMessages,
+  MentorMessages, MentorMentees,
 } from './screens.mentor';
 import {
   OrganizerLive, OrganizerReg, OrganizerInteraction, OrganizerReports,
@@ -351,6 +351,8 @@ export function CareerConnectApp({ initialRole }) {
         return <MentorLive {...common} currentRound={currentRound} secondsLeft={secondsLeft} phaseLabel={phaseLabel} />;
       case 'req':
         return <MentorRequests {...common} />;
+      case 'mentees':
+        return <MentorMentees {...common} />;
       case 'conn':
         return <MentorConnections {...common} />;
       case 'msg':

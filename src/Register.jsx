@@ -9,18 +9,13 @@ const BTN_GHOST  = 'bg-transparent text-ink shadow-[inset_0_0_0_2px_var(--color-
 const FIELD_BASE = 'w-full font-normal text-base text-ink bg-surface border-2 border-line rounded-field px-3.5 py-3 focus:border-primary-500 focus:outline-none';
 
 const AREAS = [
-  'Tecnologia e TI',
-  'Finanças e Banca',
-  'Engenharia',
-  'Saúde',
-  'Direito',
-  'Marketing e Comunicação',
-  'Gestão e Empreendedorismo',
   'Recursos Humanos',
-  'Energia e Recursos Naturais',
-  'Educação',
-  'Agricultura',
-  'Logística',
+  'Secretariado',
+  'Contabilidade',
+  'Relações Públicas e Marketing',
+  'Tecnologia (Redes e Hardware)',
+  'Marketing Digital',
+  'Programação Web',
 ];
 
 const GOALS = [
@@ -132,7 +127,7 @@ export default function Register() {
 
       if (response.data.requiresEmailVerification) {
         setStep(3);
-        setError('Foi enviado um código de verificação para o seu email.');
+        setError('Foi enviado um código de verificação para o seu email e WhatsApp.');
       } else {
         setError(response.data.message || 'Registo concluído.');
       }
@@ -174,7 +169,7 @@ export default function Register() {
     setLoading(true);
     try {
       await ccResendEmailOTP({ email: form.email });
-      setError('Código reenviado por email.');
+      setError('Código reenviado por email e WhatsApp.');
     } catch {
       setError('Erro ao reenviar código.');
     } finally {
@@ -360,9 +355,9 @@ export default function Register() {
   const renderScreen3 = () => (
     <>
       <Progress step={3} total={3} />
-      <h2 className="text-[1.5rem] font-extrabold tracking-tight mb-2">Verifique o seu email</h2>
+      <h2 className="text-[1.5rem] font-extrabold tracking-tight mb-2">Verifique o seu email e WhatsApp</h2>
       <p className="text-ink-muted mb-6">
-        Enviamos um código de 6 dígitos para <strong>{form.email}</strong>. Insira-o aqui para concluir o registo.
+        Enviamos um código de 6 dígitos para <strong>{form.email}</strong> e para o seu WhatsApp <strong>{form.phone}</strong>. Insira-o aqui para concluir o registo.
       </p>
       <form onSubmit={handleVerifyEmail} noValidate className="space-y-4">
         <div className="flex flex-col gap-1.5">
@@ -418,7 +413,7 @@ export default function Register() {
           {isMentee && (
             <div className="bg-surface2 rounded-lg p-4 mb-6 border border-line">
               <p className="text-[.85rem] font-semibold text-ink mb-2">Bilhete digital</p>
-              <p className="text-[.85rem] text-ink-muted">O seu bilhete com código foi enviado por e-mail.</p>
+              <p className="text-[.85rem] text-ink-muted">O seu bilhete com código foi enviado por e-mail e WhatsApp.</p>
             </div>
           )}
           <div className="text-danger text-sm font-semibold">{error}</div>

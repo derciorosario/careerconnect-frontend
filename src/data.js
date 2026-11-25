@@ -68,11 +68,11 @@ export const ROUNDS = [
 export const NAV_MENTEE = [
   { key: 'home',    label: 'Passaporte', icon: ICONS.home },
   { key: 'live',    label: 'Ao vivo',    icon: ICONS.live },
-  { key: 'mentors', label: 'Mentores',   icon: ICONS.mentors },
+  { key: 'participantes', label: 'Participantes', icon: ICONS.mentees },
   { key: 'met',     label: 'Conheci',    icon: ICONS.met },
   { key: 'conn',    label: 'Conexões',   icon: ICONS.conn },
   { key: 'msg',     label: 'Mensagens',  icon: ICONS.msg },
-  // leave hidden { key: 'fecho',   label: 'Fecho',      icon: ICONS.fecho },
+  { key: 'fecho',   label: 'Fecho',      icon: ICONS.fecho },
   { key: 'profile', label: 'Perfil',     icon: ICONS.profile },
 ];
 
@@ -80,7 +80,7 @@ export const NAV_MENTOR = [
   { key: 'home',    label: 'Hoje',      icon: ICONS.hoje },
   { key: 'live',    label: 'Mesa',      icon: ICONS.mesa },
   { key: 'req',     label: 'Pedidos',   icon: ICONS.req },
-  { key: 'mentees', label: 'Mentees',   icon: ICONS.mentees },
+  { key: 'participantes', label: 'Participantes', icon: ICONS.mentees },
   { key: 'conn',    label: 'Conexões',  icon: ICONS.conn },
   { key: 'msg',     label: 'Mensagens',  icon: ICONS.msg },
   { key: 'profile', label: 'Perfil',    icon: ICONS.profile },

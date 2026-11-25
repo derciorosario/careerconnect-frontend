@@ -726,6 +726,7 @@ export const MenteeMet = ({ showToast }) => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedContact, setSelectedContact] = useState(null);
+  const [search, setSearch] = useState('');
 
   const showToastRef = useRef(showToast);
   useEffect(() => { showToastRef.current = showToast; });
@@ -781,11 +782,30 @@ export const MenteeMet = ({ showToast }) => {
     );
   }
 
+  const term = search.trim().toLowerCase();
+  const filtered = connections.filter((c) => {
+    const contact = c.contact || {};
+    return !term
+      || (contact.name || '').toLowerCase().includes(term)
+      || (contact.email || '').toLowerCase().includes(term);
+  });
+
   return (
     <>
       <h2 className="text-[1.45rem] font-extrabold tracking-tight">Quem conheci</h2>
       <p className="text-ink-muted text-[.85rem] mt-1 mb-4">Podes alterar o interesse até 7 dias depois do evento.</p>
-      {connections.map((c) => {
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Pesquisar por nome ou email..."
+        className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-2.5 mb-3.5 focus:border-primary-500 focus:outline-none"
+      />
+      {filtered.length === 0 && (
+        <Card>
+          <p className="text-ink-muted text-[.85rem]">Nenhum contacto encontrado.</p>
+        </Card>
+      )}
+      {filtered.map((c) => {
         const contact = c.contact;
         const req = requests.find((r) => r.mentor_id === contact.id);
         return (

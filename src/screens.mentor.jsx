@@ -45,6 +45,7 @@ export const MentorHome = ({ showToast }) => {
   const [wishesReceived, setWishesReceived] = useState([]);
   const [myMatch, setMyMatch] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedMentee, setSelectedMentee] = useState(null);
 
   const showToastRef = useRef(showToast);
   useEffect(() => { showToastRef.current = showToast; });
@@ -165,6 +166,8 @@ export const MentorHome = ({ showToast }) => {
                   <PersonRow
                     name={mentee?.name || 'Mentorado'}
                     subtitle={mentee?.menteeProfile?.goal || ''}
+                    photoUrl={mentee?.photo_url}
+                    onClick={() => setSelectedMentee({ ...mentee, role: 'mentee' })}
                   />
                   {(mentee?.email || mentee?.phone) && (
                     <div className="text-[.78rem] text-ink-muted mt-1 pl-[46px] space-y-0.5">
@@ -178,6 +181,10 @@ export const MentorHome = ({ showToast }) => {
           </div>
         )}
       </Card>
+
+      {selectedMentee && (
+        <PersonDetailsDialog user={selectedMentee} onClose={() => setSelectedMentee(null)} />
+      )}
     </>
   );
 };

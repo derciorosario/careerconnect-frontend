@@ -7,13 +7,14 @@ import {
 } from './data';
 import { Avatar, Toast } from './ui';
 import {
-  MenteeHome, MenteeLive, MenteeMentors, MenteeMet, MenteeConnections,
+  MenteeHome, MenteeLive, MenteeMet, MenteeConnections,
   MenteeMessages,
 } from './screens.mentee';
 import {
   MentorHome, MentorLive, MentorRequests, MentorConnections,
-  MentorMessages, MentorMentees,
+  MentorMessages,
 } from './screens.mentor';
+import { Participantes } from './screens.participantes';
 import {
   OrganizerLive, OrganizerReg, OrganizerInteraction, OrganizerReports,
   ProfileScreen, TvScreen, OrganizerShell,
@@ -23,7 +24,7 @@ import { OrganizerQuestions } from './screens/OrganizerQuestions';
 import { OrganizerSessions } from './screens/OrganizerSessions';
 import WhatsApp from './whatsapp';
 import {
-  SurveyScreen, NextStepScreen, DailySummaryScreen,
+  SurveyScreen,
 } from './screens.fecho';
 import { CheckInScreen } from './screens.checkin';
 import Landingpage from './Landingpage';
@@ -319,8 +320,8 @@ export function CareerConnectApp({ initialRole }) {
         return <MenteeHome {...common} />;
       case 'live':
         return <MenteeLive {...common} currentRound={currentRound} secondsLeft={secondsLeft} isRehearsal={isRehearsal} announcements={announcements} phaseLabel={phaseLabel} setActiveTab={setActiveTab} questions={questions} setQuestions={setQuestions} pollOptions={pollOptions} setPollOptions={setPollOptions} pollVotes={pollVotes} setPollVotes={setPollVotes} votedOption={votedOption} setVotedOption={setVotedOption} totalPollVotes={totalPollVotes} roundDataVersion={roundDataVersion} />;
-      case 'mentors':
-        return <MenteeMentors {...common} />;
+      case 'participantes':
+        return <Participantes {...common} />;
       case 'met':
         return <MenteeMet {...common} />;
       case 'conn':
@@ -328,13 +329,7 @@ export function CareerConnectApp({ initialRole }) {
       case 'msg':
         return <MenteeMessages {...common} />;
       case 'fecho':
-        return (
-          <>
-            <SurveyScreen {...common} />
-            <NextStepScreen {...common} />
-            <DailySummaryScreen {...common} conversations={furthestRoundCompleted || 0} connectionsCount={0} questionsAsked={0} />
-          </>
-        );
+        return <SurveyScreen {...common} />;
       case 'profile':
         return <ProfileScreen asRole="mentee" setRole={setRole} {...common} />;
       default:
@@ -351,8 +346,8 @@ export function CareerConnectApp({ initialRole }) {
         return <MentorLive {...common} currentRound={currentRound} secondsLeft={secondsLeft} phaseLabel={phaseLabel} />;
       case 'req':
         return <MentorRequests {...common} />;
-      case 'mentees':
-        return <MentorMentees {...common} />;
+      case 'participantes':
+        return <Participantes {...common} />;
       case 'conn':
         return <MentorConnections {...common} />;
       case 'msg':

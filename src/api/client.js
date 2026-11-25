@@ -288,6 +288,10 @@ export const ccUpdateQuestionnaire = (data) => client.put('/survey/questionnaire
 export const ccGetSurveyStatus = (params) => client.get('/survey/status', { params });
 export const ccNotifySurvey = (data) => client.post('/survey/notify', data);
 
+// REGISTRATION CONFIG (editable form options)
+export const ccGetRegistrationConfig = (params) => client.get('/registration-config', { params });
+export const ccUpdateRegistrationConfig = (data) => client.put('/registration-config', data);
+
 // NEXT STEPS
 export const ccCreateNextStep = (data) => client.post('/next-steps/', data);
 export const ccGetMyNextStep = () => client.get('/next-steps/my');

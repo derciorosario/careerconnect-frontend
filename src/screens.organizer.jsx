@@ -241,7 +241,6 @@ export const OrganizerLive = ({
             )}
           </tbody>
         </table>
-        <p className="text-[.85rem] text-ink-muted mt-3">Rácio 1:1 neste ensaio. O alerta dispara acima de 1:3.</p>
       </Card>
     </>
   );
@@ -283,7 +282,8 @@ const RegistrationDetailsDialog = ({ reg, onClose }) => {
       { label: 'Instituição', value: profile.institution || '–' },
       { label: 'Áreas de interesse', value: Array.isArray(profile.interests) ? profile.interests.join(', ') || '–' : '–' },
       { label: 'Objetivo', value: profile.goal || '–' },
-      { label: 'Pitch', value: profile.pitch || '–' }
+      { label: 'Pitch', value: profile.pitch || '–' },
+      { label: 'Maior obstáculo', value: profile.job_obstacle || '–' }
     );
   }
 
@@ -723,7 +723,7 @@ export const OrganizerInteraction = ({ showToast }) => {
           )}
         </Card>
       </div>
-      <Card>
+     {/** <Card>
         <div className="flex items-center justify-between mb-3.5"><b>Sondagem ao vivo</b></div>
         {polls.length > 0 ? (
           polls.map((poll) => {
@@ -789,7 +789,7 @@ export const OrganizerInteraction = ({ showToast }) => {
             {creating ? 'A criar...' : 'Criar sondagem'}
           </button>
         </div>
-      </Card>
+      </Card> */}
     </>
   );
 };
@@ -966,7 +966,7 @@ const EMPTY_MENTOR = {
   support_type: '', interests: [], can_help_goals: [], linkedin_url: '', photo_url: '',
 };
 const EMPTY_MENTEE = {
-  name: '', phone: '', level: '', course: '', institution: '', interests: [], goal: '', pitch: '', linkedin_url: '', photo_url: '',
+  name: '', phone: '', level: '', course: '', institution: '', interests: [], goal: '', pitch: '', job_obstacle: '', linkedin_url: '', photo_url: '',
 };
 
 export const ProfileScreen = ({ asRole, setRole, showToast }) => {
@@ -1012,6 +1012,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
             interests: Array.isArray(mp.interests) ? mp.interests : [],
             goal: mp.goal || '',
             pitch: mp.pitch || '',
+            job_obstacle: mp.job_obstacle || '',
             linkedin_url: user?.linkedin_url || '',
             photo_url: user?.photo_url || '',
             notify_email: user?.notify_email !== false,
@@ -1070,6 +1071,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
         interests: form.interests,
         goal: form.goal,
         pitch: form.pitch,
+        job_obstacle: form.job_obstacle || null,
       }));
     }
     const resp = await uploadClient.put('/users/profile', fd);
@@ -1173,6 +1175,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
               </select>
             </div>
             <div><label className={labelCls}>Pitch (120 caracteres)</label><textarea value={form.pitch} onChange={set('pitch')} maxLength={120} rows="3" className={inputCls} /></div>
+            <div><label className={labelCls}>Maior obstáculo na busca de emprego</label><input value={form.job_obstacle} onChange={set('job_obstacle')} className={inputCls} /></div>
 
           </div>
         )}

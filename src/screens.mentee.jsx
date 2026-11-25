@@ -554,11 +554,13 @@ export const MenteeLive = ({
         />
       </Card>
 
-      <Card>
+      {/**<Card>
+        
         <div className="flex items-center justify-between mb-3.5">
           <b>Sondagem</b>
           <span className="text-[.76rem] text-ink-muted">Maior obstáculo</span>
         </div>
+
         {pollOptions.map((option, index) => {
           const percentage = totalPollVotes ? Math.round((pollVotes[index] / totalPollVotes) * 100) : 0;
           const isVoted = votedOption === index;
@@ -592,7 +594,7 @@ export const MenteeLive = ({
             </div>
           );
         })}
-      </Card>
+      </Card> */}
     </>
   );
 };

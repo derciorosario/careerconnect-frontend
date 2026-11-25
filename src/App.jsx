@@ -23,6 +23,7 @@ import { OrganizerPools } from './screens/OrganizerPools';
 import { OrganizerQuestions } from './screens/OrganizerQuestions';
 import { OrganizerQuestionnaire } from './screens/OrganizerQuestionnaire';
 import { OrganizerResponses } from './screens/OrganizerResponses';
+import { OrganizerConfig } from './screens/OrganizerConfig';
 import { OrganizerSessions } from './screens/OrganizerSessions';
 import WhatsApp from './whatsapp';
 import {
@@ -253,6 +254,7 @@ export function CareerConnectApp({ initialRole }) {
         const ev = evResp.data?.event;
         if (active && ev?.round_minutes != null && Number(ev.round_minutes) > 0) {
           setRoundMinutes(Number(ev.round_minutes));
+          setSecondsLeft(parseInt(ev.round_minutes) * 60)
         }
       } catch (err) {
         // Non-blocking
@@ -261,6 +263,9 @@ export function CareerConnectApp({ initialRole }) {
     loadRounds();
     return () => { active = false; };
   }, [roundDataVersion]);
+
+
+  
 
   const advanceRound = async () => {
     try {
@@ -409,6 +414,8 @@ export function CareerConnectApp({ initialRole }) {
         return <OrganizerQuestionnaire {...common} />;
       case 'responses':
         return <OrganizerResponses {...common} />;
+      case 'config':
+        return <OrganizerConfig {...common} />;
       case 'int':
         return <OrganizerInteraction {...common} announcements={announcements} setAnnouncements={setAnnouncements} questions={questions} pollVotes={pollVotes} totalPollVotes={totalPollVotes} />;
       case 'rep':

@@ -95,6 +95,7 @@ export const ORGANIZER_TABS = [
   { key: 'questions', label: 'Perguntas' },
   { key: 'questionnaire', label: 'Questionário' },
   { key: 'responses', label: 'Respostas' },
+  { key: 'config', label: 'Registo' },
   { key: 'int',  label: 'Interação' },
   { key: 'rep',  label: 'Relatórios' },
   { key: 'whatsapp', label: 'WhatsApp' },

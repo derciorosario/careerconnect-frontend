@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ccVerifyEmail, ccResendEmailOTP, uploadClient } from './api/client';
+import { ccVerifyEmail, ccResendEmailOTP, uploadClient, ccGetRegistrationConfig } from './api/client';
 
 import logo from './assets/logo.png';
 
@@ -52,15 +52,37 @@ export default function Register() {
 
   const [step, setStep] = useState(1);
   const [dialog, setDialog] = useState(null); // null | 'mentee-success' | 'mentor-pending'
+  const [config, setConfig] = useState({
+    areas: AREAS, goals: GOALS, obstacles: ['Falta de experiência', 'Falta de contactos', 'Falta de formação', 'Outro'],
+    support_types: SUPPORT_TYPES, levels: LEVELS,
+  });
   const [form, setForm] = useState({
     name: '', email: '', phone: '', password: '', role: isMentor ? 'mentor' : 'mentee',
-    level: '', course: '', institution: '', interests: [], goal: '', pitch: '',
+    level: '', course: '', institution: '', interests: [], goal: '', pitch: '', jobObstacle: '',
     jobTitle: '', company: '', sector: '', years: '', mentorInterests: [], canHelpGoals: [], supportType: '',
     photo: '', photoFile: null, linkedin: '',
   });
   const [error, setError] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    ccGetRegistrationConfig({})
+      .then((resp) => {
+        if (cancelled) return;
+        const c = resp.data || {};
+        setConfig({
+          areas: Array.isArray(c.areas) ? c.areas : AREAS,
+          goals: Array.isArray(c.goals) ? c.goals : GOALS,
+          obstacles: Array.isArray(c.obstacles) ? c.obstacles : ['Falta de experiência', 'Falta de contactos', 'Falta de formação', 'Outro'],
+          support_types: Array.isArray(c.support_types) ? c.support_types : SUPPORT_TYPES,
+          levels: Array.isArray(c.levels) ? c.levels : LEVELS,
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const setField = (k, v) => setForm((p) => ({ ...p, [k]: v }));
   const toggleInterest = (arr, val) => setForm((p) => {
@@ -113,6 +135,7 @@ export default function Register() {
       formData.append('interests', JSON.stringify(form.interests));
       if (form.goal) formData.append('goal', form.goal);
       if (form.pitch) formData.append('pitch', form.pitch);
+      if (form.jobObstacle) formData.append('jobObstacle', form.jobObstacle);
       if (form.jobTitle) formData.append('jobTitle', form.jobTitle);
       if (form.company) formData.append('company', form.company);
       if (form.sector) formData.append('sector', form.sector);
@@ -268,7 +291,7 @@ export default function Register() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-[.85rem] font-semibold">Áreas em que ajuda (até 3)</label>
                 <div className="flex flex-wrap gap-2 mt-1.5">
-                  {AREAS.map((a) => (
+                  {config.areas.map((a) => (
                     <button key={a} type="button" onClick={() => toggleInterest('mentorInterests', a)} className={`rounded-full border px-3 py-1.5 text-[.85rem] font-medium transition ${form.mentorInterests.includes(a) ? 'bg-primary-500 border-primary-500 text-white' : 'border-line text-ink bg-surface'}`}>
                       {a}
                     </button>
@@ -278,7 +301,7 @@ export default function Register() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-[.85rem] font-semibold">Objetivos em que pode ajudar</label>
                 <div className="flex flex-wrap gap-2 mt-1.5">
-                  {GOALS.map((g) => (
+                  {config.goals.map((g) => (
                     <button key={g} type="button" onClick={() => toggleInterest('canHelpGoals', g)} className={`rounded-full border px-3 py-1.5 text-[.85rem] font-medium transition ${form.canHelpGoals.includes(g) ? 'bg-primary-500 border-primary-500 text-white' : 'border-line text-ink bg-surface'}`}>
                       {g}
                     </button>
@@ -289,7 +312,7 @@ export default function Register() {
                 <label className="text-[.85rem] font-semibold">Tipo de apoio</label>
                 <select value={form.supportType} onChange={(e) => setField('supportType', e.target.value)} className={FIELD_BASE}>
                   <option value="" disabled>Selecciona...</option>
-                  {SUPPORT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                  {config.support_types.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
             </>
@@ -299,7 +322,7 @@ export default function Register() {
                 <label className="text-[.85rem] font-semibold">Situação</label>
                 <select value={form.level} onChange={(e) => setField('level', e.target.value)} className={FIELD_BASE}>
                   <option value="" disabled>Selecciona...</option>
-                  {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+                  {config.levels.map((l) => <option key={l} value={l}>{l}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
@@ -313,7 +336,7 @@ export default function Register() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-[.85rem] font-semibold">Áreas de interesse (até 3)</label>
                 <div className="flex flex-wrap gap-2 mt-1.5">
-                  {AREAS.map((a) => (
+                  {config.areas.map((a) => (
                     <button key={a} type="button" onClick={() => toggleInterest('interests', a)} className={`rounded-full border px-3 py-1.5 text-[.85rem] font-medium transition ${form.interests.includes(a) ? 'bg-primary-500 border-primary-500 text-white' : 'border-line text-ink bg-surface'}`}>
                       {a}
                     </button>
@@ -325,6 +348,13 @@ export default function Register() {
                 <select value={form.goal} onChange={(e) => setField('goal', e.target.value)} className={FIELD_BASE}>
                   <option value="" disabled>Selecciona...</option>
                   {GOALS.map((g) => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[.85rem] font-semibold">Maior obstáculo na busca de emprego?</label>
+                <select value={form.jobObstacle} onChange={(e) => setField('jobObstacle', e.target.value)} className={FIELD_BASE}>
+                  <option value="" disabled>Selecciona...</option>
+                  {config.obstacles.map((o) => <option key={o} value={o}>{o}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">

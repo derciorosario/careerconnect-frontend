@@ -72,6 +72,7 @@ export const PersonDetailsDialog = ({ user, onClose }) => {
       { label: 'Áreas de interesse', value: Array.isArray(profile.interests) ? profile.interests.join(', ') || '–' : '–' },
       { label: 'Objetivo', value: profile.goal || '–' },
       { label: 'Pitch', value: profile.pitch || '–' },
+      { label: 'Maior obstáculo', value: profile.job_obstacle || '–' },
     );
   }
 

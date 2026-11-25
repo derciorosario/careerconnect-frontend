@@ -192,12 +192,30 @@ export const MentorHome = ({ showToast }) => {
 // ── LIVE ─────────────────────────────────────
 export const MentorLive = ({ currentRound, roundsPerBreak = 4, secondsLeft, phaseLabel, showToast }) => {
   const [myMatch, setMyMatch] = useState(null);
+  const [allMatches, setAllMatches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [feedbackStatus, setFeedbackStatus] = useState({});
   const loadedRoundRef = useRef(null);
 
   const showToastRef = useRef(showToast);
   useEffect(() => { showToastRef.current = showToast; });
+
+  // Load the mentor's matches for ALL rounds so the whole schedule is visible
+  // even before the countdown starts.
+  useEffect(() => {
+    let cancelled = false;
+    const loadAll = async () => {
+      try {
+        const resp = await ccGetMentorMatch({});
+        if (!cancelled) setAllMatches(resp.data?.allMatches || []);
+      } catch (err) {
+        if (!cancelled) console.error('Failed to load all mentor matches:', err);
+      }
+    };
+    loadAll();
+    const interval = setInterval(loadAll, 5000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
 
   useEffect(() => {
     // Only fetch when the round actually changes (not every second).
@@ -228,6 +246,37 @@ export const MentorLive = ({ currentRound, roundsPerBreak = 4, secondsLeft, phas
     return () => { cancelled = true; };
   }, [currentRound]);
 
+  const scheduleCard = (
+    <Card>
+      <div className="flex items-center justify-between mb-3.5"><b>Os meus mentorandos em todas as rondas</b></div>
+      {allMatches.length === 0 ? (
+        <p className="text-[.85rem] text-ink-muted">Ainda sem atribuições. O organizador irá gerar os pares.</p>
+      ) : (
+        <div className="space-y-3">
+          {allMatches.map((m) => (
+            <div key={m.id || m.round_id} className="flex items-start gap-3">
+              <div className="inline-grid place-items-center w-11 h-11 rounded-[14px] bg-primary-500 text-white font-extrabold shrink-0">
+                {m.table_no || '–'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[.72rem] text-ink-muted font-semibold uppercase tracking-wide">
+                  Ronda {m.round_no ?? '–'}{m.break_no ? ` · Intervalo ${m.break_no}` : ''}
+                </p>
+                {(m.mentees || []).length > 0 ? (
+                  <p className="text-[.88rem] font-semibold">
+                    {m.mentees.map((x) => x.name || 'Mentorado').join(', ')}
+                  </p>
+                ) : (
+                  <p className="text-[.85rem] text-ink-muted">Sem mentorandos</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+
   if (currentRound === 0 || currentRound > roundsPerBreak) {
     return (
       <>
@@ -236,6 +285,7 @@ export const MentorLive = ({ currentRound, roundsPerBreak = 4, secondsLeft, phas
         <Card variant="navy">
           <h3 className="text-[1.08rem] font-extrabold">{currentRound === 0 ? 'À espera do intervalo' : 'Intervalo concluído'}</h3>
         </Card>
+        {scheduleCard}
       </>
     );
   }
@@ -267,6 +317,7 @@ export const MentorLive = ({ currentRound, roundsPerBreak = 4, secondsLeft, phas
             <SkeletonBar w="80%" h={11} />
           </SkeletonCard>
         ))}
+        {scheduleCard}
       </>
     );
   }
@@ -373,6 +424,7 @@ export const MentorLive = ({ currentRound, roundsPerBreak = 4, secondsLeft, phas
           </Card>
         </div>
       ))}
+      {scheduleCard}
     </>
   );
 };

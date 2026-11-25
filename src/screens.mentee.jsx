@@ -270,6 +270,7 @@ export const MenteeLive = ({
   const [roundData, setRoundData] = useState(null);
   const [mentorDirectory, setMentorDirectory] = useState([]);
   const [myMatches, setMyMatches] = useState(null);
+  const [allMatches, setAllMatches] = useState([]);
   const [feedbackStatus, setFeedbackStatus] = useState(null);
   const [checkedIn, setCheckedIn] = useState(false);
   // Skeleton only matters for the async round card. Starts true on mount
@@ -329,6 +330,23 @@ export const MenteeLive = ({
     // Re-run when the round actually changes or the parent signals new data,
     // but NOT on every render (showToast is behind a ref).
   }, [currentRound, roundDataVersion]);
+
+  // Load the mentee's matches for ALL rounds so they can see the whole
+  // schedule even before the countdown starts.
+  useEffect(() => {
+    let cancelled = false;
+    const loadAll = async () => {
+      try {
+        const resp = await ccGetMyMatch({});
+        if (!cancelled) setAllMatches(resp.data?.allMatches || []);
+      } catch (err) {
+        if (!cancelled) console.error('Failed to load all matches:', err);
+      }
+    };
+    loadAll();
+    const interval = setInterval(loadAll, 5000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [roundDataVersion]);
 
   // Realtime polling for questions and polls during live rounds
   useEffect(() => {
@@ -508,6 +526,34 @@ export const MenteeLive = ({
       <h2 className="text-[1.45rem] font-extrabold tracking-tight">Agora</h2>
       <p className="text-ink-muted text-[.85rem] mt-1 mb-4">{phaseLabel()}</p>
       {body}
+
+      <Card>
+        <div className="flex items-center justify-between mb-3.5"><b>Os meus mentores em todas as rondas</b></div>
+        {allMatches.length === 0 ? (
+          <p className="text-[.85rem] text-ink-muted">Ainda sem atribuições. O organizador irá gerar os pares.</p>
+        ) : (
+          <div className="space-y-3">
+            {allMatches.map((m) => (
+              <div key={m.id || m.round_id} className="flex items-center gap-3">
+                <div className="inline-grid place-items-center w-11 h-11 rounded-[14px] bg-primary-500 text-white font-extrabold shrink-0">
+                  {m.table_no || '–'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[.72rem] text-ink-muted font-semibold uppercase tracking-wide">
+                    Ronda {m.round_no ?? '–'}{m.break_no ? ` · Intervalo ${m.break_no}` : ''}
+                  </p>
+                  <p className="text-[.9rem] font-bold truncate">{m.mentor?.name || 'Mentor'}</p>
+                  {m.mentor?.profile?.job_title && (
+                    <p className="text-[.78rem] text-ink-muted truncate">
+                      {m.mentor.profile.job_title}{m.mentor.profile.company ? `, ${m.mentor.profile.company}` : ''}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       <Card>
         <div className="flex items-center justify-between mb-3.5"><b>Perguntas ao orador</b></div>

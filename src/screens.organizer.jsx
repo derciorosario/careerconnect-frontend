@@ -63,6 +63,9 @@ export const OrganizerLive = ({
   const [usersById, setUsersById] = useState({});
   const [roundMinutes, setRoundMinutes] = useState(5);
   const [savingMinutes, setSavingMinutes] = useState(false);
+  const [maxMentees, setMaxMentees] = useState(3);
+  const [savingMax, setSavingMax] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -70,7 +73,9 @@ export const OrganizerLive = ({
       try {
         const resp = await ccGetEvent({});
         const ev = resp.data?.event || resp.data?.events?.[0] || null;
-        if (active && ev?.round_minutes != null) setRoundMinutes(ev.round_minutes);
+        if (!active || !ev) return;
+        if (ev.round_minutes != null) setRoundMinutes(ev.round_minutes);
+        if (ev.max_mentees_per_mentor != null) setMaxMentees(ev.max_mentees_per_mentor);
       } catch (err) {
         // Non-blocking
       }
@@ -91,59 +96,70 @@ export const OrganizerLive = ({
     }
   };
 
+  const saveMaxMentees = async () => {
+    setSavingMax(true);
+    try {
+      await ccConfigureEvent({ max_mentees_per_mentor: Number(maxMentees) });
+      showToast('Máximo de mentorandos por mentor atualizado.');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao guardar máximo.');
+    } finally {
+      setSavingMax(false);
+    }
+  };
+
+  const loadRounds = async () => {
+    try {
+      const [roundResp, annResp, usersResp] = await Promise.all([
+        ccGetOrganizerRounds(),
+        ccGetAnnouncements({}),
+        ccGetAllUsers(),
+      ]);
+      setRounds(roundResp.data?.rounds || []);
+      setAnnouncements(annResp.data?.announcements || []);
+      const byId = {};
+      (usersResp.data?.users || []).forEach((u) => { byId[u.id] = u; });
+      setUsersById(byId);
+    } catch (err) {
+      console.error('Failed to load organizer live data:', err);
+    }
+  };
+
   useEffect(() => {
-    let active = true;
-    const load = async () => {
-      try {
-        const [roundResp, annResp, usersResp] = await Promise.all([
-          ccGetOrganizerRounds(),
-          ccGetAnnouncements({}),
-          ccGetAllUsers(),
-        ]);
-        if (!active) return;
-        setRounds(roundResp.data?.rounds || []);
-        setAnnouncements(annResp.data?.announcements || []);
-        const byId = {};
-        (usersResp.data?.users || []).forEach((u) => { byId[u.id] = u; });
-        setUsersById(byId);
+    loadRounds();
+    const interval = setInterval(loadRounds, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
-        // Auto-generate matches if a round is running but has none
-        const running = (roundResp.data?.rounds || []).find((r) => r.status === 'running');
-        if (running && (!running.matches || running.matches.length === 0)) {
-          try {
-            await ccGenerateMatches({});
-            if (active) {
-              const refreshed = await ccGetOrganizerRounds();
-              setRounds(refreshed.data?.rounds || []);
-            }
-          } catch {
-            // Non-blocking
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load organizer live data:', err);
-      }
-    };
-    load();
-    const interval = setInterval(load, 2000);
-    return () => { active = false; clearInterval(interval); };
-  }, []); // 👈 stable deps — interval + one initial load only
-
-  const current = rounds.find((r) => r.status === 'running') || rounds[rounds.length - 1] || null;
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      await ccGenerateMatches();
+      await loadRounds();
+      showToast('Pares gerados para todas as rondas.');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao gerar pares.');
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   // Deduplicate matches by table_no so the same table is never rendered twice.
-  // Keeps the first occurrence for a given table (entries are already ordered).
-  const uniqueMatches = (() => {
+  const uniqueMatches = (matches = []) => {
     const seen = new Set();
     const out = [];
-    (current?.matches || []).forEach((match, index) => {
+    matches.forEach((match, index) => {
       const key = match.table_no != null ? `t-${match.table_no}` : `i-${match.id ?? index}`;
       if (seen.has(key)) return;
       seen.add(key);
       out.push(match);
     });
     return out;
-  })();
+  };
+
+  const orderedRounds = [...rounds].sort(
+    (a, b) => (a.break_no - b.break_no) || (a.round_no - b.round_no)
+  );
 
   return (
     <>
@@ -170,17 +186,11 @@ export const OrganizerLive = ({
               {isPaused ? 'Retomar' : 'Pausar'}
             </button>
             <button
-              onClick={async () => {
-                try {
-                  await ccGenerateMatches({});
-                  showToast('Pares gerados.');
-                } catch (err) {
-                  showToast(err.response?.data?.message || 'Erro ao gerar pares.');
-                }
-              }}
-              className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-600 text-white"
+              onClick={handleGenerate}
+              disabled={generating}
+              className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-600 text-white disabled:opacity-50"
             >
-              Gerar pares
+              {generating ? 'A gerar...' : 'Gerar pares'}
             </button>
             <button
               onClick={restartSimulation}
@@ -189,22 +199,41 @@ export const OrganizerLive = ({
               Terminar
             </button>
           </div>
-          <div className="flex items-center gap-2.5 mt-4">
-            <label className="text-[.85rem] font-semibold whitespace-nowrap">Duração das rondas (min)</label>
-            <input
-              type="number"
-              min="1"
-              value={roundMinutes}
-              onChange={(e) => setRoundMinutes(e.target.value)}
-              className="w-20 bg-surface border-2 border-line rounded-[10px] px-2.5 py-1.5 text-base focus:border-primary-500 focus:outline-none"
-            />
-            <button
-              onClick={saveRoundMinutes}
-              disabled={savingMinutes}
-              className="rounded-full font-bold text-[.78rem] h-9 px-3.5 bg-surface2 text-ink disabled:opacity-50"
-            >
-              {savingMinutes ? '...' : 'Guardar'}
-            </button>
+          <div className="flex flex-wrap items-end gap-x-4 gap-y-3 mt-4">
+            <div className="flex items-center gap-2.5">
+              <label className="text-[.85rem] font-semibold whitespace-nowrap">Duração das rondas (min)</label>
+              <input
+                type="number"
+                min="1"
+                value={roundMinutes}
+                onChange={(e) => setRoundMinutes(e.target.value)}
+                className="w-20 bg-surface border-2 border-line rounded-[10px] px-2.5 py-1.5 text-base focus:border-primary-500 focus:outline-none"
+              />
+              <button
+                onClick={saveRoundMinutes}
+                disabled={savingMinutes}
+                className="rounded-full font-bold text-[.78rem] h-9 px-3.5 bg-surface2 text-ink disabled:opacity-50"
+              >
+                {savingMinutes ? '...' : 'Guardar'}
+              </button>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <label className="text-[.85rem] font-semibold whitespace-nowrap">Máx. mentorandos / mentor</label>
+              <input
+                type="number"
+                min="1"
+                value={maxMentees}
+                onChange={(e) => setMaxMentees(e.target.value)}
+                className="w-20 bg-surface border-2 border-line rounded-[10px] px-2.5 py-1.5 text-base focus:border-primary-500 focus:outline-none"
+              />
+              <button
+                onClick={saveMaxMentees}
+                disabled={savingMax}
+                className="rounded-full font-bold text-[.78rem] h-9 px-3.5 bg-surface2 text-ink disabled:opacity-50"
+              >
+                {savingMax ? '...' : 'Guardar'}
+              </button>
+            </div>
           </div>
           <label className="flex gap-2.5 items-center text-[.85rem] mt-4 hidden">
             <input type="checkbox" checked={isRehearsal} onChange={(e) => { setIsRehearsal(e.target.checked); setSecondsLeft(e.target.checked ? 30 : 300); }} className="w-auto accent-primary-500" />
@@ -212,37 +241,51 @@ export const OrganizerLive = ({
           </label>
         </Card>
       </div>
-      <Card>
-        <div className="flex items-center justify-between mb-3.5"><b>Pares da ronda</b></div>
-        <table className="w-full text-[.88rem] border-collapse">
-          <thead>
-            <tr>
-              <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Mesa</th>
-              <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Mentor</th>
-              <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Mentorados</th>
-              <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Compat.</th>
-            </tr>
-          </thead>
-          <tbody>
-            {uniqueMatches.length > 0 ? (
-              uniqueMatches.map((match, matchIndex) => {
-                const menteeIds = Array.isArray(match.mentee_ids) ? match.mentee_ids : [];
-                const menteeNames = menteeIds.map((id) => usersById[id]?.name || `Utilizador ${id.slice(0, 4)}`).join(', ');
-                return (
-                  <tr key={match.table_no != null ? `t-${match.table_no}` : (match.id || matchIndex)} className="border-b border-line last:border-0">
-                    <td className="py-[11px] px-2"><b>{match.table_no || matchIndex + 1}</b></td>
-                    <td className="py-[11px] px-2">{match.mentor?.name || '–'}</td>
-                    <td className="py-[11px] px-2 text-[.82rem]">{menteeNames || '–'}</td>
-                    <td className="py-[11px] px-2">{menteeIds.length > 0 ? `${match.score || 85}%` : '–'}</td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr><td colSpan="4" className="py-3 text-center text-ink-muted text-[.85rem]">Sem pares nesta ronda.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </Card>
+
+      {orderedRounds.length === 0 && (
+        <Card><p className="text-[.85rem] text-ink-muted">Sem rondas. Cria rondas primeiro para gerar os pares.</p></Card>
+      )}
+
+      {orderedRounds.map((round) => {
+        const roundMatches = uniqueMatches(round.matches || []);
+        const statusLabel = round.status === 'running' ? 'A decorrer' : round.status === 'done' ? 'Concluída' : round.status === 'paused' ? 'Em pausa' : 'Planeada';
+        return (
+          <Card key={round.id}>
+            <div className="flex items-center justify-between mb-3.5">
+              <b>Ronda {round.round_no}{round.break_no ? ` · Intervalo ${round.break_no}` : ''}</b>
+              <span className="text-[.72rem] font-semibold text-ink-muted">{statusLabel}</span>
+            </div>
+            <table className="w-full text-[.88rem] border-collapse">
+              <thead>
+                <tr>
+                  <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Mesa</th>
+                  <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Mentor</th>
+                  <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Mentorandos</th>
+                  <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Compat.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {roundMatches.length > 0 ? (
+                  roundMatches.map((match, matchIndex) => {
+                    const menteeIds = Array.isArray(match.mentee_ids) ? match.mentee_ids : [];
+                    const menteeNames = menteeIds.map((id) => usersById[id]?.name || `Utilizador ${String(id).slice(0, 4)}`).join(', ');
+                    return (
+                      <tr key={match.table_no != null ? `t-${match.table_no}` : (match.id || matchIndex)} className="border-b border-line last:border-0">
+                        <td className="py-[11px] px-2"><b>{match.table_no || matchIndex + 1}</b></td>
+                        <td className="py-[11px] px-2">{match.mentor?.name || '–'}</td>
+                        <td className="py-[11px] px-2 text-[.82rem]">{menteeNames || '–'}</td>
+                        <td className="py-[11px] px-2">{menteeIds.length > 0 ? `${match.score || 85}%` : '–'}</td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr><td colSpan="4" className="py-3 text-center text-ink-muted text-[.85rem]">Sem pares — clica em “Gerar pares”.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </Card>
+        );
+      })}
     </>
   );
 };

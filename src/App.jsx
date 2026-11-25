@@ -36,7 +36,7 @@ import Landingpage from './Landingpage';
 import MentorLanding from './MentorLanding';
 import Register from './Register';
 import Login from './Login';
-import { ccMe, setStoredToken, getStoredToken, getStoredRefreshToken, ccGetQuestions, ccGetPolls, ccGetPollResults, ccAdvanceRound, ccPauseRound, ccResumeRound, ccGetCurrentRound, ccGenerateMatches, ccResetRounds, ccGetRounds, ccGetEvent } from './api/client';
+import { ccMe, setStoredToken, getStoredToken, getStoredRefreshToken, ccGetQuestions, ccGetPolls, ccGetPollResults, ccAdvanceRound, ccPauseRound, ccResumeRound, ccGetCurrentRound, ccResetRounds, ccGetRounds, ccGetEvent } from './api/client';
 
 import logo from './assets/logo.png';
 
@@ -283,13 +283,9 @@ export function CareerConnectApp({ initialRole }) {
         setIsRunning(true);
         setIsPaused(false);
         setSecondsLeft(isRehearsal ? 30 : roundMinutes * 60);
-        // Generate matches for the new running round
-        try {
-          await ccGenerateMatches({});
-          setRoundDataVersion((v) => v + 1);
-        } catch {
-          // Non-blocking: matches may already exist or no participants
-        }
+        // Matches are generated manually by the organizer for ALL rounds.
+        // Do not generate here — advancing/starting a round must not create pairs.
+        setRoundDataVersion((v) => v + 1);
       } else {
         setCurrentRound(5);
         setIsRunning(false);

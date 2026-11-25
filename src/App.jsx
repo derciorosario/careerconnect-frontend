@@ -352,6 +352,8 @@ export function CareerConnectApp({ initialRole }) {
         return <MentorConnections {...common} />;
       case 'msg':
         return <MentorMessages {...common} />;
+      case 'fecho':
+        return <SurveyScreen {...common} />;
       case 'profile':
         return <ProfileScreen asRole="mentor" setRole={setRole} {...common} />;
       default:

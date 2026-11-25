@@ -128,6 +128,23 @@ const RatingOptions = ({ value, onChange }) => (
   </div>
 );
 
+// ── IMPACT (7 days after) ──────────────────────
+const IMPACT = {
+  mentee: {
+    conexao: 'Já realizaste a primeira sessão de mentoria com o teu mentor?',
+    aplicacao: 'Estás a aplicar as orientações e tarefas definidas durante a mentoria?',
+    resultados: 'Que avanços concretos alcançaste desde o evento? (ex.: entrevistas, melhoria do CV, fortalecimento do LinkedIn, networking, candidaturas submetidas).',
+  },
+  mentor: {
+    conexao: 'Já iniciou formalmente o acompanhamento do seu mentorado?',
+    aplicacao: 'O mentorado demonstra compromisso com as atividades e metas acordadas?',
+    resultados: 'Que evolução observou no comportamento, clareza de objetivos ou preparação profissional do mentorado?',
+  },
+};
+
+const IMPACT_SIM_NAO = ['Sim', 'Não'];
+const IMPACT_APLICACAO = ['Sim', 'Parcialmente', 'Não'];
+
 export const SurveyScreen = ({ showToast }) => {
   const role = localStorage.getItem('userRole') || '';
   const isMentor = role === 'mentor';
@@ -136,11 +153,15 @@ export const SurveyScreen = ({ showToast }) => {
   const [answers, setAnswers] = useState({});
   const [ratings, setRatings] = useState({});
   const [comment, setComment] = useState('');
+  const [impact, setImpact] = useState({});
+  const [impactComment, setImpactComment] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const setAnswer = (id, val) => setAnswers((p) => ({ ...p, [id]: val }));
   const setRating = (id, val) => setRatings((p) => ({ ...p, [id]: val }));
+  const setImpactAnswer = (id, val) => setImpact((p) => ({ ...p, [id]: val }));
+  const impactText = isMentor ? IMPACT.mentor : IMPACT.mentee;
 
   if (submitted) {
     return (
@@ -207,6 +228,42 @@ export const SurveyScreen = ({ showToast }) => {
           className={`${BTN_BASE} w-full mt-2`}
         >
           {loading ? 'A submeter...' : 'Submeter inquérito'}
+        </button>
+      </Card>
+
+      <hr className="my-8 border-line" />
+
+      <h2 className="text-[1.3rem] font-extrabold tracking-tight">Avaliação de Impacto da Mentoria</h2>
+      <p className="text-ink-muted text-[.85rem] mt-1 mb-6">7 dias após o evento</p>
+
+      <Card>
+        <SurveyField label={`Conexão — ${impactText.conexao}`}>
+          <RadioOptions options={IMPACT_SIM_NAO} value={impact.conexao} onChange={(v) => setImpactAnswer('conexao', v)} />
+        </SurveyField>
+
+        <SurveyField label={`Aplicação Prática — ${impactText.aplicacao}`}>
+          <RadioOptions options={IMPACT_APLICACAO} value={impact.aplicacao} onChange={(v) => setImpactAnswer('aplicacao', v)} />
+        </SurveyField>
+
+        <SurveyField label={`Resultados Observados — ${impactText.resultados} (resposta aberta)`}>
+          <textarea value={impactComment} onChange={(e) => setImpactComment(e.target.value)} rows="3" placeholder="Descreve os resultados observados..." className={FIELD_BASE} />
+        </SurveyField>
+
+        <button
+          onClick={async () => {
+            setLoading(true);
+            try {
+              // Frontend-only: no backend call. Persist nothing.
+              setSubmitted(true);
+              showToast('Avaliação de impacto submetida.');
+            } finally {
+              setLoading(false);
+            }
+          }}
+          disabled={loading}
+          className={`${BTN_BASE} w-full mt-2`}
+        >
+          {loading ? 'A submeter...' : 'Submeter avaliação de impacto'}
         </button>
       </Card>
     </>

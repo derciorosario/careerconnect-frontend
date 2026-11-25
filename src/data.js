@@ -83,6 +83,7 @@ export const NAV_MENTOR = [
   { key: 'participantes', label: 'Participantes', icon: ICONS.mentees },
   { key: 'conn',    label: 'Conexões',  icon: ICONS.conn },
   { key: 'msg',     label: 'Mensagens',  icon: ICONS.msg },
+  { key: 'fecho',   label: 'Avaliação',  icon: ICONS.fecho },
   { key: 'profile', label: 'Perfil',    icon: ICONS.profile },
 ];
 

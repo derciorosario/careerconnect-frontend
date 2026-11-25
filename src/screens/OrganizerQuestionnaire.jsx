@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ccGetQuestionnaire, ccUpdateQuestionnaire } from '../api/client';
+import { ccGetQuestionnaire, ccUpdateQuestionnaire, ccNotifySurvey } from '../api/client';
 import { Card } from '../ui';
 
 const uid = () => `q_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -142,8 +142,10 @@ const ImpactEditor = ({ impact, onChange }) => {
 
 export const OrganizerQuestionnaire = ({ showToast }) => {
   const [content, setContent] = useState(null);
+  const [enabled, setEnabled] = useState({ main: true, impact: true });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [notifying, setNotifying] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -157,6 +159,10 @@ export const OrganizerQuestionnaire = ({ showToast }) => {
           participant: Array.isArray(data.participant) ? data.participant : [],
           mentor: Array.isArray(data.mentor) ? data.mentor : [],
           impact: data.impact || { mentee: {}, mentor: {} },
+        });
+        setEnabled({
+          main: resp.data?.main_enabled !== false,
+          impact: resp.data?.impact_enabled !== false,
         });
       } catch (err) {
         showToast(err.response?.data?.message || 'Erro ao carregar questionário.');
@@ -172,12 +178,24 @@ export const OrganizerQuestionnaire = ({ showToast }) => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await ccUpdateQuestionnaire({ content });
+      await ccUpdateQuestionnaire({ content, main_enabled: enabled.main, impact_enabled: enabled.impact });
       showToast('Questionário atualizado.');
     } catch (err) {
       showToast(err.response?.data?.message || 'Erro ao guardar questionário.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleNotify = async (form) => {
+    setNotifying(form);
+    try {
+      const resp = await ccNotifySurvey({ form });
+      showToast(resp.data?.message || 'Notificação enviada.');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao enviar notificação.');
+    } finally {
+      setNotifying(null);
     }
   };
 
@@ -187,6 +205,59 @@ export const OrganizerQuestionnaire = ({ showToast }) => {
       <p className="text-ink-muted text-[.85rem] mt-1 mb-4">
         Edita as perguntas do formulário de avaliação. Adiciona, edita ou remove perguntas e opções.
       </p>
+
+      <Card>
+        <b className="block mb-3">Disponibilidade e notificações</b>
+        <div className="flex items-center justify-between py-2.5 border-t border-line">
+          <div>
+            <p className="text-[.9rem] font-semibold">Formulário de Avaliação do Evento</p>
+            <p className="text-[.78rem] text-ink-muted">Disponível para os utilizadores responderem.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={enabled.main}
+              onClick={() => setEnabled((p) => ({ ...p, main: !p.main }))}
+              className={`relative w-12 h-7 rounded-full transition shrink-0 ${enabled.main ? 'bg-primary-500' : 'bg-line'}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow transition ${enabled.main ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+            <button
+              onClick={() => handleNotify('main')}
+              disabled={notifying === 'main'}
+              className="rounded-full font-bold text-[.76rem] h-9 px-3.5 bg-primary-500 text-white disabled:opacity-50"
+            >
+              {notifying === 'main' ? 'A enviar...' : 'Notificar'}
+            </button>
+          </div>
+        </div>
+        <div className="flex items-center justify-between py-2.5 border-t border-line">
+          <div>
+            <p className="text-[.9rem] font-semibold">Avaliação de Impacto da Mentoria</p>
+            <p className="text-[.78rem] text-ink-muted">Disponível para os utilizadores responderem.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={enabled.impact}
+              onClick={() => setEnabled((p) => ({ ...p, impact: !p.impact }))}
+              className={`relative w-12 h-7 rounded-full transition shrink-0 ${enabled.impact ? 'bg-primary-500' : 'bg-line'}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow transition ${enabled.impact ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+            <button
+              onClick={() => handleNotify('impact')}
+              disabled={notifying === 'impact'}
+              className="rounded-full font-bold text-[.76rem] h-9 px-3.5 bg-primary-500 text-white disabled:opacity-50"
+            >
+              {notifying === 'impact' ? 'A enviar...' : 'Notificar'}
+            </button>
+          </div>
+        </div>
+        <p className="text-[.75rem] text-ink-muted mt-2">As alterações de disponibilidade são guardadas ao clicar em “Guardar questionário”.</p>
+      </Card>
 
       {loading || !content ? (
         <Card><p className="text-ink-muted text-[.85rem]">A carregar...</p></Card>

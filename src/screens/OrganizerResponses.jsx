@@ -46,11 +46,16 @@ export const OrganizerResponses = ({ showToast }) => {
         <Card><p className="text-ink-muted text-[.85rem]">Ainda sem respostas.</p></Card>
       ) : (
         surveys.map((s) => {
-          const a = s.answers || {};
-          const role = a.role || s.user?.role || 'mentee';
-          const fields = a.fields || {};
-          const ratings = a.ratings || {};
-          const impact = a.impact || {};
+          const main = s.answers || {};
+          const impactA = s.impact_answers || {};
+          const role = main.role || impactA.role || s.user?.role || 'mentee';
+          const fields = main.fields || {};
+          const ratings = main.ratings || {};
+          const impact = {
+            conexao: impactA.conexao,
+            aplicacao: impactA.aplicacao,
+            resultados: impactA.resultados,
+          };
           const impactText = role === 'mentor' ? content?.impact?.mentor : content?.impact?.mentee;
           return (
             <Card key={s.id}>
@@ -61,38 +66,45 @@ export const OrganizerResponses = ({ showToast }) => {
                 </span>
               </div>
 
-              <div className="space-y-1.5">
-                {Object.entries(fields).map(([id, val]) => (
-                  <div key={id} className="text-[.85rem]">
-                    <span className="text-ink-muted">{labelFor(content, role, id)}: </span>
-                    <span className="font-semibold">{val}</span>
+              {(s.main_sent || Object.keys(fields).length > 0 || Object.keys(ratings).length > 0) && (
+                <div className="mb-2">
+                  <h4 className="text-[.78rem] font-bold text-primary-500 mb-1">Avaliação do Evento</h4>
+                  <div className="space-y-1.5">
+                    {Object.entries(fields).map(([id, val]) => (
+                      <div key={id} className="text-[.85rem]">
+                        <span className="text-ink-muted">{labelFor(content, role, id)}: </span>
+                        <span className="font-semibold">{val}</span>
+                      </div>
+                    ))}
+                    {Object.entries(ratings).map(([item, val]) => (
+                      <div key={item} className="text-[.85rem]">
+                        <span className="text-ink-muted">{item}: </span>
+                        <span className="font-semibold">{val}/5</span>
+                      </div>
+                    ))}
+                    {main.comment && (
+                      <div className="text-[.85rem]"><span className="text-ink-muted">Comentário: </span><span className="font-semibold">{main.comment}</span></div>
+                    )}
                   </div>
-                ))}
+                </div>
+              )}
 
-                {Object.entries(ratings).map(([item, val]) => (
-                  <div key={item} className="text-[.85rem]">
-                    <span className="text-ink-muted">{item}: </span>
-                    <span className="font-semibold">{val}/5</span>
+              {(s.impact_sent || impact.conexao || impact.aplicacao || impact.resultados) && (
+                <div>
+                  <h4 className="text-[.78rem] font-bold text-primary-500 mb-1">Avaliação de Impacto</h4>
+                  <div className="space-y-1.5">
+                    {impact.conexao && (
+                      <div className="text-[.85rem]"><span className="text-ink-muted">Conexão: </span><span className="font-semibold">{impact.conexao}</span></div>
+                    )}
+                    {impact.aplicacao && (
+                      <div className="text-[.85rem]"><span className="text-ink-muted">Aplicação Prática: </span><span className="font-semibold">{impact.aplicacao}</span></div>
+                    )}
+                    {impact.resultados && (
+                      <div className="text-[.85rem]"><span className="text-ink-muted">{impactText?.resultados || 'Resultados Observados'}: </span><span className="font-semibold">{impact.resultados}</span></div>
+                    )}
                   </div>
-                ))}
-
-                {impact.conexao && (
-                  <div className="text-[.85rem]"><span className="text-ink-muted">Conexão: </span><span className="font-semibold">{impact.conexao}</span></div>
-                )}
-                {impact.aplicacao && (
-                  <div className="text-[.85rem]"><span className="text-ink-muted">Aplicação Prática: </span><span className="font-semibold">{impact.aplicacao}</span></div>
-                )}
-                {impact.resultados && impactText?.resultados && (
-                  <div className="text-[.85rem]"><span className="text-ink-muted">{impactText.resultados}: </span><span className="font-semibold">{impact.resultados}</span></div>
-                )}
-
-                {a.comment && (
-                  <div className="text-[.85rem] mt-1"><span className="text-ink-muted">Comentário: </span><span className="font-semibold">{a.comment}</span></div>
-                )}
-                {a.impactComment && (
-                  <div className="text-[.85rem]"><span className="text-ink-muted">Resultados observados: </span><span className="font-semibold">{a.impactComment}</span></div>
-                )}
-              </div>
+                </div>
+              )}
             </Card>
           );
         })

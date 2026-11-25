@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from './ui';
-import { ccGetQuestionnaire, ccSubmitSurvey } from './api/client';
+import { ccGetQuestionnaire, ccSubmitSurvey, ccGetSurveyStatus } from './api/client';
 
 const BTN_BASE = 'inline-block rounded-full bg-primary-500 text-white font-semibold text-base px-7 py-3.5 cursor-pointer no-underline hover:brightness-110 transition';
 const FIELD_BASE = 'w-full font-normal text-base text-ink bg-surface border-2 border-line rounded-field px-3.5 py-3 focus:border-primary-500 focus:outline-none';
@@ -97,16 +97,16 @@ const RadioOptions = ({ options, value, onChange }) => (
       <label
         key={opt}
         className={`flex items-center gap-2.5 rounded-[14px] border-2 px-3.5 py-2.5 cursor-pointer transition ${
-          value === opt ? 'border-primary-500 bg-primary-50' : 'border-line bg-surface hover:border-primary-500/50'
+          value === opt ? 'border-primary-500 bg-primary-100' : 'border-line bg-surface hover:border-primary-500/50'
         }`}
       >
         <input
           type="radio"
           checked={value === opt}
           onChange={() => onChange(opt)}
-          className="w-4 h-4 accent-primary-500"
+          className={`w-4 h-4 accent-primary-400`}
         />
-        <span className="text-[.88rem]">{opt}</span>
+        <span className={`text-[.88rem] ${value === opt ? 'text-black':''}`}>{opt}</span>
       </label>
     ))}
   </div>
@@ -157,23 +157,36 @@ export const SurveyScreen = ({ showToast }) => {
   const isMentor = role === 'mentor';
 
   const [content, setContent] = useState(DEFAULT_CONTENT);
+  const [enabled, setEnabled] = useState({ main: true, impact: true });
+  const [sent, setSent] = useState({ main: false, impact: false });
   const [answers, setAnswers] = useState({});
   const [ratings, setRatings] = useState({});
   const [comment, setComment] = useState('');
   const [impact, setImpact] = useState({});
   const [impactComment, setImpactComment] = useState('');
-  const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
-        const resp = await ccGetQuestionnaire({});
-        const data = resp.data?.content;
-        if (!cancelled && data && Array.isArray(data.participant) && Array.isArray(data.mentor)) {
+        const [qResp, sResp] = await Promise.all([
+          ccGetQuestionnaire({}),
+          ccGetSurveyStatus({}),
+        ]);
+        if (cancelled) return;
+        const data = qResp.data?.content;
+        if (data && Array.isArray(data.participant) && Array.isArray(data.mentor)) {
           setContent({ ...DEFAULT_CONTENT, ...data, impact: { ...DEFAULT_CONTENT.impact, ...(data.impact || {}) } });
         }
+        setEnabled({
+          main: qResp.data?.main_enabled !== false,
+          impact: qResp.data?.impact_enabled !== false,
+        });
+        setSent({
+          main: !!sResp.data?.main_sent,
+          impact: !!sResp.data?.impact_sent,
+        });
       } catch (err) {
         // Fallback to defaults silently
       }
@@ -189,23 +202,35 @@ export const SurveyScreen = ({ showToast }) => {
   const setRating = (id, val) => setRatings((p) => ({ ...p, [id]: val }));
   const setImpactAnswer = (id, val) => setImpact((p) => ({ ...p, [id]: val }));
 
-  const handleSubmit = async (toastMsg) => {
+  const handleSubmit = async (form, toastMsg) => {
     setLoading(true);
     try {
-      await ccSubmitSurvey({
-        event_id: 'current',
-        comment,
-        answers: {
-          role: isMentor ? 'mentor' : 'mentee',
-          fields: answers,
-          ratings,
+      if (form === 'impact') {
+        await ccSubmitSurvey({
+          event_id: 'current',
+          form: 'impact',
+          impact_answers: {
+            role: isMentor ? 'mentor' : 'mentee',
+            ...impact,
+            resultados: impactComment,
+          },
+        });
+        setSent((p) => ({ ...p, impact: true }));
+      } else {
+        await ccSubmitSurvey({
+          event_id: 'current',
+          form: 'main',
           comment,
-          impact,
-          impactComment,
-        },
-      });
-      setSubmitted(true);
-      showToast(toastMsg || 'Inquérito submetido.');
+          answers: {
+            role: isMentor ? 'mentor' : 'mentee',
+            fields: answers,
+            ratings,
+            comment,
+          },
+        });
+        setSent((p) => ({ ...p, main: true }));
+      }
+      showToast(toastMsg || 'Submetido.');
     } catch (err) {
       showToast(err.response?.data?.message || 'Erro ao submeter.');
     } finally {
@@ -213,21 +238,11 @@ export const SurveyScreen = ({ showToast }) => {
     }
   };
 
-  if (submitted) {
-    return (
-      <>
-        <h2 className="text-[1.45rem] font-extrabold tracking-tight">Obrigado pelo teu feedback.</h2>
-        <p className="text-ink-muted text-[.85rem] mt-1 mb-6">A tua opinião ajuda a melhorar o próximo evento.</p>
-        <Card variant="navy">
-          <div className="text-center">
-            <div className="text-3xl font-extrabold text-primary-500 mb-2">✓</div>
-            <p className="text-navy-100">Inquérito submetido com sucesso.</p>
-          </div>
-        </Card>
-        <button onClick={() => showToast('Resultado guardado.')} className={BTN_BASE} style={{ marginTop: 10 }}>Fechar</button>
-      </>
-    );
-  }
+  const Unavailable = ({ message }) => (
+    <Card>
+      <p className="text-ink-muted text-[.9rem]">{message}</p>
+    </Card>
+  );
 
   return (
     <>
@@ -236,68 +251,80 @@ export const SurveyScreen = ({ showToast }) => {
         {isMentor ? 'Avaliação do Mentor' : 'Avaliação da Experiência do Participante'} · Career Connect 2026
       </p>
 
-      <Card>
-        {survey.map((field) => (
-          <SurveyField key={field.id} label={field.label}>
-            {field.type === 'radio' && (
-              <RadioOptions
-                options={field.options}
-                value={answers[field.id]}
-                onChange={(v) => setAnswer(field.id, v)}
-              />
-            )}
-            {field.type === 'ratings' && (
-              <div className="space-y-3.5">
-                {field.items.map((item) => (
-                  <div key={item}>
-                    <p className="text-[.82rem] text-ink-muted mb-1.5">{item}</p>
-                    <RatingOptions value={ratings[item]} onChange={(v) => setRating(item, v)} />
-                  </div>
-                ))}
-              </div>
-            )}
+      {!enabled.main ? (
+        <Unavailable message="O formulário de avaliação do evento ainda não está disponível." />
+      ) : sent.main ? (
+        <Unavailable message="Já submeteste o formulário de avaliação do evento. Obrigado!" />
+      ) : (
+        <Card>
+          {survey.map((field) => (
+            <SurveyField key={field.id} label={field.label}>
+              {field.type === 'radio' && (
+                <RadioOptions
+                  options={field.options}
+                  value={answers[field.id]}
+                  onChange={(v) => setAnswer(field.id, v)}
+                />
+              )}
+              {field.type === 'ratings' && (
+                <div className="space-y-3.5">
+                  {field.items.map((item) => (
+                    <div key={item}>
+                      <p className="text-[.82rem] text-ink-muted mb-1.5">{item}</p>
+                      <RatingOptions value={ratings[item]} onChange={(v) => setRating(item, v)} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </SurveyField>
+          ))}
+
+          <SurveyField label={isMentor ? 'Que sugestões deixa para a organização?' : 'Tens algum comentário/sugestão final para a organização? (resposta aberta)'}>
+            <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows="3" placeholder="Escreve o teu comentário..." className={FIELD_BASE} />
           </SurveyField>
-        ))}
 
-        <SurveyField label={isMentor ? 'Que sugestões deixa para a organização?' : 'Tens algum comentário/sugestão final para a organização? (resposta aberta)'}>
-          <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows="3" placeholder="Escreve o teu comentário..." className={FIELD_BASE} />
-        </SurveyField>
-
-        <button
-          onClick={() => handleSubmit('Inquérito submetido.')}
-          disabled={loading}
-          className={`${BTN_BASE} w-full mt-2`}
-        >
-          {loading ? 'A submeter...' : 'Submeter inquérito'}
-        </button>
-      </Card>
+          <button
+            onClick={() => handleSubmit('main', 'Inquérito submetido.')}
+            disabled={loading}
+            className={`${BTN_BASE} w-full mt-2`}
+          >
+            {loading ? 'A submeter...' : 'Submeter inquérito'}
+          </button>
+        </Card>
+      )}
 
       <hr className="my-8 border-line" />
 
       <h2 className="text-[1.3rem] font-extrabold tracking-tight">Avaliação de Impacto da Mentoria</h2>
       <p className="text-ink-muted text-[.85rem] mt-1 mb-6">7 dias após o evento</p>
 
-      <Card>
-        <SurveyField label={`Conexão — ${impactText.conexao}`}>
-          <RadioOptions options={IMPACT_SIM_NAO} value={impact.conexao} onChange={(v) => setImpactAnswer('conexao', v)} />
-        </SurveyField>
+      {!enabled.impact ? (
+        <Unavailable message="A avaliação de impacto ainda não está disponível." />
+      ) : sent.impact ? (
+        <Unavailable message="Já submeteste a avaliação de impacto. Obrigado!" />
+      ) : (
+        <Card>
+          <SurveyField label={`Conexão — ${impactText.conexao}`}>
+            <RadioOptions options={IMPACT_SIM_NAO} value={impact.conexao} onChange={(v) => setImpactAnswer('conexao', v)} />
+          </SurveyField>
 
-        <SurveyField label={`Aplicação Prática — ${impactText.aplicacao}`}>
-          <RadioOptions options={IMPACT_APLICACAO} value={impact.aplicacao} onChange={(v) => setImpactAnswer('aplicacao', v)} />
-        </SurveyField>
+          <SurveyField label={`Aplicação Prática — ${impactText.aplicacao}`}>
+            <RadioOptions options={IMPACT_APLICACAO} value={impact.aplicacao} onChange={(v) => setImpactAnswer('aplicacao', v)} />
+          </SurveyField>
 
-        <SurveyField label={`Resultados Observados — ${impactText.resultados} (resposta aberta)`}>
-          <textarea value={impactComment} onChange={(e) => setImpactComment(e.target.value)} rows="3" placeholder="Descreve os resultados observados..." className={FIELD_BASE} />
-        </SurveyField>
+          <SurveyField label={`Resultados Observados — ${impactText.resultados} (resposta aberta)`}>
+            <textarea value={impactComment} onChange={(e) => setImpactComment(e.target.value)} rows="3" placeholder="Descreve os resultados observados..." className={FIELD_BASE} />
+          </SurveyField>
 
-        <button
-          onClick={() => handleSubmit('Avaliação de impacto submetida.')}
-          disabled={loading}
-          className={`${BTN_BASE} w-full mt-2`}
-        >
-          {loading ? 'A submeter...' : 'Submeter avaliação de impacto'}
-        </button>
-      </Card>
+          <button
+            onClick={() => handleSubmit('impact', 'Avaliação de impacto submetida.')}
+            disabled={loading}
+            className={`${BTN_BASE} w-full mt-2`}
+          >
+            {loading ? 'A submeter...' : 'Submeter avaliação de impacto'}
+          </button>
+        </Card>
+      )}
     </>
   );
 };

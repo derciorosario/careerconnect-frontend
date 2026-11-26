@@ -131,6 +131,8 @@ export function CareerConnectApp({ initialRole }) {
   // Event / simulation state
   const [currentRound, setCurrentRound] = useState(0);
   const [currentBreak, setCurrentBreak] = useState(0);
+  const [maxBreak, setMaxBreak] = useState(0);
+  const [awaitingBreak, setAwaitingBreak] = useState(false);
   const [roundsPerBreak, setRoundsPerBreak] = useState(2);
   const [totalRounds, setTotalRounds] = useState(4);
   const [roundMinutes, setRoundMinutes] = useState(10);
@@ -263,6 +265,8 @@ export function CareerConnectApp({ initialRole }) {
         if (rounds.length > 0) setTotalRounds(rounds.length);
         const maxRoundNo = rounds.reduce((max, r) => Math.max(max, r.round_no || 0), 0);
         if (maxRoundNo > 0) setRoundsPerBreak(maxRoundNo);
+        const maxBreakNo = rounds.reduce((max, r) => Math.max(max, r.break_no || 0), 0);
+        if (maxBreakNo > 0) setMaxBreak(maxBreakNo);
       } catch (err) {
         // Non-blocking
       }
@@ -312,6 +316,49 @@ export function CareerConnectApp({ initialRole }) {
     }
   };
 
+  // End the current break without starting the next one. The organizer must then
+  // explicitly click "Iniciar intervalo N" to start the following break.
+  const endBreak = async () => {
+    try {
+      await ccAdvanceRound({ stop: true });
+      setCurrentRound(0);
+      setIsRunning(false);
+      setIsPaused(false);
+      setSecondsLeft(roundMinutes * 60);
+      setAwaitingBreak(true);
+      setRoundDataVersion((v) => v + 1);
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao terminar intervalo.');
+    }
+  };
+
+  const primaryLabel = (() => {
+    if (awaitingBreak) return `Iniciar intervalo ${currentBreak + 1}`;
+    if (currentRound === 0) return 'Iniciar intervalo 1';
+    if (currentRound < roundsPerBreak) return `Avançar ronda ${currentRound + 1}`;
+    if (currentRound === roundsPerBreak) return 'Terminar intervalo';
+    return 'Reiniciar';
+  })();
+
+  const primaryAction = async () => {
+    if (awaitingBreak) {
+      setAwaitingBreak(false);
+      await advanceRound();
+      return;
+    }
+    const isLastRoundOfBreak = currentRound === roundsPerBreak && currentBreak > 0;
+    const hasNextBreak = currentBreak < maxBreak;
+    if (isLastRoundOfBreak && hasNextBreak) {
+      await endBreak();
+      return;
+    }
+    if (currentRound > roundsPerBreak) {
+      restartSimulation();
+    } else {
+      advanceRound();
+    }
+  };
+
   // Countdown (visual decrement only; advancement is driven by backend ends_at in syncRound)
   useEffect(() => {
     if (!isRunning || isPaused) return;
@@ -327,6 +374,7 @@ export function CareerConnectApp({ initialRole }) {
   const totalPollVotes = useMemo(() => pollVotes.reduce((sum, v) => sum + v, 0), [pollVotes]);
 
   const phaseLabel = () => {
+    if (awaitingBreak) return `Intervalo ${currentBreak} concluído`;
     if (currentRound === 0) return 'Antes do intervalo';
     if (currentRound > roundsPerBreak) return 'Intervalo concluído';
     return `Intervalo ${currentBreak || 1} · ronda ${currentRound} de ${roundsPerBreak}`;
@@ -356,6 +404,7 @@ export function CareerConnectApp({ initialRole }) {
     }
     setCurrentRound(0);
     setCurrentBreak(0);
+    setAwaitingBreak(false);
     setFurthestRoundCompleted(0);
     setIsRunning(false);
     setIsPaused(false);
@@ -440,7 +489,7 @@ export function CareerConnectApp({ initialRole }) {
     const activeOrgTab = ORGANIZER_TABS.find((t) => t.key === activeTab) ? activeTab : 'live';
     switch (activeOrgTab) {
       case 'live':
-        return <OrganizerLive {...common} phaseLabel={phaseLabel} secondsLeft={secondsLeft} currentRound={currentRound} roundsPerBreak={roundsPerBreak} isPaused={isPaused} isRehearsal={isRehearsal} setIsRehearsal={setIsRehearsal} setSecondsLeft={setSecondsLeft} setIsPaused={setIsPaused} advanceRound={advanceRound} handlePause={handlePause} restartSimulation={restartSimulation} onRoundMinutesSaved={handleRoundMinutesSaved} />;
+        return <OrganizerLive {...common} phaseLabel={phaseLabel} secondsLeft={secondsLeft} currentRound={currentRound} roundsPerBreak={roundsPerBreak} isPaused={isPaused} isRehearsal={isRehearsal} setIsRehearsal={setIsRehearsal} setSecondsLeft={setSecondsLeft} setIsPaused={setIsPaused} advanceRound={advanceRound} handlePause={handlePause} restartSimulation={restartSimulation} onRoundMinutesSaved={handleRoundMinutesSaved} primaryLabel={primaryLabel} primaryAction={primaryAction} />;
       case 'events':
         return <OrganizerEvents {...common} />;
       case 'reg':

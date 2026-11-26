@@ -58,6 +58,7 @@ export const OrganizerLive = ({
   phaseLabel, secondsLeft, currentRound, roundsPerBreak = 4, isPaused, isRehearsal,
   setIsRehearsal, setSecondsLeft, setIsPaused, showToast,
   advanceRound, handlePause, restartSimulation, onRoundMinutesSaved,
+  primaryLabel, primaryAction,
 }) => {
   const [rounds, setRounds] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
@@ -174,7 +175,9 @@ export const OrganizerLive = ({
       showToast('Gera os pares antes de iniciar.');
       return;
     }
-    if (currentRound > roundsPerBreak) {
+    if (primaryAction) {
+      primaryAction();
+    } else if (currentRound > roundsPerBreak) {
       restartSimulation();
     } else {
       advanceRound();
@@ -197,7 +200,7 @@ export const OrganizerLive = ({
               disabled={startBlocked}
               className="rounded-full font-bold text-[.92rem] h-12 px-5 bg-primary-500 text-white disabled:opacity-50"
             >
-              {currentRound === 0 ? 'Iniciar intervalo 1' : currentRound < roundsPerBreak ? `Avançar ronda ${currentRound + 1}` : currentRound === roundsPerBreak ? 'Terminar intervalo' : 'Reiniciar'}
+              {primaryLabel || (currentRound === 0 ? 'Iniciar intervalo 1' : currentRound < roundsPerBreak ? `Avançar ronda ${currentRound + 1}` : currentRound === roundsPerBreak ? 'Terminar intervalo' : 'Reiniciar')}
             </button>
             <button
               onClick={handlePause}

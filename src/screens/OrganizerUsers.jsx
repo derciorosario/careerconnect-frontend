@@ -38,32 +38,40 @@ export const OrganizerUsers = ({ showToast }) => {
   const [roleFilter, setRoleFilter] = useState('all');
   const [landingOnly, setLandingOnly] = useState(false);
   const [actionId, setActionId] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [uResp, cResp] = await Promise.all([ccGetAllUsers(), ccGetRegistrationConfig({})]);
+      setUsers(uResp.data?.users || []);
+      const c = cResp.data || {};
+      setOpts({
+        areas: Array.isArray(c.areas) ? c.areas : [],
+        goals: Array.isArray(c.goals) ? c.goals : [],
+        obstacles: Array.isArray(c.obstacles) ? c.obstacles : [],
+        support_types: Array.isArray(c.support_types) ? c.support_types : [],
+        levels: Array.isArray(c.levels) ? c.levels : [],
+      });
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao carregar.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      setLoading(true);
-      try {
-        const [uResp, cResp] = await Promise.all([ccGetAllUsers(), ccGetRegistrationConfig({})]);
-        if (cancelled) return;
-        setUsers(uResp.data?.users || []);
-        const c = cResp.data || {};
-        setOpts({
-          areas: Array.isArray(c.areas) ? c.areas : [],
-          goals: Array.isArray(c.goals) ? c.goals : [],
-          obstacles: Array.isArray(c.obstacles) ? c.obstacles : [],
-          support_types: Array.isArray(c.support_types) ? c.support_types : [],
-          levels: Array.isArray(c.levels) ? c.levels : [],
-        });
-      } catch (err) {
-        showToast(err.response?.data?.message || 'Erro ao carregar.');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
     load();
-    return () => { cancelled = true; };
   }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await load();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const openUser = (u) => {
     const mp = u.mentorProfile || {};
@@ -183,8 +191,20 @@ export const OrganizerUsers = ({ showToast }) => {
 
   return (
     <>
-      <h2 className="text-[1.45rem] font-extrabold tracking-tight">Utilizadores</h2>
-      <p className="text-ink-muted text-[.85rem] mt-1 mb-4">Edita mentores e mentorados.</p>
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <h2 className="text-[1.45rem] font-extrabold tracking-tight">Utilizadores</h2>
+          <p className="text-ink-muted text-[.85rem] mt-1">Edita mentores e mentorados.</p>
+        </div>
+        <button
+          type="button"
+          onClick={handleRefresh}
+          disabled={refreshing || loading}
+          className={`${BTN} bg-surface2 text-ink shrink-0 disabled:opacity-50`}
+        >
+          {refreshing ? 'A actualizar...' : 'Actualizar'}
+        </button>
+      </div>
 
       <div className="flex flex-col sm:flex-row gap-2.5 mb-4">
         <input

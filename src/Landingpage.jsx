@@ -676,8 +676,8 @@ export default function Landingpage() {
             ))}
           </div>
 
-          {/* Tutorial da Plataforma */}
-          <div className="mt-16">
+          {/* Tutorial da Plataforma  - leave it hidden for now*/}
+         {/*** <div className="mt-16">
             <h3 className="text-2xl font-extrabold mb-2">Tutorial da Plataforma</h3>
             <p className="text-navy-100 mb-6 max-w-[56ch]">Vê o vídeo e aprende a manusear a app passo a passo.</p>
             <div className="w-full max-w-[760px] aspect-video rounded-card overflow-hidden bg-white/10">
@@ -689,7 +689,7 @@ export default function Landingpage() {
                 </div>
               )}
             </div>
-          </div>
+          </div> */}
         </Container>
       </section>
 

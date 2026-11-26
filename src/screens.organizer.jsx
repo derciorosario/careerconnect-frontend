@@ -445,26 +445,38 @@ export const OrganizerReg = ({ showToast }) => {
 
   registrationsRef.current = registrations;
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const regResp = await ccGetOrganizerRegistrations({});
-        const regs = regResp.data?.registrations || [];
-        setRegistrations(regs);
+  const loadRegistrations = async () => {
+    try {
+      const regResp = await ccGetOrganizerRegistrations({});
+      const regs = regResp.data?.registrations || [];
+      setRegistrations(regs);
 
-        
-        setPendingApprovals(
-          regs.filter((r) =>
-            (r.user?.role === 'mentor' && r.user?.mentorProfile?.approval === 'pending') ||
-            (r.user?.role === 'mentee' && r.user?.menteeProfile?.approval === 'pending')
-          )
-        );
-      } catch (err) {
-        console.error('Failed to load registrations:', err);
-      }
-    };
-    load();
+      setPendingApprovals(
+        regs.filter((r) =>
+          (r.user?.role === 'mentor' && r.user?.mentorProfile?.approval === 'pending') ||
+          (r.user?.role === 'mentee' && r.user?.menteeProfile?.approval === 'pending')
+        )
+      );
+      return regs;
+    } catch (err) {
+      console.error('Failed to load registrations:', err);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    loadRegistrations();
   }, [showToast]);
+
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadRegistrations();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Load certificate availability
   useEffect(() => {
@@ -658,6 +670,17 @@ export const OrganizerReg = ({ showToast }) => {
 
   return (
     <>
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="rounded-full font-bold text-[.76rem] h-9 px-3.5 bg-surface2 text-ink disabled:opacity-50"
+        >
+          {refreshing ? 'A actualizar...' : 'Actualizar'}
+        </button>
+      </div>
+
       <Card>
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -692,7 +715,7 @@ export const OrganizerReg = ({ showToast }) => {
           pendingApprovals.map((r) => (
             <div
               key={r.id}
-              className="flex justify-between items-center mt-3 cursor-pointer"
+              className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mt-3 cursor-pointer"
               onClick={() => setSelectedReg(r)}
             >
               <PersonRow
@@ -702,21 +725,26 @@ export const OrganizerReg = ({ showToast }) => {
                   : `Mentor · ${r.user?.mentorProfile?.company || '-'}`}
                 photoUrl={r.user?.photo_url}
               />
-              <button
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  try {
-                    await ccApproveMentor({ mentor_id: r.user_id, action: 'approve' });
-                    setPendingApprovals((prev) => prev.filter((x) => x.id !== r.id));
-                    showToast('Candidatura aprovada.');
-                  } catch (err) {
-                    showToast(err.response?.data?.message || 'Erro ao aprovar.');
-                  }
-                }}
-                className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white"
-              >
-                Aprovar
-              </button>
+              <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 w-full sm:w-auto">
+                <p className="text-[.75rem] text-ink-muted whitespace-nowrap">
+                  {r.created_at ? new Date(r.created_at).toLocaleString('pt-PT') : '–'}
+                </p>
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      await ccApproveMentor({ mentor_id: r.user_id, action: 'approve' });
+                      setPendingApprovals((prev) => prev.filter((x) => x.id !== r.id));
+                      showToast('Candidatura aprovada.');
+                    } catch (err) {
+                      showToast(err.response?.data?.message || 'Erro ao aprovar.');
+                    }
+                  }}
+                  className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white"
+                >
+                  Aprovar
+                </button>
+              </div>
             </div>
           ))
         ) : (
@@ -748,12 +776,13 @@ export const OrganizerReg = ({ showToast }) => {
        
 
        <div className="mt-1 max-h-[60vh] overflow-auto rounded-[14px] border border-line">
-  <table className="w-full min-w-[640px] text-[.88rem] border-collapse">
+  <table className="w-full min-w-[760px] text-[.88rem] border-collapse">
     <thead className="sticky top-0 z-10 bg-surface">
       <tr>
         <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Nome</th>
         <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Perfil</th>
         <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Bilhete</th>
+        <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Registo</th>
         <th className="text-right text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Estado</th>
         <th className="text-right text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Ações</th>
       </tr>
@@ -769,6 +798,7 @@ export const OrganizerReg = ({ showToast }) => {
           </td>
           <td className="py-[11px] px-2 text-ink-muted text-[.85rem]">{reg.user?.role === 'mentor' ? 'Mentor' : 'Mentorado'}</td>
           <td className="py-[11px] px-2 text-[.82rem] font-mono text-ink-muted">{reg.ticket_code || '–'}</td>
+          <td className="py-[11px] px-2 text-[.82rem] text-ink-muted whitespace-nowrap">{reg.created_at ? new Date(reg.created_at).toLocaleString('pt-PT') : '–'}</td>
           <td className="py-[11px] px-2 text-right">
             <button
               onClick={() => handleCheckIn(reg)}
@@ -792,7 +822,7 @@ export const OrganizerReg = ({ showToast }) => {
         </tr>
       ))}
       {filteredRegs.length === 0 && (
-        <tr><td colSpan="5" className="py-3 text-center text-ink-muted text-[.85rem]">Sem registos.</td></tr>
+        <tr><td colSpan="6" className="py-3 text-center text-ink-muted text-[.85rem]">Sem registos.</td></tr>
       )}
     </tbody>
   </table>

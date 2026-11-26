@@ -174,6 +174,8 @@ export default function Landingpage() {
   const countdownInterval = useRef(null);
   const journeyRef = useRef(null);
   const [journeyVisible, setJourneyVisible] = useState(false);
+  const [configLoaded, setConfigLoaded] = useState(false);
+  const [backendReady, setBackendReady] = useState(false);
 
   // Load landing content from the backend (structure stays the same; only data changes)
   useEffect(() => {
@@ -192,7 +194,8 @@ export default function Landingpage() {
           masterclasses: Array.isArray(c.masterclasses) ? c.masterclasses : DEFAULT_CONFIG.masterclasses,
         });
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setConfigLoaded(true); });
     return () => { cancelled = true; };
   }, []);
 
@@ -262,6 +265,38 @@ export default function Landingpage() {
     return () => { cancelled = true; };
   }, []);
 
+  // Preload backend (database) images — the masterclass/mentor photos — once the
+  // landing config has loaded, so nothing pops in after the page is revealed.
+  useEffect(() => {
+    if (!configLoaded) return;
+    const photos = (masterclasses || [])
+      .map((m) => (m && m.photo_url ? imgSrc(m.photo_url) : null))
+      .filter(Boolean);
+
+    if (photos.length === 0) {
+      setBackendReady(true);
+      return;
+    }
+
+    let cancelled = false;
+    const loadImage = (src) =>
+      new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+        img.src = src;
+      });
+
+    Promise.all(photos.map(loadImage)).then(() => {
+      if (!cancelled) setBackendReady(true);
+    });
+
+    return () => { cancelled = true; };
+  }, [configLoaded, masterclasses]);
+
+  // Reveal the page only after static images, backend images and config are ready.
+  const ready = imagesReady && backendReady && configLoaded;
+
   useEffect(() => {
     if (!event) return undefined;
     const tick = () => {
@@ -284,7 +319,7 @@ export default function Landingpage() {
 
   // Only draw the curved SVG line once the Journey section enters the viewport
   useEffect(() => {
-    if (!imagesReady) return;
+    if (!ready) return;
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -298,7 +333,7 @@ export default function Landingpage() {
     );
     if (journeyRef.current) observer.observe(journeyRef.current);
     return () => observer.disconnect();
-  }, [imagesReady]);
+  }, [ready]);
 
   const totalCapacity = 120;
   const registeredCount = (() => {
@@ -325,7 +360,7 @@ export default function Landingpage() {
     }
   };
 
-  if (!imagesReady) {
+  if (!ready) {
     return (
       <div className="min-h-screen bg-surface text-ink font-sans bg-navy-950 grid place-items-center">
         <div

@@ -482,6 +482,7 @@ export const OrganizerReg = ({ showToast }) => {
   };
 
   const notifyCertificate = async () => {
+    if (!window.confirm('Enviar a notificação do Certificado Digital a todos os participantes presentes?')) return;
     setCertNotifying(true);
     try {
       const resp = await ccNotifySurvey({ form: 'certificate' });

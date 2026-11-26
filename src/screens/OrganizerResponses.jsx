@@ -30,14 +30,14 @@ const SurveyDetails = ({ s, content }) => {
           <div className="space-y-1.5">
             {Object.entries(fields).map(([id, val]) => (
               <div key={id} className="text-[.85rem]">
-                <span className="text-ink-muted !text-black">{labelFor(content, role, id)}: </span>
-                <span className="font-semibold !text-black">{val}</span>
+                <span className="text-ink-muted ">{labelFor(content, role, id)}: </span>
+                <span className="font-semibold ">{val}</span>
               </div>
             ))}
             {Object.entries(ratings).map(([item, val]) => (
               <div key={item} className="text-[.85rem]">
-                <span className="text-ink-muted !text-black">{item}: </span>
-                <span className="font-semibold !text-black">{val}/5</span>
+                <span className="text-ink-muted">{item}: </span>
+                <span className="font-semibold">{val}/5</span>
               </div>
             ))}
             {main.comment && (

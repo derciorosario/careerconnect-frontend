@@ -188,6 +188,8 @@ export const OrganizerQuestionnaire = ({ showToast }) => {
   };
 
   const handleNotify = async (form) => {
+    const label = form === 'impact' ? 'Avaliação de Impacto da Mentoria' : 'Formulário de Avaliação do Evento';
+    if (!window.confirm(`Enviar notificação sobre a ${label} a todos os utilizadores presentes?`)) return;
     setNotifying(form);
     try {
       const resp = await ccNotifySurvey({ form });

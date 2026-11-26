@@ -348,6 +348,14 @@ display: table-row-group;
     top: 0;
     width: 100%;
     text-align: left;
+    background: #fff !important;
+  }
+
+  /* Force all printed content to black on white for a clean, legible report */
+  .print-section,
+  .print-section * {
+    color: #000 !important;
+    background: transparent !important;
   }
 
   .print-section table {

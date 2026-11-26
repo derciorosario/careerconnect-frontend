@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ccGetLanding } from './api/client';
 import { imgSrc } from './ui';
+import InstallApp from './InstallApp';
 import mainLogo from './assets/patners/main.png';
 import logo from './assets/logo.png';
 import mentor1 from './assets/mentors/1.jpeg';
@@ -860,6 +861,9 @@ export default function Landingpage() {
              </div>
               
         </div>
+
+        {/* ── Install the app ── */}
+        <InstallApp />
 
         {/* Footer */}
         <footer className="pt-8 pb-12 border-t border-line text-ink-muted text-sm">

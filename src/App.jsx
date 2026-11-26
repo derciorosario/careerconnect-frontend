@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  BrowserRouter, Routes, Route, Link, Navigate,
+  BrowserRouter, Routes, Route, Link, Navigate, useParams, useNavigate,
 } from 'react-router-dom';
 import {
   NAV_MENTEE, NAV_MENTOR, ORGANIZER_TABS,
@@ -111,10 +111,22 @@ function BottomNav({ items, activeTab, setActiveTab }) {
 export function CareerConnectApp({ initialRole }) {
   const [role, setRole] = useState(initialRole || null);
   const [previousRole, setPreviousRole] = useState(null);
-  const [activeTab, setActiveTabState] = useState('home');
+  const [activeTab, setActiveTabState] = useState(initialRole === 'org' ? 'live' : 'home');
   const [user, setUser] = useState(null);
+  const params = useParams();
+  const navigate = useNavigate();
 
-  // Wrap setActiveTab so that whenever the tab changes we instantly scroll to top.
+  // Route -> state: keep the active tab in sync with the URL (:tab param).
+  useEffect(() => {
+    if (params.tab && params.tab !== activeTab) {
+      setActiveTabState(params.tab);
+      requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.tab]);
+
+  // Wrap setActiveTab so that whenever the tab changes we scroll to top AND
+  // reflect the change in the URL (each tab has its own route).
   const setActiveTab = (next) => {
     setActiveTabState((prev) => {
       // scroll only when the tab actually changes
@@ -126,6 +138,10 @@ export function CareerConnectApp({ initialRole }) {
       }
       return next;
     });
+    if (role && role !== 'tv') {
+      const base = role === 'org' ? '/app/org' : `/app/${role}`;
+      navigate(`${base}/${next}`);
+    }
   };
 
   // Event / simulation state
@@ -684,9 +700,9 @@ export default function AppRouter() {
         <Route path="/registo" element={<Register />} />
         <Route path="/registo/mentor" element={<Register />} />
         <Route path="/entrar" element={authRole ? <Navigate to={authRole === 'organizer' ? '/app/org' : `/app/${authRole}`} replace /> : <Login />} />
-        <Route path="/app/mentee" element={authRole === 'mentee' ? <CareerConnectApp initialRole="mentee" /> : (authChecked ? <Navigate to="/entrar" replace /> : null)} />
-        <Route path="/app/mentor" element={authRole === 'mentor' ? <CareerConnectApp initialRole="mentor" /> : (authChecked ? <Navigate to="/entrar" replace /> : null)} />
-        <Route path="/app/org" element={authRole === 'org' ? <CareerConnectApp initialRole="org" /> : (authChecked ? <Navigate to="/entrar" replace /> : null)} />
+        <Route path="/app/mentee/:tab?" element={authRole === 'mentee' ? <CareerConnectApp initialRole="mentee" /> : (authChecked ? <Navigate to="/entrar" replace /> : null)} />
+        <Route path="/app/mentor/:tab?" element={authRole === 'mentor' ? <CareerConnectApp initialRole="mentor" /> : (authChecked ? <Navigate to="/entrar" replace /> : null)} />
+        <Route path="/app/org/:tab?" element={authRole === 'org' ? <CareerConnectApp initialRole="org" /> : (authChecked ? <Navigate to="/entrar" replace /> : null)} />
         <Route path="/app/tv" element={authRole === 'tv' ? <CareerConnectApp initialRole="tv" /> : (authChecked ? <Navigate to="/entrar" replace /> : null)} />
         <Route path="/app" element={<Navigate to="/entrar" replace />} />
         <Route path="/checkin" element={<CheckInScreen />} />

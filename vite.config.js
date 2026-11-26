@@ -16,6 +16,10 @@ const manifestIcons = [
 
 const pwaOptions = {
   registerType: 'autoUpdate',
+  devOptions: {
+    enabled: true,
+    type: 'module',
+  },
   workbox: {
     globPatterns: ['**/*.{js,css,html,ico,png,webp,jpg,jpeg,svg}'],
     maximumFileSizeToCacheInBytes: 3000000,
@@ -37,10 +41,10 @@ const pwaOptions = {
     icons: manifestIcons,
     shortcuts: [
       {
-        name: 'Mentores',
-        short_name: 'Mentores',
-        description: 'Ver mentores disponíveis',
-        url: '/app/mentee/mentors',
+        name: 'Participantes',
+        short_name: 'Participantes',
+        description: 'Ver participantes do evento',
+        url: '/app/mentee/participantes',
         icons: [{ src: 'assets/icons/icon-96.png', sizes: '96x96' }]
       },
       {

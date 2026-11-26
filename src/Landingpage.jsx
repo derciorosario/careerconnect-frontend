@@ -144,6 +144,26 @@ const PinIcon = ({ className = 'w-5 h-5' }) => (
   </svg>
 );
 
+// Mentor avatar that shows the photo, falling back to initials (no image) when the
+// source is missing or fails to load.
+const MentorAvatar = ({ src, name, initials, wrapperClassName, imgClassName }) => {
+  const [failed, setFailed] = useState(false);
+  const showImg = !!src && !failed;
+  const label = initials
+    || (name || '').split(' ').filter(Boolean).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+  return (
+    <div className={wrapperClassName}>
+      {showImg ? (
+        <img src={src} alt={name || ''} className={imgClassName} onError={() => setFailed(true)} />
+      ) : (
+        <span className="w-full h-full grid place-items-center font-extrabold text-white bg-primary-500 select-none">
+          {label}
+        </span>
+      )}
+    </div>
+  );
+};
+
 export default function Landingpage() {
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [config, setConfig] = useState(DEFAULT_CONFIG);
@@ -177,9 +197,17 @@ export default function Landingpage() {
 
   const { event, tutorialVideoUrl, axes, benefits, faqs, masterclasses, email } = config;
   const hasEvent = !!event;
+  // Hero portraits: use the mentor photo from the DB when available, otherwise
+  // fall back to the bundled hero images (never the static mentor images).
   const heroImg = (i) => {
     if (!hasEvent) return HERO_IMAGES[i];
-    return masterclasses[i]?.photo_url ? imgSrc(masterclasses[i].photo_url) : IMAGES[i];
+    return masterclasses[i]?.photo_url ? imgSrc(masterclasses[i].photo_url) : HERO_IMAGES[i];
+  };
+  // If a DB portrait fails to load, swap to the bundled hero image (guard against loops).
+  const onHeroImgError = (i) => (e) => {
+    if (e.currentTarget.dataset.fallback) return;
+    e.currentTarget.dataset.fallback = '1';
+    e.currentTarget.src = HERO_IMAGES[i];
   };
 
   const VB_W = 1000;
@@ -412,9 +440,9 @@ export default function Landingpage() {
             </div>
 
             <div className="relative w-full max-w-[420px] aspect-[1/1.08] ml-auto mx-auto md:mt-0 mt-2.5" aria-hidden="true">
-              <img className="absolute w-[60%] left-0 top-0 rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-primary-500)]" src={heroImg(0)} alt="" />
-              <img className="absolute w-[48%] right-0 top-[30%] rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-navy-800)]" src={heroImg(1)} alt="" />
-              <img className="absolute w-[52%] left-[16%] bottom-0 rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-primary-500)]" src={heroImg(2)} alt="" />
+              <img className="absolute w-[60%] left-0 top-0 rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-primary-500)]" src={heroImg(0)} onError={onHeroImgError(0)} alt="" />
+              <img className="absolute w-[48%] right-0 top-[30%] rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-navy-800)]" src={heroImg(1)} onError={onHeroImgError(1)} alt="" />
+              <img className="absolute w-[52%] left-[16%] bottom-0 rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-primary-500)]" src={heroImg(2)} onError={onHeroImgError(2)} alt="" />
               <i className="absolute w-[26px] h-[26px] rounded-full bg-primary-500 right-[30%] top-[12%]" />
             </div>
           </div>
@@ -682,9 +710,13 @@ export default function Landingpage() {
           <div className="grid gap-4.5">
             {masterclasses.map(masterclass => (
               <div key={masterclass.id} className="grid grid-cols-[56px_1fr] md:grid-cols-[64px_1fr_auto] gap-4.5 items-center bg-surface-soft text-ink rounded-inner px-6 py-5">
-                <div className="w-14 md:w-16 h-14 md:h-16 rounded-full overflow-hidden bg-navy-800 shadow-[0_0_0_3px_var(--color-surface),0_0_0_5px_var(--color-primary-500)]">
-                  <img src={imgSrc(masterclass.photo_url) || IMAGES[masterclass.id]} alt={masterclass.name} className="w-full h-full object-cover" />
-                </div>
+                <MentorAvatar
+                  src={masterclass.photo_url ? imgSrc(masterclass.photo_url) : ''}
+                  name={masterclass.name}
+                  initials={masterclass.initials}
+                  wrapperClassName="w-14 md:w-16 h-14 md:h-16 rounded-full overflow-hidden bg-navy-800 shadow-[0_0_0_3px_var(--color-surface),0_0_0_5px_var(--color-primary-500)]"
+                  imgClassName="w-full h-full object-cover"
+                />
                 <div>
                   <div className="text-[.78rem] font-semibold text-primary-500">{masterclass.theme}</div>
                   <h3 className="text-[1.15rem] font-extrabold">{masterclass.title}</h3>
@@ -711,7 +743,13 @@ export default function Landingpage() {
               const isReversed = index % 2 === 1;
               return (
                 <div key={masterclass.id} className={`grid grid-cols-1 md:grid-cols-[200px_minmax(0,1fr)] gap-8 md:gap-10 items-center ${isReversed ? 'md:grid-cols-[minmax(0,1fr)_200px]' : ''}`}>
-                  <img src={imgSrc(masterclass.photo_url) || IMAGES[index]} alt={masterclass.name} className={`w-[200px] h-[200px] rounded-full object-cover bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-primary-500)] mx-auto md:mx-0 ${isReversed ? 'md:order-2 md:justify-self-end' : ''}`} />
+                  <MentorAvatar
+                    src={masterclass.photo_url ? imgSrc(masterclass.photo_url) : ''}
+                    name={masterclass.name}
+                    initials={masterclass.initials}
+                    wrapperClassName={`w-[200px] h-[200px] rounded-full overflow-hidden bg-surface-soft shadow-[0_0_0_5px_var(--color-surface),0_0_0_8px_var(--color-primary-500)] mx-auto md:mx-0 ${isReversed ? 'md:order-2 md:justify-self-end' : ''}`}
+                    imgClassName="w-full h-full object-cover"
+                  />
                   <div className={isReversed ? 'md:text-right' : ''}>
                     <h3 className="text-2xl font-extrabold">{masterclass.name}</h3>
                     <div className="text-primary-500 font-semibold text-[.92rem] my-1">{masterclass.role}</div>

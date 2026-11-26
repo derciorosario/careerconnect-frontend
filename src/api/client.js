@@ -294,6 +294,7 @@ export const ccCreateAnnouncement = (data) => client.post('/announcements/', dat
 export const ccSubmitSurvey = (data) => client.post('/survey/', data);
 export const ccGetSurveyResults = (params) => client.get('/survey/', { params });
 export const ccDeleteSurveyResponse = (id) => client.delete(`/survey/${id}`);
+export const ccDeleteAllSurveyResponses = (params) => client.delete('/survey/all', { params });
 export const ccGetQuestionnaire = (params) => client.get('/survey/questionnaire', { params });
 export const ccUpdateQuestionnaire = (data) => client.put('/survey/questionnaire', data);
 export const ccGetSurveyStatus = (params) => client.get('/survey/status', { params });

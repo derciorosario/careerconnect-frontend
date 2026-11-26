@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ccGetSurveyResults, ccGetQuestionnaire, ccDeleteSurveyResponse } from '../api/client';
+import { ccGetSurveyResults, ccGetQuestionnaire, ccDeleteSurveyResponse, ccDeleteAllSurveyResponses } from '../api/client';
 import { Card } from '../ui';
 
 const labelFor = (content, role, id) => {
@@ -72,6 +72,7 @@ export const OrganizerResponses = ({ showToast }) => {
   const [content, setContent] = useState({});
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
+  const [deletingAll, setDeletingAll] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,18 +110,41 @@ export const OrganizerResponses = ({ showToast }) => {
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (!window.confirm('Eliminar TODAS as respostas? Esta acção não pode ser desfeita.')) return;
+    setDeletingAll(true);
+    try {
+      await ccDeleteAllSurveyResponses({});
+      setSurveys([]);
+      showToast('Todas as respostas foram eliminadas.');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao eliminar respostas.');
+    } finally {
+      setDeletingAll(false);
+    }
+  };
+
   return (
     <>
       <h2 className="text-[1.45rem] font-extrabold tracking-tight">Respostas do Questionário</h2>
       <div className="flex items-center justify-between mt-1 mb-4">
         <p className="text-ink-muted text-[.85rem]">Total de respostas: {surveys.length}</p>
-        <button
-          onClick={() => window.print()}
-          disabled={surveys.length === 0}
-          className="rounded-full font-bold text-[.78rem] h-9 px-3.5 bg-primary-500 text-white disabled:opacity-50 print:hidden"
-        >
-          Imprimir
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDeleteAll}
+            disabled={surveys.length === 0 || deletingAll}
+            className="rounded-full font-bold text-[.78rem] h-9 px-3.5 bg-red-600 text-white disabled:opacity-50 print:hidden"
+          >
+            {deletingAll ? 'A eliminar...' : 'Eliminar todas'}
+          </button>
+          <button
+            onClick={() => window.print()}
+            disabled={surveys.length === 0}
+            className="rounded-full font-bold text-[.78rem] h-9 px-3.5 bg-primary-500 text-white disabled:opacity-50 print:hidden"
+          >
+            Imprimir
+          </button>
+        </div>
       </div>
 
       {loading ? (

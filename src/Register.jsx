@@ -417,7 +417,7 @@ export default function Register() {
     if (dialog === 'mentee-success') {
       window.location.href='/app/mentee';
     } else {
-      window.location.href='/entrar';
+      window.location.href='/';
     }
     setDialog(null);
   };

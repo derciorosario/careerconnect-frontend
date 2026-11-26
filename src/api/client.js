@@ -1,5 +1,5 @@
 import axios from "axios";
-export const env = "pro";
+export const env = "dev";
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 export const isNative = Capacitor.isNativePlatform();
 export const APP_VERSION="1.6"
@@ -233,6 +233,7 @@ export const ccAdvanceRound = (data) => client.post('/rounds/advance', data);
 export const ccPauseRound = (data) => client.post('/rounds/pause', data);
 export const ccResumeRound = (data) => client.post('/rounds/resume', data);
 export const ccGetCurrentRound = (params) => client.get('/rounds/current', { params });
+export const ccTickRounds = (data) => client.post('/rounds/tick', data);
 export const ccResetRounds = (data) => client.post('/rounds/reset', data);
 export const ccCreateRound = (data) => client.post('/rounds/', data);
 export const ccUpdateRound = (id, data) => client.put(`/rounds/${id}`, data);

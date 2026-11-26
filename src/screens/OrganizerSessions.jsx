@@ -122,7 +122,7 @@ export const OrganizerSessions = ({ showToast }) => {
               <label className="block text-[.85rem] font-semibold mb-1.5">Título</label>
               <input type="text" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none" required maxLength={200} />
             </div>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
                 <label className="block text-[.85rem] font-semibold mb-1.5">Tipo</label>
                 <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })} className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none">
@@ -159,7 +159,7 @@ export const OrganizerSessions = ({ showToast }) => {
             </div>
           </form>
         )}
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-[.88rem] border-collapse">
             <thead>
               <tr>
@@ -199,6 +199,31 @@ export const OrganizerSessions = ({ showToast }) => {
               )}
             </tbody>
           </table>
+        </div>
+        <div className="md:hidden space-y-2.5">
+          {sessions.length > 0 ? (
+            sessions.map((session) => (
+              <div key={session.id} className="rounded-[14px] border border-line p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <b className="text-[.95rem] break-words min-w-0">{session.title}</b>
+                  <span className="shrink-0 rounded-full px-2 py-0.5 text-[.68rem] font-semibold bg-primary-100 text-primary-700">
+                    {typeLabels[session.type] || session.type}
+                  </span>
+                </div>
+                <div className="mt-1.5 text-[.78rem] text-ink-muted space-y-0.5">
+                  <div>Ordem: <span className="text-ink font-semibold">{session.order}</span></div>
+                  <div>Início: {session.starts_at ? new Date(session.starts_at).toLocaleString('pt-PT') : '–'}</div>
+                  <div>Mentor: {session.mentor?.name || '–'}</div>
+                </div>
+                <div className="flex gap-2 mt-2.5">
+                  <button onClick={() => handleEdit(session)} className="flex-1 rounded-full font-bold text-[.76rem] h-9 bg-primary-500 text-white">Editar</button>
+                  <button onClick={() => handleDelete(session)} className="flex-1 rounded-full font-bold text-[.76rem] h-9 bg-red-500 text-white">Remover</button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="py-3 text-center text-ink-muted text-[.85rem]">Sem sessões criadas.</p>
+          )}
         </div>
       </Card>
     </>

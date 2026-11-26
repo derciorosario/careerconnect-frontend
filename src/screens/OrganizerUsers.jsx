@@ -178,14 +178,14 @@ export const OrganizerUsers = ({ showToast }) => {
       <h2 className="text-[1.45rem] font-extrabold tracking-tight">Utilizadores</h2>
       <p className="text-ink-muted text-[.85rem] mt-1 mb-4">Edita mentores e mentorados.</p>
 
-      <div className="flex gap-2.5 mb-4">
+      <div className="flex flex-col sm:flex-row gap-2.5 mb-4">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Pesquisar por nome ou email..."
           className={FIELD}
         />
-        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className={FIELD} style={{ maxWidth: 160 }}>
+        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className={`${FIELD} sm:max-w-[160px]`}>
           <option value="all">Todos</option>
           <option value="mentor">Mentores</option>
           <option value="mentee">Mentorados</option>
@@ -209,36 +209,34 @@ export const OrganizerUsers = ({ showToast }) => {
                 subtitle={u.role === 'mentor' ? 'Mentor' : 'Mentorado'}
                 photoUrl={u.photo_url}
                 onClick={() => openUser(u)}
-                extra={
-                  <div className="flex items-center gap-2 flex-wrap justify-end">
-                    {u.is_active === false && (
-                      <span className="rounded-full px-2.5 py-[3px] text-[.68rem] font-bold bg-red-500 text-white">Desactivado</span>
-                    )}
-                    {u.role === 'mentor' && u.mentorProfile?.show_on_landing && (
-                      <span className="rounded-full px-2.5 py-[3px] text-[.68rem] font-bold bg-primary-500 text-white">Landing</span>
-                    )}
-                    <button onClick={() => openUser(u)} className={`${BTN} bg-surface2 text-ink`}>Editar</button>
-                    {u.role !== 'organizer' && (
-                      <>
-                        <button
-                          onClick={() => handleToggleActive(u)}
-                          disabled={actionId === u.id}
-                          className={`${BTN} ${u.is_active === false ? 'bg-success text-white' : 'bg-surface2 text-ink'} disabled:opacity-50`}
-                        >
-                          {u.is_active === false ? 'Activar' : 'Desactivar'}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(u)}
-                          disabled={actionId === u.id}
-                          className={`${BTN} bg-red-600 text-white disabled:opacity-50`}
-                        >
-                          Eliminar
-                        </button>
-                      </>
-                    )}
-                  </div>
-                }
               />
+              <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                {u.is_active === false && (
+                  <span className="rounded-full px-2.5 py-[3px] text-[.68rem] font-bold bg-red-500 text-white">Desactivado</span>
+                )}
+                {u.role === 'mentor' && u.mentorProfile?.show_on_landing && (
+                  <span className="rounded-full px-2.5 py-[3px] text-[.68rem] font-bold bg-primary-500 text-white">Landing</span>
+                )}
+                <button onClick={() => openUser(u)} className={`${BTN} bg-surface2 text-ink`}>Editar</button>
+                {u.role !== 'organizer' && (
+                  <>
+                    <button
+                      onClick={() => handleToggleActive(u)}
+                      disabled={actionId === u.id}
+                      className={`${BTN} ${u.is_active === false ? 'bg-success text-white' : 'bg-surface2 text-ink'} disabled:opacity-50`}
+                    >
+                      {u.is_active === false ? 'Activar' : 'Desactivar'}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(u)}
+                      disabled={actionId === u.id}
+                      className={`${BTN} bg-red-600 text-white disabled:opacity-50`}
+                    >
+                      Eliminar
+                    </button>
+                  </>
+                )}
+              </div>
             </Card>
           ))}
         </div>
@@ -246,10 +244,10 @@ export const OrganizerUsers = ({ showToast }) => {
 
       {editing && form && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => { setEditing(null); setForm(null); }}>
-          <div className="bg-surface rounded-[24px] p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-[1.1rem] font-extrabold">Editar {editing.name}</h3>
-              <button onClick={() => { setEditing(null); setForm(null); }} className="w-8 h-8 rounded-full bg-surface2 text-ink flex items-center justify-center">✕</button>
+          <div className="bg-surface rounded-[24px] p-4 sm:p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center gap-3 mb-4">
+              <h3 className="text-[1.1rem] font-extrabold min-w-0 break-words">Editar {editing.name}</h3>
+              <button onClick={() => { setEditing(null); setForm(null); }} className="shrink-0 w-8 h-8 rounded-full bg-surface2 text-ink flex items-center justify-center">✕</button>
             </div>
 
             <div className="mb-3">
@@ -265,7 +263,7 @@ export const OrganizerUsers = ({ showToast }) => {
               <input value={form.linkedin_url} onChange={(e) => set('linkedin_url', e.target.value)} className={FIELD} />
             </div>
 
-            <div className="mb-3 flex items-center gap-3">
+            <div className="mb-3 flex flex-wrap items-center gap-3">
               <img
                 src={form.photoFile ? URL.createObjectURL(form.photoFile) : (imgSrc(form.photo_url) || '')}
                 alt=""

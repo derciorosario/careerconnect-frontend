@@ -36,7 +36,7 @@ import Landingpage from './Landingpage';
 import MentorLanding from './MentorLanding';
 import Register from './Register';
 import Login from './Login';
-import { ccMe, setStoredToken, getStoredToken, getStoredRefreshToken, ccGetQuestions, ccGetPolls, ccGetPollResults, ccAdvanceRound, ccPauseRound, ccResumeRound, ccGetCurrentRound, ccResetRounds, ccGetRounds, ccGetEvent } from './api/client';
+import { ccMe, setStoredToken, getStoredToken, getStoredRefreshToken, ccGetQuestions, ccGetPolls, ccGetPollResults, ccAdvanceRound, ccPauseRound, ccResumeRound, ccGetCurrentRound, ccTickRounds, ccResetRounds, ccGetRounds, ccGetEvent } from './api/client';
 
 import logo from './assets/logo.png';
 
@@ -130,14 +130,22 @@ export function CareerConnectApp({ initialRole }) {
 
   // Event / simulation state
   const [currentRound, setCurrentRound] = useState(0);
-  const [roundsPerBreak, setRoundsPerBreak] = useState(4);
-  const [roundMinutes, setRoundMinutes] = useState(5);
-  const [secondsLeft, setSecondsLeft] = useState(300);
+  const [roundsPerBreak, setRoundsPerBreak] = useState(2);
+  const [totalRounds, setTotalRounds] = useState(4);
+  const [roundMinutes, setRoundMinutes] = useState(10);
+  const [secondsLeft, setSecondsLeft] = useState(roundMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isRehearsal, setIsRehearsal] = useState(false);
   const [furthestRoundCompleted, setFurthestRoundCompleted] = useState(0);
   const [roundDataVersion, setRoundDataVersion] = useState(0);
+
+  // Ref so the polling effect (which only depends on `role`) always reads the
+  // latest rounds-per-break value loaded from the backend, not a stale closure.
+  const roundsPerBreakRef = useRef(roundsPerBreak);
+  useEffect(() => { roundsPerBreakRef.current = roundsPerBreak; }, [roundsPerBreak]);
+  const roundMinutesRef = useRef(roundMinutes);
+  useEffect(() => { roundMinutesRef.current = roundMinutes; }, [roundMinutes]);
 
   // Announcements
   const [announcements, setAnnouncements] = useState([]);
@@ -202,7 +210,8 @@ export function CareerConnectApp({ initialRole }) {
       let active = true;
       const syncRound = async () => {
         try {
-          const resp = await ccGetCurrentRound({});
+          // Organizer drives the server-side countdown (auto-finalises expired rounds).
+          const resp = role === 'org' ? await ccTickRounds({}) : await ccGetCurrentRound({});
           if (!active) return;
           const round = resp.data?.round;
           if (round) {
@@ -214,18 +223,21 @@ export function CareerConnectApp({ initialRole }) {
             setIsPaused(round.status === 'paused');
             // Sync seconds left from backend (source of truth) so all roles show the same time,
             // including after a page refresh.
-            if (round.ends_at) {
+            if (round.status === 'paused' && round.paused_remaining != null) {
+              setSecondsLeft(Math.max(0, Math.floor(round.paused_remaining / 1000)));
+            } else if (round.ends_at) {
               const remaining = Math.max(0, Math.floor((new Date(round.ends_at) - Date.now()) / 1000));
               setSecondsLeft(remaining);
             } else if (round.started_at) {
-              const remaining = Math.max(0, Math.floor((new Date(round.started_at).getTime() + 5 * 60 * 1000 - Date.now()) / 1000));
+              const remaining = Math.max(0, Math.floor((new Date(round.started_at).getTime() + roundMinutesRef.current * 60 * 1000 - Date.now()) / 1000));
               setSecondsLeft(remaining);
             } else if (round.duration_minutes) {
               setSecondsLeft(round.duration_minutes * 60);
             }
           } else {
-            // No running round — check if all done
-            setCurrentRound((prev) => (prev >= 1 && prev <= 4 ? prev : prev >= 5 ? 5 : 0));
+            // No running round — cap the displayed round using the backend value.
+            const rpb = roundsPerBreakRef.current;
+            setCurrentRound((prev) => (prev >= 1 && prev <= rpb ? prev : prev > rpb ? rpb + 1 : 0));
             setIsRunning(false);
           }
         } catch (err) {
@@ -246,6 +258,7 @@ export function CareerConnectApp({ initialRole }) {
         const resp = await ccGetRounds({});
         if (!active) return;
         const rounds = resp.data?.rounds || [];
+        if (rounds.length > 0) setTotalRounds(rounds.length);
         const maxRoundNo = rounds.reduce((max, r) => Math.max(max, r.round_no || 0), 0);
         if (maxRoundNo > 0) setRoundsPerBreak(maxRoundNo);
       } catch (err) {
@@ -287,9 +300,9 @@ export function CareerConnectApp({ initialRole }) {
         // Do not generate here — advancing/starting a round must not create pairs.
         setRoundDataVersion((v) => v + 1);
       } else {
-        setCurrentRound(5);
+        setCurrentRound(roundsPerBreak + 1);
         setIsRunning(false);
-        setFurthestRoundCompleted(4);
+        setFurthestRoundCompleted(roundsPerBreak);
       }
     } catch (err) {
       showToast(err.response?.data?.message || 'Erro ao avançar ronda.');
@@ -348,7 +361,7 @@ export function CareerConnectApp({ initialRole }) {
   // Called by OrganizerLive after the round duration is saved. Updates the
   // shared round state (duration, countdown, current round and rounds/break).
   const handleRoundMinutesSaved = async (minutes) => {
-    const mins = Number(minutes) || 5;
+    const mins = Number(minutes) || 10;
     setRoundMinutes(mins);
     setSecondsLeft(mins * 60);
     // Refresh rounds so roundsPerBreak (max round_no) is re-read from the DB.
@@ -374,7 +387,7 @@ export function CareerConnectApp({ initialRole }) {
     const activeMenteeTab = NAV_MENTEE.find((t) => t.key === activeTab) ? activeTab : 'home';
     switch (activeMenteeTab) {
       case 'home':
-        return <MenteeHome {...common} />;
+        return <MenteeHome {...common} totalRounds={totalRounds} />;
       case 'live':
         return <MenteeLive {...common} currentRound={currentRound} roundsPerBreak={roundsPerBreak} roundMinutes={roundMinutes} secondsLeft={secondsLeft} isRehearsal={isRehearsal} announcements={announcements} phaseLabel={phaseLabel} setActiveTab={setActiveTab} questions={questions} setQuestions={setQuestions} pollOptions={pollOptions} setPollOptions={setPollOptions} pollVotes={pollVotes} setPollVotes={setPollVotes} votedOption={votedOption} setVotedOption={setVotedOption} totalPollVotes={totalPollVotes} roundDataVersion={roundDataVersion} />;
       case 'participantes':

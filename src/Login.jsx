@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ccLogin, ccRequestOTP, ccVerifyOTP, ccGetTestUsers } from './api/client';
+import { ccLogin, ccRequestOTP, ccVerifyOTP, ccGetTestUsers, ccForgotPassword, ccResetPassword } from './api/client';
 
 const BTN_BASE   = 'inline-block rounded-full bg-primary-500 text-white font-semibold text-base px-7 py-3.5 cursor-pointer no-underline hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed';
 const BTN_GHOST  = 'bg-transparent text-ink shadow-[inset_0_0_0_2px_var(--color-line)]';
@@ -18,6 +18,9 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [mode, setMode] = useState('password');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetSent, setResetSent] = useState(false);
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -45,9 +48,11 @@ export default function Login() {
   // Limpa mensagens e estado de OTP ao trocar de tab
   useEffect(() => {
     setError('');
-    setSuccess('');
     setOtp('');
     setOtpSent(false);
+    setNewPassword('');
+    setConfirmPassword('');
+    setResetSent(false);
   }, [mode]);
 
   const persistSession = (data) => {
@@ -63,6 +68,11 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    if (mode === 'forgot') {
+      await handleResetPassword(e);
+      return;
+    }
 
     if (mode === 'otp' && !otpSent) {
       setError('Envie o código OTP primeiro.');
@@ -109,7 +119,58 @@ export default function Login() {
   };
 
   const switchMode = (nextMode) => {
-    if (nextMode !== mode) setMode(nextMode);
+    if (nextMode !== mode) {
+      setSuccess('');
+      setMode(nextMode);
+    }
+  };
+
+  const handleForgotRequest = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    if (!email) {
+      setError('Insira o email ou WhatsApp primeiro.');
+      return;
+    }
+    setSendingOtp(true);
+    try {
+      await ccForgotPassword({ email });
+      setResetSent(true);
+      setSuccess('Código de redefinição enviado por email e WhatsApp.');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Erro ao enviar código de redefinição.');
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    if (!otp) {
+      setError('Insira o código de verificação.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setError('A nova palavra-passe precisa de pelo menos 6 caracteres.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('As palavras-passe não coincidem.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await ccResetPassword({ email, otp, newPassword });
+      setMode('password');
+      setSuccess('Palavra-passe redefinida com sucesso. Já pode entrar.');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Não foi possível redefinir a palavra-passe.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fillTestUser = (emailVal, passwordVal) => {
@@ -118,7 +179,7 @@ export default function Login() {
     setMode('password');
   };
 
-  const showOtpSubmit = mode === 'password' || (mode === 'otp' && otpSent);
+  const showOtpSubmit = mode === 'password' || (mode === 'otp' && otpSent) || (mode === 'forgot' && resetSent);
 
   return (
     <div className="min-h-screen bg-navy-950 text-ink font-sans">
@@ -135,6 +196,7 @@ export default function Login() {
         </p>
 
         {/* Tabs */}
+        {mode !== 'forgot' && (
         <div
           role="tablist"
           aria-label="Método de autenticação"
@@ -165,6 +227,14 @@ export default function Login() {
             Código de confirmação
           </button>
         </div>
+        )}
+
+        {mode === 'forgot' && (
+          <div className="mb-6">
+            <h2 className="text-[1.1rem] font-extrabold tracking-tight text-white mb-1">Redefinir palavra-passe</h2>
+            <p className="text-ink-muted text-[.9rem]">Enviaremos um código para o seu email e WhatsApp.</p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
           {/* Email */}
@@ -198,6 +268,13 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 className={FIELD_BASE}
               />
+              <button
+                type="button"
+                onClick={() => switchMode('forgot')}
+                className="text-sm text-primary-500 font-semibold text-right mt-1"
+              >
+                Esqueceu a palavra-passe?
+              </button>
             </div>
           )}
 
@@ -244,6 +321,86 @@ export default function Login() {
             </>
           )}
 
+          {/* Forgot password mode */}
+          {mode === 'forgot' && !resetSent && (
+            <button
+              type="button"
+              onClick={handleForgotRequest}
+              disabled={sendingOtp || !email}
+              className={`${BTN_BASE} w-full mt-2`}
+            >
+              {sendingOtp ? 'A enviar...' : 'Enviar código de redefinição'}
+            </button>
+          )}
+
+          {mode === 'forgot' && resetSent && (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="reset-otp" className="text-[.85rem] font-semibold">
+                  Código de 6 dígitos
+                </label>
+                <input
+                  id="reset-otp"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  autoComplete="one-time-code"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  className={FIELD_BASE}
+                />
+                <p className="text-[.8rem] text-ink-muted">
+                  Insira o código recebido por email ou WhatsApp.
+                </p>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="new-password" className="text-[.85rem] font-semibold">
+                  Nova palavra-passe
+                </label>
+                <input
+                  id="new-password"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Mínimo 6 caracteres"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className={FIELD_BASE}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="confirm-password" className="text-[.85rem] font-semibold">
+                  Confirmar nova palavra-passe
+                </label>
+                <input
+                  id="confirm-password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className={FIELD_BASE}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleForgotRequest}
+                disabled={sendingOtp}
+                className="text-sm text-primary-500 font-semibold text-center w-full mt-1"
+              >
+                {sendingOtp ? 'A reenviar...' : 'Reenviar código'}
+              </button>
+            </>
+          )}
+
+          {mode === 'forgot' && (
+            <button
+              type="button"
+              onClick={() => switchMode('password')}
+              className="text-sm text-ink-muted font-semibold text-center w-full mt-1"
+            >
+              Voltar ao login
+            </button>
+          )}
+
           {/* Feedback */}
           <div aria-live="polite" className="min-h-[1.25rem]">
             {error && (
@@ -259,7 +416,9 @@ export default function Login() {
           {/* Submit — só aparece se fizer sentido */}
           {showOtpSubmit && (
             <button className={`${BTN_BASE} w-full mt-2`} type="submit" disabled={loading}>
-              {loading ? 'A entrar...' : 'Entrar'}
+              {loading
+                ? mode === 'forgot' ? 'A redefinir...' : 'A entrar...'
+                : mode === 'forgot' ? 'Redefinir palavra-passe' : 'Entrar'}
             </button>
           )}
         </form>
@@ -304,5 +463,3 @@ export default function Login() {
 }
 
 
-///54links.com | 54limks.com | 54links.com
-///54links.com 

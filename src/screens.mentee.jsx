@@ -83,7 +83,7 @@ const SkeletonPersonRow = () => (
 );
 
 // ── HOME ─────────────────────────────────────
-export const MenteeHome = ({ showToast }) => {
+export const MenteeHome = ({ showToast, totalRounds = 8 }) => {
   const [profile, setProfile] = useState(null);
   const [conversationsDone, setConversationsDone] = useState(0);
   const [connections, setConnections] = useState([]);
@@ -148,10 +148,11 @@ export const MenteeHome = ({ showToast }) => {
   const myName = profile?.name || 'Utilizador';
   const myCourse = profile?.menteeProfile?.course || '';
   const connectionsCount = connections.length;
+  const totalConversations = totalRounds;
   const badges = [
     { label: 'Primeira ligação',  earned: conversationsDone >= 1 },
-    { label: 'Meio caminho',      earned: conversationsDone >= 4 },
-    { label: 'Passaporte completo', earned: conversationsDone >= 8 },
+    { label: 'Meio caminho',      earned: conversationsDone >= Math.ceil(totalConversations / 2) },
+    { label: 'Passaporte completo', earned: conversationsDone >= totalConversations },
     { label: 'Primeira conexão',  earned: connectionsCount > 0 },
     { label: 'Mentoria ativa',    earned: badgeData.some((b) => b.code === 'MENTORIA_ATIVA') },
   ];
@@ -231,17 +232,17 @@ export const MenteeHome = ({ showToast }) => {
           <div
             className="shrink-0"
             dangerouslySetInnerHTML={{ __html: `
-              <svg width="104" height="104" viewBox="0 0 110 110" role="img" aria-label="${conversationsDone} de 8 conversas">
+              <svg width="104" height="104" viewBox="0 0 110 110" role="img" aria-label="${conversationsDone} de ${totalConversations} conversas">
                 <circle cx="55" cy="55" r="42" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="10"/>
                 <circle cx="55" cy="55" r="42" fill="none" stroke="#f26b0f" stroke-width="10" stroke-linecap="round"
-                  stroke-dasharray="${2 * Math.PI * 42}" stroke-dashoffset="${2 * Math.PI * 42 * (1 - conversationsDone / 8)}"
+                  stroke-dasharray="${2 * Math.PI * 42}" stroke-dashoffset="${2 * Math.PI * 42 * (1 - conversationsDone / totalConversations)}"
                   transform="rotate(-90 55 55)"/>
                 <text x="55" y="61" text-anchor="middle" fill="#fff" font-family="Montserrat" font-weight="800" font-size="26">${conversationsDone}</text>
               </svg>` }}
           />
           <div>
             <b>Passaporte</b>
-            <p className="text-[.85rem] text-navy-100">{conversationsDone} de 8 conversas · {connectionsCount} conexões</p>
+            <p className="text-[.85rem] text-navy-100">{conversationsDone} de {totalConversations} conversas · {connectionsCount} conexões</p>
           </div>
         </div>
       </Card>
@@ -932,6 +933,22 @@ export const MenteeMet = ({ showToast }) => {
         return (
           <Card key={c.id}>
             <PersonRow name={contact.name} subtitle={contact.role || ''} photoUrl={contact.photo_url} onClick={() => setSelectedContact(contact)} />
+            {(contact.phone || contact.email) && (
+              <div className="mt-2.5 space-y-1 min-w-0">
+                {contact.phone && (
+                  <a href={`tel:${contact.phone}`} className="flex items-center gap-2 text-[.82rem] font-semibold text-primary-500 hover:underline break-all min-w-0">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    {contact.phone}
+                  </a>
+                )}
+                {contact.email && (
+                  <a href={`mailto:${contact.email}`} className="flex items-center gap-2 text-[.82rem] font-semibold text-primary-500 hover:underline break-all min-w-0">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+                    {contact.email}
+                  </a>
+                )}
+              </div>
+            )}
             {(req?.status !== 'accepted' && req?.status !== 'pending') && (
               <textarea rows="2" placeholder="Nota privada, só tu vês" className="w-full mt-3 mb-0 text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none" />
             )}

@@ -176,7 +176,7 @@ export const OrganizerLive = ({
           <div className="flex items-center justify-between mb-3.5"><b>Controlo</b></div>
           <div className="flex flex-wrap gap-2.5 mt-3">
             <button
-              onClick={() => (currentRound >= 5 ? restartSimulation() : advanceRound())}
+              onClick={() => (currentRound > roundsPerBreak ? restartSimulation() : advanceRound())}
               className="rounded-full font-bold text-[.92rem] h-12 px-5 bg-primary-500 text-white"
             >
               {currentRound === 0 ? 'Iniciar intervalo 1' : currentRound < roundsPerBreak ? `Avançar ronda ${currentRound + 1}` : currentRound === roundsPerBreak ? 'Terminar intervalo' : 'Reiniciar'}
@@ -203,7 +203,7 @@ export const OrganizerLive = ({
             </button>
           </div>
           <div className="flex flex-wrap items-end gap-x-4 gap-y-3 mt-4">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 max-md:flex-wrap">
               <label className="text-[.85rem] font-semibold whitespace-nowrap">Duração das rondas (min)</label>
               <input
                 type="number"
@@ -220,7 +220,7 @@ export const OrganizerLive = ({
                 {savingMinutes ? '...' : 'Guardar'}
               </button>
             </div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 max-md:flex-wrap max-md:pt-6">
               <label className="text-[.85rem] font-semibold whitespace-nowrap">Máx. mentorandos / mentor</label>
               <input
                 type="number"
@@ -258,34 +258,56 @@ export const OrganizerLive = ({
               <b>Ronda {round.round_no}{round.break_no ? ` · Intervalo ${round.break_no}` : ''}</b>
               <span className="text-[.72rem] font-semibold text-ink-muted">{statusLabel}</span>
             </div>
-            <table className="w-full text-[.88rem] border-collapse">
-              <thead>
-                <tr>
-                  <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Mesa</th>
-                  <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Mentor</th>
-                  <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Mentorandos</th>
-                  <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Compat.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {roundMatches.length > 0 ? (
-                  roundMatches.map((match, matchIndex) => {
-                    const menteeIds = Array.isArray(match.mentee_ids) ? match.mentee_ids : [];
-                    const menteeNames = menteeIds.map((id) => usersById[id]?.name || `Utilizador ${String(id).slice(0, 4)}`).join(', ');
-                    return (
-                      <tr key={match.table_no != null ? `t-${match.table_no}` : (match.id || matchIndex)} className="border-b border-line last:border-0">
-                        <td className="py-[11px] px-2"><b>{match.table_no || matchIndex + 1}</b></td>
-                        <td className="py-[11px] px-2">{match.mentor?.name || '–'}</td>
-                        <td className="py-[11px] px-2 text-[.82rem]">{menteeNames || '–'}</td>
-                        <td className="py-[11px] px-2">{menteeIds.length > 0 ? `${match.score || 85}%` : '–'}</td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr><td colSpan="4" className="py-3 text-center text-ink-muted text-[.85rem]">Sem pares — clica em “Gerar pares”.</td></tr>
-                )}
-              </tbody>
-            </table>
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-[.88rem] border-collapse">
+                <thead>
+                  <tr>
+                    <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Mesa</th>
+                    <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Mentor</th>
+                    <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Mentorandos</th>
+                    <th className="text-left text-[.76rem] uppercase tracking-wide text-ink-muted font-semibold py-[11px] px-2 border-b border-line">Compat.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {roundMatches.length > 0 ? (
+                    roundMatches.map((match, matchIndex) => {
+                      const menteeIds = Array.isArray(match.mentee_ids) ? match.mentee_ids : [];
+                      const menteeNames = menteeIds.map((id) => usersById[id]?.name || `Utilizador ${String(id).slice(0, 4)}`).join(', ');
+                      return (
+                        <tr key={match.table_no != null ? `t-${match.table_no}` : (match.id || matchIndex)} className="border-b border-line last:border-0">
+                          <td className="py-[11px] px-2"><b>{match.table_no || matchIndex + 1}</b></td>
+                          <td className="py-[11px] px-2">{match.mentor?.name || '–'}</td>
+                          <td className="py-[11px] px-2 text-[.82rem]"><b>{menteeIds.length}</b> {menteeIds.length === 1 ? 'mentorando' : 'mentorandos'}{menteeNames && <span className="block text-ink-muted text-[.78rem] break-words">{menteeNames}</span>}</td>
+                          <td className="py-[11px] px-2">{menteeIds.length > 0 ? `${match.score || 85}%` : '–'}</td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr><td colSpan="4" className="py-3 text-center text-ink-muted text-[.85rem]">Sem pares — clica em “Gerar pares”.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="md:hidden space-y-2">
+              {roundMatches.length > 0 ? (
+                roundMatches.map((match, matchIndex) => {
+                  const menteeIds = Array.isArray(match.mentee_ids) ? match.mentee_ids : [];
+                  const menteeNames = menteeIds.map((id) => usersById[id]?.name || `Utilizador ${String(id).slice(0, 4)}`).join(', ');
+                  return (
+                    <div key={match.table_no != null ? `t-${match.table_no}` : (match.id || matchIndex)} className="rounded-[12px] border border-line p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[.72rem] font-bold text-ink-muted uppercase tracking-wide">Mesa {match.table_no || matchIndex + 1}</span>
+                        <span className="text-[.72rem] font-bold text-primary-500">{menteeIds.length > 0 ? `${match.score || 85}%` : '–'}</span>
+                      </div>
+                      <div className="mt-1 text-[.9rem] font-semibold break-words">{match.mentor?.name || '–'}</div>
+                      <div className="text-[.82rem] text-ink-muted break-words"><b className="text-ink">{menteeIds.length}</b> {menteeIds.length === 1 ? 'mentorando' : 'mentorandos'}{menteeNames ? ` · ${menteeNames}` : ''}</div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="py-3 text-center text-ink-muted text-[.85rem]">Sem pares — clica em “Gerar pares”.</p>
+              )}
+            </div>
           </Card>
         );
       })}
@@ -937,12 +959,7 @@ export const OrganizerReports = ({ showToast }) => {
     { label: 'Mentorias ativas', value: r.mentorships || 0 },
     { label: 'Satisfação', value: `${r.avgRating ? r.avgRating.toFixed(1) : '0'} / 5` },
   ];
-  const areaSupplyDemand = [
-    { area: 'Tecnologia e TI', supply: 70, demand: 30 },
-    { area: 'Finanças e Banca', supply: 45, demand: 40 },
-    { area: 'Direito', supply: 20, demand: 25 },
-    { area: 'Agricultura', supply: 15, demand: 10 },
-  ];
+  const areaSupplyDemand = Array.isArray(r.areaSupplyDemand) ? r.areaSupplyDemand : [];
 
   const exportExcel = () => {
     try {

@@ -60,7 +60,7 @@ export default function Register() {
     name: '', email: '', phone: '', password: '', role: isMentor ? 'mentor' : 'mentee',
     level: '', course: '', institution: '', interests: [], goal: '', pitch: '', jobObstacle: '',
     jobTitle: '', company: '', sector: '', years: '', mentorInterests: [], canHelpGoals: [], supportType: '',
-    photo: '', photoFile: null, linkedin: '',
+    photo: '', photoFile: null, shareProfile: false, linkedin: '',
   });
   const [error, setError] = useState('');
   const [otp, setOtp] = useState('');
@@ -100,6 +100,7 @@ export default function Register() {
     }
     if (!/^\S+@\S+\.\S+$/.test(form.email)) return setError('Email inválido.');
     if (form.password.length < 6) return setError('A palavra-passe precisa de pelo menos 6 caracteres.');
+    if (!form.photoFile) return setError('A foto de perfil é obrigatória.');
 
     window.scrollTo(0, 0)
     
@@ -208,20 +209,20 @@ export default function Register() {
       <form onSubmit={handleScreen1} noValidate className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
-            <label className="text-[.85rem] font-semibold">Nome completo</label>
+            <label className="text-[.85rem] font-semibold">Nome completo *</label>
             <input id="name" autoComplete="name" value={form.name} onChange={(e) => setField('name', e.target.value)} className={FIELD_BASE} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-[.85rem] font-semibold">Email</label>
+            <label className="text-[.85rem] font-semibold">Email *</label>
             <input id="email" type="email" autoComplete="email" value={form.email} onChange={(e) => setField('email', e.target.value)} className={FIELD_BASE} />
           </div>
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-[.85rem] font-semibold">Telemóvel (WhatsApp)</label>
+          <label className="text-[.85rem] font-semibold">Telemóvel (WhatsApp) *</label>
           <input id="phone" type="tel" autoComplete="tel" placeholder="+258" value={form.phone} onChange={(e) => setField('phone', e.target.value)} className={FIELD_BASE} />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-[.85rem] font-semibold">Palavra-passe</label>
+          <label className="text-[.85rem] font-semibold">Palavra-passe *</label>
           <input id="password" type="password" autoComplete="new-password" value={form.password} onChange={(e) => setField('password', e.target.value)} placeholder="Mínimo 6 caracteres" className={FIELD_BASE} />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -233,7 +234,7 @@ export default function Register() {
             </select>
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-[.85rem] font-semibold">Foto (opcional)</label>
+          <label className="text-[.85rem] font-semibold">Foto *</label>
           <input type="file" accept="image/*" onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) {
@@ -273,23 +274,23 @@ export default function Register() {
           {isMentorRole ? (
             <>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[.85rem] font-semibold">Cargo</label>
+                <label className="text-[.85rem] font-semibold">Cargo *</label>
                 <input value={form.jobTitle} onChange={(e) => setField('jobTitle', e.target.value)} className={FIELD_BASE} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[.85rem] font-semibold">Empresa</label>
+                <label className="text-[.85rem] font-semibold">Empresa *</label>
                 <input value={form.company} onChange={(e) => setField('company', e.target.value)} className={FIELD_BASE} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[.85rem] font-semibold">Setor</label>
+                <label className="text-[.85rem] font-semibold">Setor *</label>
                 <input value={form.sector} onChange={(e) => setField('sector', e.target.value)} className={FIELD_BASE} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[.85rem] font-semibold">Anos de experiência</label>
+                <label className="text-[.85rem] font-semibold">Anos de experiência *</label>
                 <input type="number" value={form.years} onChange={(e) => setField('years', e.target.value)} className={FIELD_BASE} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[.85rem] font-semibold">Áreas em que ajuda (até 3)</label>
+                <label className="text-[.85rem] font-semibold">Áreas em que ajuda (até 3) *</label>
                 <div className="flex flex-wrap gap-2 mt-1.5">
                   {config.areas.map((a) => (
                     <button key={a} type="button" onClick={() => toggleInterest('mentorInterests', a)} className={`rounded-full border px-3 py-1.5 text-[.85rem] font-medium transition ${form.mentorInterests.includes(a) ? 'bg-primary-500 border-primary-500 text-white' : 'border-line text-ink bg-surface'}`}>
@@ -299,7 +300,7 @@ export default function Register() {
                 </div>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[.85rem] font-semibold">Objetivos em que pode ajudar</label>
+                <label className="text-[.85rem] font-semibold">Objetivos em que pode ajudar *</label>
                 <div className="flex flex-wrap gap-2 mt-1.5">
                   {config.goals.map((g) => (
                     <button key={g} type="button" onClick={() => toggleInterest('canHelpGoals', g)} className={`rounded-full border px-3 py-1.5 text-[.85rem] font-medium transition ${form.canHelpGoals.includes(g) ? 'bg-primary-500 border-primary-500 text-white' : 'border-line text-ink bg-surface'}`}>
@@ -309,7 +310,7 @@ export default function Register() {
                 </div>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[.85rem] font-semibold">Tipo de apoio</label>
+                <label className="text-[.85rem] font-semibold">Tipo de apoio *</label>
                 <select value={form.supportType} onChange={(e) => setField('supportType', e.target.value)} className={FIELD_BASE}>
                   <option value="" disabled>Selecciona...</option>
                   {config.support_types.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -319,22 +320,22 @@ export default function Register() {
           ) : (
             <>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[.85rem] font-semibold">Situação</label>
+                <label className="text-[.85rem] font-semibold">Situação *</label>
                 <select value={form.level} onChange={(e) => setField('level', e.target.value)} className={FIELD_BASE}>
                   <option value="" disabled>Selecciona...</option>
                   {config.levels.map((l) => <option key={l} value={l}>{l}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[.85rem] font-semibold">Curso</label>
+                <label className="text-[.85rem] font-semibold">Curso *</label>
                 <input value={form.course} onChange={(e) => setField('course', e.target.value)} className={FIELD_BASE} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[.85rem] font-semibold">Instituição</label>
+                <label className="text-[.85rem] font-semibold">Instituição *</label>
                 <input value={form.institution} onChange={(e) => setField('institution', e.target.value)} className={FIELD_BASE} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[.85rem] font-semibold">Áreas de interesse (até 3)</label>
+                <label className="text-[.85rem] font-semibold">Áreas de interesse (até 3) *</label>
                 <div className="flex flex-wrap gap-2 mt-1.5">
                   {config.areas.map((a) => (
                     <button key={a} type="button" onClick={() => toggleInterest('interests', a)} className={`rounded-full border px-3 py-1.5 text-[.85rem] font-medium transition ${form.interests.includes(a) ? 'bg-primary-500 border-primary-500 text-white' : 'border-line text-ink bg-surface'}`}>
@@ -344,28 +345,28 @@ export default function Register() {
                 </div>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[.85rem] font-semibold">Objetivo</label>
+                <label className="text-[.85rem] font-semibold">Objetivo *</label>
                 <select value={form.goal} onChange={(e) => setField('goal', e.target.value)} className={FIELD_BASE}>
                   <option value="" disabled>Selecciona...</option>
                   {GOALS.map((g) => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[.85rem] font-semibold">Maior obstáculo na busca de emprego?</label>
+                <label className="text-[.85rem] font-semibold">Maior obstáculo na busca de emprego? *</label>
                 <select value={form.jobObstacle} onChange={(e) => setField('jobObstacle', e.target.value)} className={FIELD_BASE}>
                   <option value="" disabled>Selecciona...</option>
                   {config.obstacles.map((o) => <option key={o} value={o}>{o}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[.85rem] font-semibold">Pitch (1 frase, máx. 120 caracteres)</label>
+                <label className="text-[.85rem] font-semibold">Pitch (1 frase, máx. 120 caracteres) *</label>
                 <textarea value={form.pitch} onChange={(e) => setField('pitch', e.target.value)} maxLength={120} rows="2" className={FIELD_BASE} />
               </div>
             </>
           )}
           <div className="flex items-start gap-3 mb-4">
-            <input type="checkbox" checked={form.photo} onChange={(e) => setField('photo', e.target.checked)} className="w-auto mt-0.5" />
-            <label className="text-[.85rem] font-semibold leading-snug">Concordo em partilhar o meu perfil com os pares sugeridos.</label>
+            <input type="checkbox" checked={form.shareProfile} onChange={(e) => setField('shareProfile', e.target.checked)} className="w-auto mt-0.5" />
+            <label className="text-[.85rem] font-semibold leading-snug">Concordo em partilhar o meu perfil com os pares sugeridos. </label>
           </div>
           <div className="text-danger text-sm font-semibold mt-2">{error}</div>
           <div className="flex gap-3 mt-4">

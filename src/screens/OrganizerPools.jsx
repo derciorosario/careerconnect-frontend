@@ -101,7 +101,7 @@ export const OrganizerPools = ({ showToast }) => {
         </div>
         {showForm && (
           <form onSubmit={handleSubmit} className="space-y-3 mb-4 p-4 bg-surface rounded-[14px] border border-line">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-[.85rem] font-semibold mb-1.5">Intervalo (break_no)</label>
                 <input type="number" min="1" value={formData.break_no} onChange={(e) => setFormData({ ...formData, break_no: Number(e.target.value) })} className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-3 focus:border-primary-500 focus:outline-none" required />
@@ -120,7 +120,7 @@ export const OrganizerPools = ({ showToast }) => {
                 </select>
               </div>
             </div>
-            <div className="flex gap-2.5 justify-end mt-2">
+            <div className="flex flex-col sm:flex-row gap-2.5 sm:justify-end mt-2">
               <button type="button" onClick={handleCancel} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-surface2 text-ink">Cancelar</button>
               <button type="submit" disabled={loading} className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white disabled:opacity-50">
                 {loading ? 'A guardar...' : editingRound ? 'Atualizar' : 'Criar'}

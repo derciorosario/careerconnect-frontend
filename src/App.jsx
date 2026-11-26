@@ -130,6 +130,7 @@ export function CareerConnectApp({ initialRole }) {
 
   // Event / simulation state
   const [currentRound, setCurrentRound] = useState(0);
+  const [currentBreak, setCurrentBreak] = useState(0);
   const [roundsPerBreak, setRoundsPerBreak] = useState(2);
   const [totalRounds, setTotalRounds] = useState(4);
   const [roundMinutes, setRoundMinutes] = useState(10);
@@ -219,6 +220,7 @@ export function CareerConnectApp({ initialRole }) {
             const roundNo = round.round_no || 0;
             const mapped = breakNo > 0 ? roundNo : 0;
             setCurrentRound(mapped);
+            setCurrentBreak(breakNo);
             setIsRunning(true);
             setIsPaused(round.status === 'paused');
             // Sync seconds left from backend (source of truth) so all roles show the same time,
@@ -292,6 +294,7 @@ export function CareerConnectApp({ initialRole }) {
         const roundNo = round.round_no || 0;
         const mapped = breakNo > 0 ? roundNo : 0;
         setCurrentRound(mapped);
+        setCurrentBreak(breakNo);
         setFurthestRoundCompleted((f) => Math.max(f, mapped > 0 ? mapped - 1 : 0));
         setIsRunning(true);
         setIsPaused(false);
@@ -326,7 +329,7 @@ export function CareerConnectApp({ initialRole }) {
   const phaseLabel = () => {
     if (currentRound === 0) return 'Antes do intervalo';
     if (currentRound > roundsPerBreak) return 'Intervalo concluído';
-    return `Intervalo 1 · ronda ${currentRound} de ${roundsPerBreak}`;
+    return `Intervalo ${currentBreak || 1} · ronda ${currentRound} de ${roundsPerBreak}`;
   };
 
   const handlePause = async () => {
@@ -352,6 +355,7 @@ export function CareerConnectApp({ initialRole }) {
       // Non-blocking
     }
     setCurrentRound(0);
+    setCurrentBreak(0);
     setFurthestRoundCompleted(0);
     setIsRunning(false);
     setIsPaused(false);
@@ -373,6 +377,7 @@ export function CareerConnectApp({ initialRole }) {
       if (round) {
         const mapped = (round.break_no || 0) > 0 ? round.round_no : 0;
         setCurrentRound(mapped);
+        setCurrentBreak(round.break_no || 0);
       } else {
         setCurrentRound((prev) => (prev >= 1 && prev <= roundsPerBreak ? prev : prev > roundsPerBreak ? roundsPerBreak + 1 : 0));
       }

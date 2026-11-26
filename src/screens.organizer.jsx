@@ -14,6 +14,7 @@ import {
   ccCreatePoll, ccModerateQuestion,
   ccGetTVData, ccGetPollResults,
   ccGenerateMatches, ccGetAllUsers,
+  ccGetQuestionnaire, ccUpdateQuestionnaire, ccNotifySurvey,
   setStoredToken,
   isNative,
   ccCreateRound, ccUpdateRound, ccDeleteRound,
@@ -382,6 +383,9 @@ export const OrganizerReg = ({ showToast }) => {
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState(null);
   const [selectedReg, setSelectedReg] = useState(null);
+  const [certEnabled, setCertEnabled] = useState(false);
+  const [certSaving, setCertSaving] = useState(false);
+  const [certNotifying, setCertNotifying] = useState(false);
 
   const qrScannerRef = useRef(null);
   const handledRef = useRef(false);          // prevents duplicate decode callbacks
@@ -405,6 +409,46 @@ export const OrganizerReg = ({ showToast }) => {
     };
     load();
   }, [showToast]);
+
+  // Load certificate availability
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const resp = await ccGetQuestionnaire({});
+        if (active) setCertEnabled(resp.data?.certificate_enabled === true);
+      } catch {
+        // Non-blocking
+      }
+    };
+    load();
+    return () => { active = false; };
+  }, []);
+
+  const saveCertificate = async (next) => {
+    setCertSaving(true);
+    try {
+      await ccUpdateQuestionnaire({ certificate_enabled: next });
+      setCertEnabled(next);
+      showToast(next ? 'Certificado activado.' : 'Certificado desactivado.');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao guardar certificado.');
+    } finally {
+      setCertSaving(false);
+    }
+  };
+
+  const notifyCertificate = async () => {
+    setCertNotifying(true);
+    try {
+      const resp = await ccNotifySurvey({ form: 'certificate' });
+      showToast(resp.data?.message || 'Notificação enviada.');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao enviar notificação.');
+    } finally {
+      setCertNotifying(false);
+    }
+  };
 
   // ── Start/stop the camera AFTER the #reader element is in the DOM ──
   useEffect(() => {
@@ -550,6 +594,34 @@ export const OrganizerReg = ({ showToast }) => {
 
   return (
     <>
+      <Card>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <b>Certificado Digital de Participação</b>
+            <p className="text-[.78rem] text-ink-muted mt-0.5">Disponível apenas para quem fez check-in.</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={certEnabled}
+              onClick={() => saveCertificate(!certEnabled)}
+              disabled={certSaving}
+              className={`relative w-12 h-7 rounded-full transition shrink-0 disabled:opacity-50 ${certEnabled ? 'bg-primary-500' : 'bg-line'}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow transition ${certEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+            <button
+              onClick={notifyCertificate}
+              disabled={certNotifying}
+              className="rounded-full font-bold text-[.76rem] h-9 px-3.5 bg-primary-500 text-white disabled:opacity-50"
+            >
+              {certNotifying ? 'A enviar...' : 'Notificar'}
+            </button>
+          </div>
+        </div>
+      </Card>
+
       <Card>
         <div className="flex justify-between items-center"><b>Pendentes de aprovação</b></div>
         {pendingMentors.length > 0 ? (

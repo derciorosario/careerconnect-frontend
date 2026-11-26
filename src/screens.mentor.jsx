@@ -6,8 +6,10 @@ import {
   ccGetProfile, ccGetMentorMatch, ccGetMentorshipRequestsForMentor,
   ccRespondMentorshipRequest, ccGetConnections, ccGetMessages, ccSendMessage,
   ccGetWishesForMentor, ccSubmitFeedback, ccGetMenteeDirectory,
+  ccGetQuestionnaire, ccGetEvent, ccGetSessions,
 } from './api/client';
 import { PersonRow, PersonDetailsDialog, ProgressBar, Card, QrCode } from './ui';
+import { downloadCertificate } from './certificate';
 
 // ── skeleton primitives ──────────────────────
 const SkeletonBar = ({ w = '100%', h = 14, r = 7, className = '', style }) => (
@@ -46,6 +48,10 @@ export const MentorHome = ({ showToast }) => {
   const [myMatch, setMyMatch] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedMentee, setSelectedMentee] = useState(null);
+  const [certEnabled, setCertEnabled] = useState(false);
+  const [checkedIn, setCheckedIn] = useState(false);
+  const [eventName, setEventName] = useState('Career Connect 2026');
+  const [sessions, setSessions] = useState([]);
 
   const showToastRef = useRef(showToast);
   useEffect(() => { showToastRef.current = showToast; });
@@ -55,11 +61,14 @@ export const MentorHome = ({ showToast }) => {
     const load = async () => {
       setLoading(true);
       try {
-        const [profResp, reqResp, wishResp, matchResp] = await Promise.all([
+        const [profResp, reqResp, wishResp, matchResp, qResp, evResp, sessResp] = await Promise.all([
           ccGetProfile(),
           ccGetMentorshipRequestsForMentor(),
           ccGetWishesForMentor(),
           ccGetMentorMatch({}),
+          ccGetQuestionnaire({}),
+          ccGetEvent({}),
+          ccGetSessions({}),
         ]);
         if (cancelled) return;
         setProfile(profResp.data?.user || null);
@@ -67,6 +76,11 @@ export const MentorHome = ({ showToast }) => {
         setMaxMentees(profResp.data?.user?.mentorProfile?.max_mentees || 3);
         setWishesReceived(wishResp.data?.wishes || []);
         setMyMatch(matchResp.data?.match || null);
+        setCertEnabled(qResp.data?.certificate_enabled === true);
+        const ev = evResp.data?.event;
+        if (ev?.name) setEventName(ev.name);
+        setCheckedIn((profResp.data?.user?.registrations || []).some((r) => r.status === 'present'));
+        setSessions(sessResp.data?.sessions || []);
       } catch (err) {
         if (!cancelled) console.error('Failed to load mentor home:', err);
       } finally {
@@ -140,6 +154,63 @@ export const MentorHome = ({ showToast }) => {
             <QrCode value={me?.ticket_code || 'CC-MENTOR'} size={104} downloadable />
           )}
         </div>
+      </Card>
+
+      {certEnabled && checkedIn && (
+        <Card variant="navy">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[.76rem] font-bold text-primary-300 uppercase tracking-wide">Conquista</div>
+              <b className="text-[1.05rem]">Certificado Digital de Participação</b>
+              <p className="text-[.82rem] text-navy-100 mt-1">Descarrega o teu certificado de participação.</p>
+            </div>
+            <button
+              onClick={async () => {
+                try {
+                  await downloadCertificate({ name: me?.name || 'Mentor', role: 'mentor', eventName });
+                  showToastRef.current('Certificado descarregado.');
+                } catch {
+                  showToastRef.current('Erro ao gerar certificado.');
+                }
+              }}
+              className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white shrink-0"
+            >
+              Descarregar
+            </button>
+          </div>
+        </Card>
+      )}
+
+      <Card>
+        <div className="flex items-center justify-between mb-3.5"><b>Programa do Evento</b></div>
+        {sessions.length === 0 ? (
+          <p className="text-[.85rem] text-ink-muted">Programa ainda não disponível.</p>
+        ) : (
+          <div className="space-y-3">
+            {[...sessions].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map((s) => {
+              const isBreak = s.type === 'break';
+              const time = s.starts_at
+                ? new Date(s.starts_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
+                : '';
+              return (
+                <div key={s.id} className="flex items-start gap-3">
+                  <div className={`inline-grid place-items-center w-11 h-11 rounded-[14px] shrink-0 font-bold ${isBreak ? 'bg-surface2 text-ink' : 'bg-primary-500 text-white'}`}>
+                    {isBreak ? '☕' : '▶'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[.72rem] text-ink-muted font-semibold uppercase tracking-wide">
+                      {time || '—'} {isBreak ? '· Intervalo' : '· Masterclass'}
+                    </p>
+                    <p className="text-[.9rem] font-bold whitespace-normal break-words">{s.title || (isBreak ? 'Intervalo' : 'Masterclass')}</p>
+                    {!isBreak && s.mentor?.name && (
+                      <p className="text-[.78rem] text-ink-muted">{s.mentor.name}{s.theme ? ` · ${s.theme}` : ''}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </Card>
 
       <Card>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ccGetSurveyResults, ccGetQuestionnaire } from '../api/client';
+import { ccGetSurveyResults, ccGetQuestionnaire, ccDeleteSurveyResponse } from '../api/client';
 import { Card } from '../ui';
 
 const labelFor = (content, role, id) => {
@@ -12,6 +12,7 @@ export const OrganizerResponses = ({ showToast }) => {
   const [surveys, setSurveys] = useState([]);
   const [content, setContent] = useState({});
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,7 +39,16 @@ export const OrganizerResponses = ({ showToast }) => {
   return (
     <>
       <h2 className="text-[1.45rem] font-extrabold tracking-tight">Respostas do Questionário</h2>
-      <p className="text-ink-muted text-[.85rem] mt-1 mb-4">Total de respostas: {surveys.length}</p>
+      <div className="flex items-center justify-between mt-1 mb-4">
+        <p className="text-ink-muted text-[.85rem]">Total de respostas: {surveys.length}</p>
+        <button
+          onClick={() => window.print()}
+          disabled={surveys.length === 0}
+          className="rounded-full font-bold text-[.78rem] h-9 px-3.5 bg-primary-500 text-white disabled:opacity-50 print:hidden"
+        >
+          Imprimir
+        </button>
+      </div>
 
       {loading ? (
         <Card><p className="text-ink-muted text-[.85rem]">A carregar...</p></Card>
@@ -57,13 +67,36 @@ export const OrganizerResponses = ({ showToast }) => {
             resultados: impactA.resultados,
           };
           const impactText = role === 'mentor' ? content?.impact?.mentor : content?.impact?.mentee;
-          return (
+  const handleDelete = async (s) => {
+    if (!window.confirm(`Eliminar a resposta de ${s.user?.name || 'Utilizador'}? Esta acção não pode ser desfeita.`)) return;
+    setDeletingId(s.id);
+    try {
+      await ccDeleteSurveyResponse(s.id);
+      setSurveys((prev) => prev.filter((x) => x.id !== s.id));
+      showToast('Resposta eliminada.');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erro ao eliminar resposta.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  return (
             <Card key={s.id}>
               <div className="flex items-center justify-between mb-2">
                 <b>{s.user?.name || 'Utilizador'}</b>
-                <span className="text-[.72rem] font-semibold text-ink-muted">
-                  {role === 'mentor' ? 'Mentor' : 'Mentorado'} · {new Date(s.created_at).toLocaleString('pt-PT')}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[.72rem] font-semibold text-ink-muted">
+                    {role === 'mentor' ? 'Mentor' : 'Mentorado'} · {new Date(s.created_at).toLocaleString('pt-PT')}
+                  </span>
+                  <button
+                    onClick={() => handleDelete(s)}
+                    disabled={deletingId === s.id}
+                    className="rounded-full font-bold text-[.72rem] h-[30px] px-3 bg-red-600 text-white disabled:opacity-50"
+                  >
+                    {deletingId === s.id ? '...' : 'Eliminar'}
+                  </button>
+                </div>
               </div>
 
               {(s.main_sent || Object.keys(fields).length > 0 || Object.keys(ratings).length > 0) && (

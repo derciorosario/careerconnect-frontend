@@ -14,12 +14,14 @@ import {
   ccGetQuestions, ccCreateQuestion, ccVoteQuestion,
   ccGetPolls, ccVotePoll, ccGetPollResults,
   ccGetAnnouncements,
-  ccSubmitSurvey, ccGetSurveyResults,
+  ccGetSessions,
+  ccSubmitSurvey, ccGetSurveyResults, ccGetQuestionnaire,
   ccCreateNextStep, ccGetMyNextStep,
   ccGetBadges,
   setStoredToken,
 } from './api/client';
 import { Avatar, PersonRow, PersonDetailsDialog, ProgressBar, ChecklistItem, Card, QuestionInput, QrCode } from './ui';
+import { downloadCertificate } from './certificate';
 
 const AREAS = [
   'Tecnologia e TI',
@@ -88,6 +90,10 @@ export const MenteeHome = ({ showToast }) => {
   const [badgeData, setBadgeData] = useState([]);
   const [ticketCode, setTicketCode] = useState(null);
   const [wishes, setWishes] = useState([]);
+  const [certEnabled, setCertEnabled] = useState(false);
+  const [checkedIn, setCheckedIn] = useState(false);
+  const [eventName, setEventName] = useState('Career Connect 2026');
+  const [sessions, setSessions] = useState([]);
   // Skeleton shows on every mount (tab entry). Re-renders of an already
   // mounted page don't re-run the fetch effect, so no blink.
   const [loading, setLoading] = useState(true);
@@ -102,12 +108,15 @@ export const MenteeHome = ({ showToast }) => {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [profResp, connResp, feedbackResp, badgeResp, wishResp] = await Promise.all([
+        const [profResp, connResp, feedbackResp, badgeResp, wishResp, qResp, evResp, sessResp] = await Promise.all([
           ccGetProfile(),
           ccGetConnections(),
           ccGetMyFeedback(),
           ccGetBadges({ user_id: localStorage.getItem('userId') || '' }),
           ccGetMyWishes(),
+          ccGetQuestionnaire({}),
+          ccGetEvent({}),
+          ccGetSessions({}),
         ]);
         if (cancelled) return;
         setProfile(profResp.data?.user || null);
@@ -117,8 +126,13 @@ export const MenteeHome = ({ showToast }) => {
         setConversationsDone(done);
         setBadgeData(badgeResp.data?.badges || []);
         setWishes(wishResp.data?.wishes || []);
+        setCertEnabled(qResp.data?.certificate_enabled === true);
+        const ev = evResp.data?.event;
+        if (ev?.name) setEventName(ev.name);
         const reg = profResp.data?.user?.registrations?.[0];
         setTicketCode(reg?.ticket_code || null);
+        setCheckedIn((profResp.data?.user?.registrations || []).some((r) => r.status === 'present'));
+        setSessions(sessResp.data?.sessions || []);
       } catch (err) {
         if (!cancelled) console.error('Failed to load mentee home data:', err);
       } finally {
@@ -230,6 +244,63 @@ export const MenteeHome = ({ showToast }) => {
             <p className="text-[.85rem] text-navy-100">{conversationsDone} de 8 conversas · {connectionsCount} conexões</p>
           </div>
         </div>
+      </Card>
+
+      {certEnabled && checkedIn && (
+        <Card variant="navy">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[.76rem] font-bold text-primary-300 uppercase tracking-wide">Conquista</div>
+              <b className="text-[1.05rem]">Certificado Digital de Participação</b>
+              <p className="text-[.82rem] text-navy-100 mt-1">Descarrega o teu certificado de participação.</p>
+            </div>
+            <button
+              onClick={async () => {
+                try {
+                  await downloadCertificate({ name: myName, role: 'mentee', eventName });
+                  showToastRef.current('Certificado descarregado.');
+                } catch {
+                  showToastRef.current('Erro ao gerar certificado.');
+                }
+              }}
+              className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white shrink-0"
+            >
+              Descarregar
+            </button>
+          </div>
+        </Card>
+      )}
+
+      <Card>
+        <div className="flex items-center justify-between mb-3.5"><b>Programa do Evento</b></div>
+        {sessions.length === 0 ? (
+          <p className="text-[.85rem] text-ink-muted">Programa ainda não disponível.</p>
+        ) : (
+          <div className="space-y-3">
+            {[...sessions].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map((s) => {
+              const isBreak = s.type === 'break';
+              const time = s.starts_at
+                ? new Date(s.starts_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
+                : '';
+              return (
+                <div key={s.id} className="flex items-start gap-3">
+                  <div className={`inline-grid place-items-center w-11 h-11 rounded-[14px] shrink-0 font-bold ${isBreak ? 'bg-surface2 text-ink' : 'bg-primary-500 text-white'}`}>
+                    {isBreak ? '☕' : '▶'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[.72rem] text-ink-muted font-semibold uppercase tracking-wide">
+                      {time || '—'} {isBreak ? '· Intervalo' : '· Masterclass'}
+                    </p>
+                    <p className="text-[.9rem] font-bold whitespace-normal break-words">{s.title || (isBreak ? 'Intervalo' : 'Masterclass')}</p>
+                    {!isBreak && s.mentor?.name && (
+                      <p className="text-[.78rem] text-ink-muted">{s.mentor.name}{s.theme ? ` · ${s.theme}` : ''}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </Card>
 
       <Card>
@@ -348,11 +419,11 @@ export const MenteeLive = ({
     return () => { cancelled = true; clearInterval(interval); };
   }, [roundDataVersion]);
 
-  // Realtime polling for questions and polls during live rounds
+  // Realtime polling for questions and polls — runs regardless of whether a
+  // round is active, so questions always stay up to date.
   useEffect(() => {
-    if (currentRound < 1 || currentRound > roundsPerBreak) return;
     let active = true;
-    const interval = setInterval(async () => {
+    const tick = async () => {
       try {
         const [qResp, pResp, prResp] = await Promise.all([
           ccGetQuestions({}),
@@ -375,9 +446,11 @@ export const MenteeLive = ({
       } catch (err) {
         console.error('Realtime poll update failed:', err);
       }
-    }, 5000);
+    };
+    tick();
+    const interval = setInterval(tick, 5000);
     return () => { active = false; clearInterval(interval); };
-  }, [currentRound, setQuestions, setPollOptions, setPollVotes, setVotedOption]);
+  }, [setQuestions, setPollOptions, setPollVotes, setVotedOption]);
 
   let body = null;
 
@@ -947,7 +1020,7 @@ export const MenteeConnections = ({ showToast }) => {
     return (
       <>
         <h2 className="text-[1.45rem] font-extrabold tracking-tight">Conexões</h2>
-        <p className="text-ink-muted text-[.85rem] mt-1 mb-4">Telemóvel e e-mail só aparecem aqui.</p>
+        <p className="text-ink-muted text-[.85rem] mt-1 mb-4 hidden">Telemóvel e e-mail só aparecem aqui.</p>
         <Card>
           <b>Sem conexões ainda.</b>
           <p className="text-ink-muted text-[.85rem] mt-1.5">Marca interesse depois de cada conversa.</p>
@@ -959,7 +1032,7 @@ export const MenteeConnections = ({ showToast }) => {
   return (
     <>
       <h2 className="text-[1.45rem] font-extrabold tracking-tight">Conexões</h2>
-      <p className="text-ink-muted text-[.85rem] mt-1 mb-4">Telemóvel e e-mail só aparecem aqui.</p>
+      <p className="text-ink-muted text-[.85rem] mt-1 mb-4 hidden">Telemóvel e e-mail só aparecem aqui.</p>
       {connections.map((c) => {
         const contact = c.contact;
         const req = requests.find((r) => r.mentor_id === contact.id);

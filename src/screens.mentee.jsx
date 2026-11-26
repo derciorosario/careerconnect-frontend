@@ -535,7 +535,7 @@ export const MenteeLive = ({
             </div>
           </Card>
 
-          <Card>
+         {/** <Card> leave it commented!
             <div className="flex items-center justify-between mb-3.5"><b>Quebra-gelos</b></div>
             <ol className="text-[.85rem] pl-[18px] mt-1 leading-[1.7]">
               <li>Como chegaste à tua área?</li>
@@ -543,7 +543,7 @@ export const MenteeLive = ({
               <li>O que devo aprender já este ano?</li>
             </ol>
           </Card>
-
+ */}
           <Card>
             <b>Queres continuar esta conversa?</b>
             <div className="flex gap-3 mt-3">

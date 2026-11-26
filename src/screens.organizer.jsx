@@ -164,6 +164,23 @@ export const OrganizerLive = ({
     (a, b) => (a.break_no - b.break_no) || (a.round_no - b.round_no)
   );
 
+  // Matches must be generated before the event can be started.
+  const hasMatches = orderedRounds.some((r) => Array.isArray(r.matches) && r.matches.length > 0);
+  const notStarted = currentRound === 0;
+  const startBlocked = notStarted && !hasMatches;
+
+  const handleStartClick = () => {
+    if (startBlocked) {
+      showToast('Gera os pares antes de iniciar.');
+      return;
+    }
+    if (currentRound > roundsPerBreak) {
+      restartSimulation();
+    } else {
+      advanceRound();
+    }
+  };
+
   return (
     <>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3 mb-3.5">
@@ -176,8 +193,9 @@ export const OrganizerLive = ({
           <div className="flex items-center justify-between mb-3.5"><b>Controlo</b></div>
           <div className="flex flex-wrap gap-2.5 mt-3">
             <button
-              onClick={() => (currentRound > roundsPerBreak ? restartSimulation() : advanceRound())}
-              className="rounded-full font-bold text-[.92rem] h-12 px-5 bg-primary-500 text-white"
+              onClick={handleStartClick}
+              disabled={startBlocked}
+              className="rounded-full font-bold text-[.92rem] h-12 px-5 bg-primary-500 text-white disabled:opacity-50"
             >
               {currentRound === 0 ? 'Iniciar intervalo 1' : currentRound < roundsPerBreak ? `Avançar ronda ${currentRound + 1}` : currentRound === roundsPerBreak ? 'Terminar intervalo' : 'Reiniciar'}
             </button>

@@ -258,9 +258,10 @@ export const MenteeHome = ({ showToast, totalRounds = 8 }) => {
             <button
               onClick={async () => {
                 try {
-      await downloadCertificate({ name: myName, role, eventName });
+      await downloadCertificate({ name: myName, role: 'mentee', eventName });
                   showToastRef.current('Certificado descarregado.');
-                } catch {
+                } catch (err) {
+                  console.error('Erro ao gerar certificado:', err);
                   showToastRef.current('Erro ao gerar certificado.');
                 }
               }}
@@ -372,7 +373,8 @@ export const MenteeCertificate = ({ showToast, role = 'mentee' }) => {
     try {
       await downloadCertificate({ name: myName, role: 'mentee', eventName });
       showToast('Certificado descarregado.');
-    } catch {
+    } catch (e) {
+      console.log({e})
       showToast('Erro ao gerar certificado.');
     }
   };

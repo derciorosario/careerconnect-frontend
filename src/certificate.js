@@ -270,5 +270,21 @@ export async function downloadCertificate({
   drawPartners(doc, cx, h, partnerImgs);
 
   const fileSafe = String(name).trim().replace(/\s+/g, '-') || 'participante';
-  doc.save(`Certificado-${fileSafe}.pdf`);
+  const fileName = `Certificado-${fileSafe}.pdf`;
+  try {
+    await doc.save(fileName);
+  } catch (saveErr) {
+    // Fallback for environments where jsPDF's save() is blocked (sandboxed
+    // iframes, some browsers): build a blob and trigger the download manually.
+    console.error('doc.save failed, using blob fallback:', saveErr);
+    const blob = doc.output('blob');
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 }

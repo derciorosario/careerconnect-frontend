@@ -169,7 +169,8 @@ export const MentorHome = ({ showToast }) => {
                 try {
                   await downloadCertificate({ name: me?.name || 'Mentor', role: 'mentor', eventName });
                   showToastRef.current('Certificado descarregado.');
-                } catch {
+                } catch (err) {
+                  console.error('Erro ao gerar certificado:', err);
                   showToastRef.current('Erro ao gerar certificado.');
                 }
               }}

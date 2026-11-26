@@ -1427,7 +1427,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
             <span className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow transition ${form.notify_email ? 'translate-x-5' : 'translate-x-0'}`} />
           </button>
         </div>
-        <div className="flex items-center justify-between py-3 border-t border-line">
+        <div className="hidden flex items-center justify-between py-3 border-t border-line">
           <div>
             <p className="text-[.92rem] font-semibold">Notificações por WhatsApp</p>
             <p className="text-[.78rem] text-ink-muted">Mensagens, pedidos de mentoria e ligações.</p>

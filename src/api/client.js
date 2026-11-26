@@ -8,6 +8,8 @@ export const API_URL =
  env == "dev" ? isNative ? "http://192.168.18.3:5001/api" : "http://localhost:5006/api" :
   "https://career-tecnicol-api.derflash.com/api";
 
+  //
+
 export const DEFAULT_ANDROID_DOWNLOAD_URL = `${API_URL.replace(/\/api$/, '')}/download/android/app-debug.apk`;
 export const APK_DOWNLOAD_URL = DEFAULT_ANDROID_DOWNLOAD_URL;
 

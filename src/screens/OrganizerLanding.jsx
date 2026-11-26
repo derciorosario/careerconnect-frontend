@@ -8,7 +8,8 @@ const toList = (t) => (t || '').split('\n').map((s) => s.trim()).filter(Boolean)
 const toText = (a) => (Array.isArray(a) ? a.join('\n') : '');
 
 const EMPTY = {
-  event: { dateLabel: '', timeLabel: '', locationLabel: '', startAt: '', venue: '', venueFull: '', mapQuery: '', calendarStart: '', calendarEnd: '' },
+  email: '',
+  phone: '',
   tutorialVideoUrl: '',
   axes: [],
   benefits: [],
@@ -32,7 +33,6 @@ export const OrganizerLanding = ({ showToast }) => {
         setConfig({
           ...EMPTY,
           ...c,
-          event: { ...EMPTY.event, ...(c.event || {}) },
           axes: Array.isArray(c.axes) ? c.axes : [],
           benefits: Array.isArray(c.benefits) ? c.benefits : [],
           faqs: Array.isArray(c.faqs) ? c.faqs : [],
@@ -48,7 +48,6 @@ export const OrganizerLanding = ({ showToast }) => {
     return () => { cancelled = true; };
   }, []);
 
-  const setEvent = (k, v) => setConfig((c) => ({ ...c, event: { ...c.event, [k]: v } }));
   const setList = (k, arr) => setConfig((c) => ({ ...c, [k]: arr }));
   const updateItem = (k, i, patch) => setList(k, config[k].map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
   const removeItem = (k, i) => setList(k, config[k].filter((_, idx) => idx !== i));
@@ -66,18 +65,6 @@ export const OrganizerLanding = ({ showToast }) => {
     }
   };
 
-  const eventFields = [
-    { k: 'dateLabel', label: 'Data (texto)' },
-    { k: 'timeLabel', label: 'Hora (texto)' },
-    { k: 'locationLabel', label: 'Local (texto curto)' },
-    { k: 'startAt', label: 'Data/hora de início (ISO, ex.: 2026-12-04T14:00:00+02:00)' },
-    { k: 'venue', label: 'Local (nome)' },
-    { k: 'venueFull', label: 'Local (completo)' },
-    { k: 'mapQuery', label: 'Query do mapa' },
-    { k: 'calendarStart', label: 'Calendário início (ex.: 20261204T120000Z)' },
-    { k: 'calendarEnd', label: 'Calendário fim (ex.: 20261204T150000Z)' },
-  ];
-
   return (
     <>
       <h2 className="text-[1.45rem] font-extrabold tracking-tight">Landing Page</h2>
@@ -88,14 +75,11 @@ export const OrganizerLanding = ({ showToast }) => {
       ) : (
         <>
           <Card>
-            <b className="block mb-3">Evento (data, hora, local)</b>
-            {eventFields.map((f) => (
-              <div key={f.k} className="mb-3">
-                <label className="block text-[.78rem] font-semibold mb-1">{f.label}</label>
-                <input value={config.event[f.k] || ''} onChange={(e) => setEvent(f.k, e.target.value)} className={FIELD} />
-              </div>
-            ))}
-            <label className="block text-[.78rem] font-semibold mb-1">Link do vídeo tutorial</label>
+            <label className="block text-[.78rem] font-semibold mb-1">Email de contacto</label>
+            <input value={config.email || ''} onChange={(e) => setConfig((c) => ({ ...c, email: e.target.value }))} placeholder="email@exemplo.com" className={FIELD} />
+            <label className="block text-[.78rem] font-semibold mb-1 mt-3">Telefone de contacto</label>
+            <input value={config.phone || ''} onChange={(e) => setConfig((c) => ({ ...c, phone: e.target.value }))} placeholder="+258 ..." className={FIELD} />
+            <label className="block text-[.78rem] font-semibold mb-1 mt-3">Link do vídeo tutorial</label>
             <input value={config.tutorialVideoUrl || ''} onChange={(e) => setConfig((c) => ({ ...c, tutorialVideoUrl: e.target.value }))} placeholder="https://..." className={FIELD} />
           </Card>
 

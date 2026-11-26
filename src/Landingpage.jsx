@@ -11,6 +11,9 @@ import partner1 from './assets/patners/1.jpeg';
 import partner2 from './assets/patners/2.png';
 import partner3 from './assets/patners/3.jpeg';
 import partner4 from './assets/patners/4.png';
+import heroImg1 from './assets/hero-images/1.jpg';
+import heroImg2 from './assets/hero-images/2.jpg';
+import heroImg3 from './assets/hero-images/3.jpg';
 
 const PARTNERS = [
   { src: partner1, alt: 'Parceiro 1' },
@@ -23,6 +26,13 @@ const IMAGES = [
   mentor1,
   mentor2,
   mentor3,
+];
+
+// Used in the hero when there is no active event to show.
+const HERO_IMAGES = [
+  heroImg1,
+  heroImg2,
+  heroImg3,
 ];
 
 const BIOGRAPHIES = [
@@ -154,7 +164,7 @@ export default function Landingpage() {
         setConfig({
           ...DEFAULT_CONFIG,
           ...c,
-          event: { ...DEFAULT_CONFIG.event, ...(c.event || {}) },
+          event: c.event === null ? null : { ...DEFAULT_CONFIG.event, ...(c.event || {}) },
           axes: Array.isArray(c.axes) ? c.axes : DEFAULT_CONFIG.axes,
           benefits: Array.isArray(c.benefits) ? c.benefits : DEFAULT_CONFIG.benefits,
           faqs: Array.isArray(c.faqs) ? c.faqs : DEFAULT_CONFIG.faqs,
@@ -165,8 +175,12 @@ export default function Landingpage() {
     return () => { cancelled = true; };
   }, []);
 
-  const { event, tutorialVideoUrl, axes, benefits, faqs, masterclasses } = config;
-  const heroImg = (i) => (masterclasses[i]?.photo_url ? imgSrc(masterclasses[i].photo_url) : IMAGES[i]);
+  const { event, tutorialVideoUrl, axes, benefits, faqs, masterclasses, email } = config;
+  const hasEvent = !!event;
+  const heroImg = (i) => {
+    if (!hasEvent) return HERO_IMAGES[i];
+    return masterclasses[i]?.photo_url ? imgSrc(masterclasses[i].photo_url) : IMAGES[i];
+  };
 
   const VB_W = 1000;
   const VB_H = 220;
@@ -200,7 +214,7 @@ export default function Landingpage() {
 
   // Preload every image used on the page before revealing content
   useEffect(() => {
-    const sources = [...IMAGES, ...PARTNERS.map((p) => p.src), logo, mainLogo];
+    const sources = [...IMAGES, ...HERO_IMAGES, ...PARTNERS.map((p) => p.src), logo, mainLogo];
 
     let cancelled = false;
 
@@ -220,6 +234,7 @@ export default function Landingpage() {
   }, []);
 
   useEffect(() => {
+    if (!event) return undefined;
     const tick = () => {
       const difference = new Date(event.startAt) - Date.now();
       if (difference <= 0) {
@@ -236,7 +251,7 @@ export default function Landingpage() {
     tick();
     countdownInterval.current = setInterval(tick, 1000);
     return () => clearInterval(countdownInterval.current);
-  }, [event.startAt]);
+  }, [event]);
 
   // Only draw the curved SVG line once the Journey section enters the viewport
   useEffect(() => {
@@ -267,7 +282,9 @@ export default function Landingpage() {
   })();
   const vagasRestantes = Math.max(0, totalCapacity - registeredCount);
 
-  const shareText = `Vou ao Career Connect — ${event.dateLabel}, ${event.locationLabel}. Liga-te a mentores e dá o próximo passo na tua carreira.`;
+  const shareText = hasEvent
+    ? `Vou ao Career Connect — ${event.dateLabel}, ${event.locationLabel}. Liga-te a mentores e dá o próximo passo na tua carreira.`
+    : `Career Connect — o próximo evento será anunciado em breve. Liga-te a mentores e dá o próximo passo na tua carreira.`;
   const shareUrl = window.location.origin;
 
   const handleShare = () => {
@@ -318,14 +335,23 @@ export default function Landingpage() {
 
               {/* Headline meta: calendar + location icons (per guide) */}
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-5 text-primary-500 font-bold text-[1.05rem]">
-                <span className="inline-flex items-center gap-2">
-                  <CalendarIcon />
-                  {event.dateLabel}
-                </span>
-                <span className="inline-flex items-center gap-2">
-                  <PinIcon />
-                  {event.locationLabel}
-                </span>
+                {hasEvent ? (
+                  <>
+                    <span className="inline-flex items-center gap-2">
+                      <CalendarIcon />
+                      {event.dateLabel}
+                    </span>
+                    <span className="inline-flex items-center gap-2">
+                      <PinIcon />
+                      {event.locationLabel}
+                    </span>
+                  </>
+                ) : (
+                  <span className="inline-flex items-center gap-2">
+                    <CalendarIcon />
+                    Próximo evento a anunciar em breve
+                  </span>
+                )}
               </div>
 
               <p className="max-w-[52ch] mt-5 mb-7.5 text-ink-muted text-lg">
@@ -339,40 +365,49 @@ export default function Landingpage() {
               </div>
 
               <div className="flex flex-wrap gap-y-2.5 gap-x-8.5 mt-8.5 max-md:bg-navy-800 max-md:text-white max-md:rounded-card max-md:p-8 max-md:gap-y-4 max-md:gap-x-6">
-                <div>
-                  <b className="block text-[1.05rem]">{event.timeLabel}</b>
-                  <span className="text-ink-muted max-md:text-navy-100 text-sm">{event.dateLabel}</span>
-                </div>
-                <div>
-                  <div className="flex gap-2.5 mt-1.5 max-md:mt-0 " aria-live="off">
-                    {countdown.days === 'Hoje' ? (
-                      <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
-                        <b className="block text-[1.6rem] leading-none">Hoje</b>
-                        <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">é o dia</small>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
-                          <b className="block text-[1.6rem] leading-none">{countdown.days}</b>
-                          <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">dias</small>
-                        </div>
-                        <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
-                          <b className="block text-[1.6rem] leading-none">{countdown.hours}</b>
-                          <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">horas</small>
-                        </div>
-                        <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
-                          <b className="block text-[1.6rem] leading-none">{countdown.minutes}</b>
-                          <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">min</small>
-                        </div>
-
+                {hasEvent ? (
+                  <>
+                    <div>
+                      <b className="block text-[1.05rem]">{event.timeLabel}</b>
+                      <span className="text-ink-muted max-md:text-navy-100 text-sm">{event.dateLabel}</span>
+                    </div>
+                    <div>
+                      <div className="flex gap-2.5 mt-1.5 max-md:mt-0 " aria-live="off">
+                        {countdown.days === 'Hoje' ? (
                           <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
-                          <b className="block text-[1.6rem] leading-none">{countdown.seconds}</b>
-                          <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">seg</small>
-                        </div> 
-                      </>
-                    )}
+                            <b className="block text-[1.6rem] leading-none">Hoje</b>
+                            <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">é o dia</small>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
+                              <b className="block text-[1.6rem] leading-none">{countdown.days}</b>
+                              <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">dias</small>
+                            </div>
+                            <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
+                              <b className="block text-[1.6rem] leading-none">{countdown.hours}</b>
+                              <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">horas</small>
+                            </div>
+                            <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
+                              <b className="block text-[1.6rem] leading-none">{countdown.minutes}</b>
+                              <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">min</small>
+                            </div>
+
+                            <div className="bg-surface-soft max-md:bg-white/10 rounded-count px-3.5 py-2.5 min-w-[68px] text-center">
+                              <b className="block text-[1.6rem] leading-none">{countdown.seconds}</b>
+                              <small className="text-ink-muted max-md:text-navy-100 text-[.72rem]">seg</small>
+                            </div> 
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <b className="block text-[1.05rem]">Próximo evento em breve</b>
+                    <span className="text-ink-muted max-md:text-navy-100 text-sm">Fica atento ao anúncio da próxima edição.</span>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -596,7 +631,8 @@ export default function Landingpage() {
 
       {/* ── Constrained ── */}
       <Container>
-        {/* ── 6. Eixos de Actuação (replaces "A que desafios responde o Career Connect?") ── */}
+        {/* ── 6. Eixos de Actuação (hidden when there is no event) ── */}
+        {hasEvent && (
         <section className="py-16 md:py-20">
           <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[25ch] mb-3.5">Eixos de Actuação</h2>
           <p className="text-primary-500 font-bold text-xl mb-10">Preparar. Posicionar. Desenvolver.</p>
@@ -617,9 +653,10 @@ export default function Landingpage() {
             ))}
           </div>
         </section>
+        )}
 
         {/* ── 7. Uma plataforma. Duas formas de conexão. ── */}
-        <section className="pb-16 md:pb-20">
+        <section className={`pb-16 md:pb-20 ${!hasEvent ? 'pt-7':''}`}> 
           <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-10">Uma plataforma. Duas formas de conexão.</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-7 mt-10">
             <div className="border-l-4 border-primary-500 pl-5">
@@ -634,7 +671,8 @@ export default function Landingpage() {
         </section>
       </Container>
 
-      {/* Masterclasses: full-width band */}
+      {/* Masterclasses: full-width band (hidden when there is no event) */}
+      {hasEvent && (
       <section className="py-16 md:py-20 bg-navy-800 text-white w-full">
         <Container>
           <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-3.5">Para cada eixo, uma masterclass.</h2>
@@ -661,8 +699,10 @@ export default function Landingpage() {
           </div>
         </Container>
       </section>
+      )}
 
-      {/* ── 8. Oradores e Mentores de Destaque ── */}
+      {/* ── 8. Oradores e Mentores de Destaque (hidden when there is no event) ── */}
+      {hasEvent && (
       <Container>
         <section className="py-16 md:py-20">
           <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-11">Oradores e Mentores de Destaque</h2>
@@ -685,6 +725,7 @@ export default function Landingpage() {
           </div>
         </section>
       </Container>
+      )}
 
       {/* ── Os jovens tornam-se: full-width band ── */}
       <section className="py-16 md:py-20 bg-navy-800 text-white w-full">
@@ -748,16 +789,26 @@ export default function Landingpage() {
             </div>
 
             <div className="bg-navy-800 text-white rounded-card p-8">
-              <small className="text-primary-300 font-semibold block">Próxima Masterclass</small>
-              <b className="block text-2xl mb-3.5 mt-0.5">Encontramo-nos no {event.venue}</b>
-              <small className="text-primary-300 font-semibold block">Data e hora</small>
-              <b className="block text-2xl mb-3.5 mt-0.5">{event.dateLabel}, {event.timeLabel}</b>
-              <small className="text-primary-300 font-semibold block">Local</small>
-              <b className="block text-2xl mb-3.5 mt-0.5">{event.venueFull}</b>
-              <div className="flex gap-2.5 flex-wrap mt-4.5">
-                <a className={`${BTN_BASE} ${BTN_SM}`} href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=Career+Connect&dates=${event.calendarStart}/${event.calendarEnd}&location=${encodeURIComponent(event.venueFull)}`} target="_blank" rel="noopener noreferrer">Adicionar ao calendário</a>
-                <a className={`${BTN_BASE} ${BTN_GHOST} ${BTN_SM} !text-white !shadow-[inset_0_0_0_2px_rgba(255,255,255,.4)]`} href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.mapQuery)}`} target="_blank" rel="noopener noreferrer">Ver no mapa</a>
-              </div>
+              {hasEvent ? (
+                <>
+                  <small className="text-primary-300 font-semibold block">Próxima Masterclass</small>
+                  <b className="block text-2xl mb-3.5 mt-0.5">Encontramo-nos no {event.venue}</b>
+                  <small className="text-primary-300 font-semibold block">Data e hora</small>
+                  <b className="block text-2xl mb-3.5 mt-0.5">{event.dateLabel}, {event.timeLabel}</b>
+                  <small className="text-primary-300 font-semibold block">Local</small>
+                  <b className="block text-2xl mb-3.5 mt-0.5">{event.venueFull}</b>
+                  <div className="flex gap-2.5 flex-wrap mt-4.5">
+                    <a className={`${BTN_BASE} ${BTN_SM}`} href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=Career+Connect&dates=${event.calendarStart}/${event.calendarEnd}&location=${encodeURIComponent(event.venueFull)}`} target="_blank" rel="noopener noreferrer">Adicionar ao calendário</a>
+                    <a className={`${BTN_BASE} ${BTN_GHOST} ${BTN_SM} !text-white !shadow-[inset_0_0_0_2px_rgba(255,255,255,.4)]`} href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.mapQuery)}`} target="_blank" rel="noopener noreferrer">Ver no mapa</a>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <small className="text-primary-300 font-semibold block">Próxima Edição</small>
+                  <b className="block text-2xl mb-3.5 mt-0.5">O próximo evento será anunciado em breve.</b>
+                  <p className="text-navy-100">Fica atento — em breve revelaremos a data, o local e o programa da próxima edição do Career Connect.</p>
+                </>
+              )}
             </div>
           </div>
         </section>
@@ -776,7 +827,12 @@ export default function Landingpage() {
         <footer className="pt-8 pb-12 border-t border-line text-ink-muted text-sm">
           <div className="flex flex-col md:flex-row justify-between items-center gap-2">
             <span>Career Connect® · Todos os direitos reservados</span>
-            <span>Tecnicol · Maputo, Moçambique</span>
+            <span className="flex flex-col md:flex-row items-center gap-1 md:gap-4">
+              {email && (
+                <a href={`mailto:${email}`} className="hover:text-primary-500 transition-colors">{email}</a>
+              )}
+              <span>Tecnicol · Maputo, Moçambique</span>
+            </span>
           </div>
         </footer>
       </Container>

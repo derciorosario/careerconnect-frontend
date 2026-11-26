@@ -648,10 +648,15 @@ export const OrganizerReg = ({ showToast }) => {
         <div className="flex justify-between items-center"><b>Pendentes de aprovação</b></div>
         {pendingMentors.length > 0 ? (
           pendingMentors.map((r) => (
-            <div key={r.id} className="flex justify-between items-center mt-3">
+            <div
+              key={r.id}
+              className="flex justify-between items-center mt-3 cursor-pointer"
+              onClick={() => setSelectedReg(r)}
+            >
               <PersonRow name={r.user?.name || 'Mentor'} subtitle={r.user?.mentorProfile?.company || '-'} photoUrl={r.user?.photo_url} />
               <button
-                onClick={async () => {
+                onClick={async (e) => {
+                  e.stopPropagation();
                   try {
                     await ccApproveMentor({ mentor_id: r.user_id, action: 'approve' });
                     setPendingMentors((prev) => prev.filter((x) => x.id !== r.id));

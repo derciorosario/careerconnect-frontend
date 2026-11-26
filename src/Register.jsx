@@ -238,6 +238,12 @@ export default function Register() {
           <input type="file" accept="image/*" onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) {
+              if (file.size > 10 * 1024 * 1024) {
+                setError('A imagem não pode ultrapassar 10MB.');
+                e.target.value = '';
+                return;
+              }
+              setError('');
               setField('photoFile', file);
               const reader = new FileReader();
               reader.onload = (ev) => setField('photo', ev.target.result);

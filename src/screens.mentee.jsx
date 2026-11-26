@@ -258,7 +258,7 @@ export const MenteeHome = ({ showToast, totalRounds = 8 }) => {
             <button
               onClick={async () => {
                 try {
-                  await downloadCertificate({ name: myName, role: 'mentee', eventName });
+      await downloadCertificate({ name: myName, role, eventName });
                   showToastRef.current('Certificado descarregado.');
                 } catch {
                   showToastRef.current('Erro ao gerar certificado.');
@@ -328,6 +328,87 @@ export const MenteeHome = ({ showToast, totalRounds = 8 }) => {
           ))}
         </div>
       </Card>
+    </>
+  );
+};
+
+// ── CERTIFICATE ──────────────────────────────
+export const MenteeCertificate = ({ showToast, role = 'mentee' }) => {
+  const [profile, setProfile] = useState(null);
+  const [certEnabled, setCertEnabled] = useState(false);
+  const [checkedIn, setCheckedIn] = useState(false);
+  const [eventName, setEventName] = useState('Career Connect 2026');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [profResp, qResp, evResp] = await Promise.all([
+          ccGetProfile(),
+          ccGetQuestionnaire({}),
+          ccGetEvent({}),
+        ]);
+        if (cancelled) return;
+        setProfile(profResp.data?.user || null);
+        setCertEnabled(qResp.data?.certificate_enabled === true);
+        const ev = evResp.data?.event;
+        if (ev?.name) setEventName(ev.name);
+        setCheckedIn((profResp.data?.user?.registrations || []).some((r) => r.status === 'present'));
+      } catch (err) {
+        if (!cancelled) console.error('Failed to load certificate data:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  const myName = profile?.name || 'Utilizador';
+
+  const handleDownload = async () => {
+    try {
+      await downloadCertificate({ name: myName, role: 'mentee', eventName });
+      showToast('Certificado descarregado.');
+    } catch {
+      showToast('Erro ao gerar certificado.');
+    }
+  };
+
+  return (
+    <>
+      <h2 className="text-[1.45rem] font-extrabold tracking-tight">Certificado Digital de Participação</h2>
+      <p className="text-ink-muted text-[.85rem] mt-1 mb-6">
+        Descarrega o teu certificado de participação no {eventName}.
+      </p>
+
+      {loading ? (
+        <Card><p className="text-ink-muted text-[.85rem]">A carregar...</p></Card>
+      ) : !certEnabled || !checkedIn ? (
+        <Card>
+          <p className="text-ink-muted text-[.9rem]">
+            O certificado ainda não está disponível. É necessário ter o check-in confirmado e o certificado activado pela organização.
+          </p>
+        </Card>
+      ) : (
+        <Card variant="navy">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[.76rem] font-bold text-primary-300 uppercase tracking-wide">Conquista</div>
+              <b className="text-[1.05rem]">Certificado Digital de Participação</b>
+              <p className="text-[.82rem] text-navy-100 mt-1">{myName} · {eventName}</p>
+            </div>
+            <button
+              onClick={handleDownload}
+              className="rounded-full font-bold text-[.82rem] h-10 px-4 bg-primary-500 text-white shrink-0"
+            >
+              Descarregar
+            </button>
+          </div>
+        </Card>
+      )}
     </>
   );
 };

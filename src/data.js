@@ -73,6 +73,7 @@ export const NAV_MENTEE = [
   { key: 'conn',    label: 'Conexões',   icon: ICONS.conn },
   { key: 'msg',     label: 'Mensagens',  icon: ICONS.msg },
   { key: 'fecho',   label: 'Fecho',      icon: ICONS.fecho },
+ // { key: 'certificado', label: 'Certificado', icon: ICONS.fecho },
   { key: 'profile', label: 'Perfil',     icon: ICONS.profile },
 ];
 
@@ -84,6 +85,7 @@ export const NAV_MENTOR = [
   { key: 'conn',    label: 'Conexões',  icon: ICONS.conn },
   { key: 'msg',     label: 'Mensagens',  icon: ICONS.msg },
   { key: 'fecho',   label: 'Avaliação',  icon: ICONS.fecho },
+  //{ key: 'certificado', label: 'Certificado', icon: ICONS.fecho },
   { key: 'profile', label: 'Perfil',    icon: ICONS.profile },
 ];
 

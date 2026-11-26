@@ -8,7 +8,7 @@ import {
 import { Avatar, Toast } from './ui';
 import {
   MenteeHome, MenteeLive, MenteeMet, MenteeConnections,
-  MenteeMessages,
+  MenteeMessages, MenteeCertificate,
 } from './screens.mentee';
 import {
   MentorHome, MentorLive, MentorRequests, MentorConnections,
@@ -470,6 +470,8 @@ export function CareerConnectApp({ initialRole }) {
         return <MenteeMessages {...common} />;
       case 'fecho':
         return <SurveyScreen {...common} />;
+      case 'certificado':
+        return <MenteeCertificate {...common} />;
       case 'profile':
         return <ProfileScreen asRole="mentee" setRole={setRole} {...common} />;
       default:
@@ -494,6 +496,8 @@ export function CareerConnectApp({ initialRole }) {
         return <MentorMessages {...common} />;
       case 'fecho':
         return <SurveyScreen {...common} />;
+      case 'certificado':
+        return <MenteeCertificate role="mentor" {...common} />;
       case 'profile':
         return <ProfileScreen asRole="mentor" setRole={setRole} {...common} />;
       default:

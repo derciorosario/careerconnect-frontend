@@ -451,7 +451,7 @@ export default function Login() {
             Criar conta
           </Link>
         </p>
-        <p className="text-center text-[.85rem] text-ink-muted">
+        <p className="text-center text-[.85rem] text-ink-muted mt-4">
           É mentor?{' '}
           <Link to="/registo/mentor" className="text-primary-500 font-semibold">
             Registe-se como mentor

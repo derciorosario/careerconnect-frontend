@@ -5,6 +5,33 @@ import { ccGetQuestionnaire, ccSubmitSurvey, ccGetSurveyStatus } from './api/cli
 const BTN_BASE = 'inline-block rounded-full bg-primary-500 text-white font-semibold text-base px-7 py-3.5 cursor-pointer no-underline hover:brightness-110 transition';
 const FIELD_BASE = 'w-full font-normal text-base text-ink bg-surface border-2 border-line rounded-field px-3.5 py-3 focus:border-primary-500 focus:outline-none';
 
+// ── SKELETON ─────────────────────────────────
+const SkeletonBar = ({ w = '100%', h = 14, r = 7, className = '', style }) => (
+  <div className={`animate-pulse bg-surface2 ${className}`} style={{ width: w, height: h, borderRadius: r, ...style }} />
+);
+
+const SkeletonCard = () => (
+  <div className="bg-surface border border-line rounded-[18px] p-4 mb-3.5 space-y-4">
+    {[0, 1, 2].map((i) => (
+      <div key={i} className="space-y-2">
+        <SkeletonBar w="80%" h={13} />
+        <SkeletonBar w="100%" h={38} r={14} />
+      </div>
+    ))}
+    <SkeletonBar w={140} h={40} r={20} />
+  </div>
+);
+
+const SurveySkeleton = () => (
+  <>
+    <SkeletonBar w="55%" h={26} className="mb-2" />
+    <SkeletonBar w="45%" h={12} className="mb-6" />
+    <SkeletonCard />
+    <SkeletonBar w="40%" h={22} className="mt-2 mb-4" />
+    <SkeletonCard />
+  </>
+);
+
 // ── SURVEY (F-53) ────────────────────────────
 // NOTE: This survey is frontend-only (no backend connection).
 
@@ -157,7 +184,7 @@ export const SurveyScreen = ({ showToast }) => {
   const isMentor = role === 'mentor';
 
   const [content, setContent] = useState(DEFAULT_CONTENT);
-  const [enabled, setEnabled] = useState({ main: true, impact: true });
+  const [enabled, setEnabled] = useState({ main: false, impact: false });
   const [sent, setSent] = useState({ main: false, impact: false });
   const [answers, setAnswers] = useState({});
   const [ratings, setRatings] = useState({});
@@ -165,6 +192,7 @@ export const SurveyScreen = ({ showToast }) => {
   const [impact, setImpact] = useState({});
   const [impactComment, setImpactComment] = useState('');
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -189,6 +217,8 @@ export const SurveyScreen = ({ showToast }) => {
         });
       } catch (err) {
         // Fallback to defaults silently
+      } finally {
+        if (!cancelled) setInitialLoading(false);
       }
     };
     load();
@@ -251,6 +281,10 @@ export const SurveyScreen = ({ showToast }) => {
         {isMentor ? 'Avaliação do Mentor' : 'Avaliação da Experiência do Participante'} · Career Connect 2026
       </p>
 
+      {initialLoading ? (
+        <SurveySkeleton />
+      ) : (
+        <>
       {!enabled.main ? (
         <Unavailable message="O formulário de avaliação do evento ainda não está disponível." />
       ) : sent.main ? (
@@ -324,6 +358,8 @@ export const SurveyScreen = ({ showToast }) => {
             {loading ? 'A submeter...' : 'Submeter avaliação de impacto'}
           </button>
         </Card>
+      )}
+        </>
       )}
     </>
   );

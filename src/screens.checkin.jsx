@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from './ui';
+import { Card, QrCode } from './ui';
 import { ccGetProfile, ccCheckIn, ccGetRegistrationByTicket } from './api/client';
 
 export const CheckInScreen = () => {
@@ -113,6 +113,9 @@ export const CheckInScreen = () => {
               {registration && (
                 <p className="text-[1rem] font-semibold mb-4 text-white">{registration.user?.name || 'Utilizador'}</p>
               )}
+              <div className="flex justify-center mb-4">
+                <QrCode value={ticketCode} size={140} />
+              </div>
               {registration?.status === 'present' ? (
                 <div className="text-center py-4">
                   <div className="w-12 h-12 rounded-full bg-green-500 text-white grid place-items-center font-extrabold text-[1.5rem] mx-auto mb-3">

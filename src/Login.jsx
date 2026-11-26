@@ -36,20 +36,7 @@ export default function Login() {
   const [testUsers, setTestUsers] = useState([]);
   const [testLoading, setTestLoading] = useState(false);
 
-  useEffect(() => {
-    const loadTestUsers = async () => {
-      setTestLoading(true);
-      try {
-        const resp = await ccGetTestUsers();
-        setTestUsers(resp.data?.users || []);
-      } catch {
-        setTestUsers([]);
-      } finally {
-        setTestLoading(false);
-      }
-    };
-    loadTestUsers();
-  }, []);
+ 
 
   // Limpa mensagens e estado de OTP ao trocar de tab
   useEffect(() => {
@@ -408,7 +395,7 @@ export default function Login() {
           )}
 
           {/* Feedback */}
-          <div aria-live="polite" className="min-h-[1.25rem]">
+         {(success || error) && <div aria-live="polite" className="min-h-[1.25rem]">
             {error && (
               <div role="alert" className="text-danger text-sm font-semibold">
                 {error}
@@ -417,7 +404,7 @@ export default function Login() {
             {success && !error && (
               <div className="text-success text-sm font-semibold">{success}</div>
             )}
-          </div>
+          </div>}
 
           {/* Submit — só aparece se fizer sentido */}
           {showOtpSubmit && (

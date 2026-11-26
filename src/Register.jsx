@@ -4,6 +4,12 @@ import { ccVerifyEmail, ccResendEmailOTP, uploadClient, ccGetRegistrationConfig 
 
 import logo from './assets/logo.png';
 
+const NotifyWithWhastapp = false;
+
+// When true, mentees must wait for organizer approval (same flow as mentors).
+// Keep this in sync with MENTEE_REQUIRES_APPROVAL in the backend .env.
+const MenteeRequiresApproval = true;
+
 const BTN_BASE   = 'inline-block rounded-full bg-primary-500 text-white font-semibold text-base px-7 py-3.5 cursor-pointer no-underline hover:brightness-110 transition';
 const BTN_GHOST  = 'bg-transparent text-ink shadow-[inset_0_0_0_2px_var(--color-line)]';
 const FIELD_BASE = 'w-full font-normal text-base text-ink bg-surface border-2 border-line rounded-field px-3.5 py-3 focus:border-primary-500 focus:outline-none';
@@ -151,7 +157,7 @@ export default function Register() {
 
       if (response.data.requiresEmailVerification) {
         setStep(3);
-        setError('Foi enviado um código de verificação para o seu email e WhatsApp.');
+        setError(NotifyWithWhastapp ? 'Foi enviado um código de verificação para o seu email e WhatsApp.' : 'Foi enviado um código de verificação para o seu email.');
       } else {
         setError(response.data.message || 'Registo concluído.');
       }
@@ -170,15 +176,15 @@ export default function Register() {
     setLoading(true);
     try {
       const response = await ccVerifyEmail({ email: form.email, otp });
-      if (response.data.accessToken) {
+      if (response.data.accessToken && !MenteeRequiresApproval) {
         localStorage.setItem('accessToken', response.data.accessToken);
         localStorage.setItem('token', response.data.accessToken);
         localStorage.setItem('refresh_token', response.data.refreshToken);
         localStorage.setItem('userRole', response.data.user.role);
       }
 
-      if (form.role === 'mentor') {
-        setDialog('mentor-pending');
+      if (form.role === 'mentor' || (form.role === 'mentee' && MenteeRequiresApproval)) {
+        setDialog(form.role === 'mentor' ? 'mentor-pending' : 'mentee-pending');
       } else {
         setDialog('mentee-success');
       }
@@ -193,7 +199,7 @@ export default function Register() {
     setLoading(true);
     try {
       await ccResendEmailOTP({ email: form.email });
-      setError('Código reenviado por email e WhatsApp.');
+      setError(NotifyWithWhastapp ? 'Código reenviado por email e WhatsApp.' : 'Código reenviado por email.');
     } catch {
       setError('Erro ao reenviar código.');
     } finally {
@@ -218,7 +224,7 @@ export default function Register() {
           </div>
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-[.85rem] font-semibold">Telemóvel (WhatsApp) *</label>
+          <label className="text-[.85rem] font-semibold">{NotifyWithWhastapp ? 'Telemóvel (WhatsApp) *' : 'Telemóvel *'}</label>
           <input id="phone" type="tel" autoComplete="tel" placeholder="+258" value={form.phone} onChange={(e) => setField('phone', e.target.value)} className={FIELD_BASE} />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -392,9 +398,13 @@ export default function Register() {
   const renderScreen3 = () => (
     <>
       <Progress step={3} total={3} />
-      <h2 className="text-[1.5rem] font-extrabold tracking-tight mb-2">Verifique o seu email e WhatsApp</h2>
+      <h2 className="text-[1.5rem] font-extrabold tracking-tight mb-2">{NotifyWithWhastapp ? 'Verifique o seu email e WhatsApp' : 'Verifique o seu email'}</h2>
       <p className="text-ink-muted mb-6">
-        Enviamos um código de 6 dígitos para <strong>{form.email}</strong> e para o seu WhatsApp <strong>{form.phone}</strong>. Insira-o aqui para concluir o registo.
+        {NotifyWithWhastapp ? (
+          <>Enviamos um código de 6 dígitos para <strong>{form.email}</strong> e para o seu WhatsApp <strong>{form.phone}</strong>. Insira-o aqui para concluir o registo.</>
+        ) : (
+          <>Enviamos um código de 6 dígitos para <strong>{form.email}</strong>. Insira-o aqui para concluir o registo.</>
+        )}
       </p>
       <form onSubmit={handleVerifyEmail} noValidate className="space-y-4">
         <div className="flex flex-col gap-1.5">
@@ -414,6 +424,9 @@ export default function Register() {
           Não recebeu o código?{' '}
           <button type="button" onClick={resendOTP} className="text-primary-500 font-semibold underline">Reenviar código</button>
         </p>
+        <p className="text-center text-[.8rem] text-ink-muted mt-2">
+          Se não encontrar o email, verifique a pasta de <strong>spam</strong> (ou lixo electrónico).
+        </p>
         <p className="text-center text-[.85rem] text-ink-muted mt-4">Voltar atrás? <Link to="/" className="text-primary-500 font-semibold">Página inicial</Link></p>
       </form>
     </>
@@ -430,27 +443,34 @@ export default function Register() {
 
   const renderDialog = () => {
     if (!dialog) return null;
-    const isMentee = dialog === 'mentee-success';
+    const isSuccess = dialog === 'mentee-success';
+    const isPending = dialog === 'mentor-pending' || dialog === 'mentee-pending';
+    const pendingRole = dialog === 'mentee-pending' ? 'mentorado' : 'mentor';
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
         <div className="bg-surface p-8 rounded-xl max-w-sm w-full mx-4 shadow-2xl border border-line">
           <div className="flex items-center gap-3 mb-4">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isMentee ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'}`}>
-              {isMentee ? '✓' : '⏳'}
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isSuccess ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'}`}>
+              {isSuccess ? '✓' : '⏳'}
             </div>
             <h2 className="text-xl font-extrabold text-ink">
-              {isMentee ? 'Registo concluído!' : 'Candidatura enviada'}
+              {isSuccess ? 'Registo concluído!' : 'Candidatura enviada'}
             </h2>
           </div>
           <p className="text-ink-muted mb-6 leading-relaxed">
-            {isMentee
+            {isSuccess
               ? 'A sua conta foi verificada com sucesso.'
-              : 'A sua candidatura de mentor foi enviada e está pendente de aprovação da equipa. Só poderá entrar após a aprovação.'}
+              : `A sua candidatura de ${pendingRole} foi enviada e está pendente de aprovação da equipa. Só poderá entrar após a aprovação.`}
           </p>
-          {isMentee && (
+          {isSuccess && (
             <div className="bg-surface2 rounded-lg p-4 mb-6 border border-line">
               <p className="text-[.85rem] font-semibold text-ink mb-2">Bilhete digital</p>
-              <p className="text-[.85rem] text-ink-muted">O seu bilhete com código foi enviado por e-mail e WhatsApp.</p>
+              <p className="text-[.85rem] text-ink-muted">{NotifyWithWhastapp ? 'O seu bilhete com código foi enviado por e-mail e WhatsApp.' : 'O seu bilhete com código foi enviado por e-mail.'}</p>
+            </div>
+          )}
+          {isPending && (
+            <div className="bg-surface2 rounded-lg p-4 mb-6 border border-line">
+              <p className="text-[.85rem] text-ink-muted">A equipa irá analisar o seu perfil e notificá-lo assim que a candidatura for {pendingRole === 'mentor' ? 'aprovada' : 'aprovada'}.</p>
             </div>
           )}
           <div className="text-danger text-sm font-semibold">{error}</div>
@@ -459,7 +479,7 @@ export default function Register() {
             className={`${BTN_BASE} w-full py-3`}
             disabled={loading}
           >
-            {loading ? 'A processar...' : isMentee ? 'Aceder à plataforma' : 'Entender'}
+            {loading ? 'A processar...' : isSuccess ? 'Aceder à plataforma' : 'Entender'}
           </button>
         </div>
       </div>

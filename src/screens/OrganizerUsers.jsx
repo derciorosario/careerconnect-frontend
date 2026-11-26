@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { ccGetAllUsers, ccGetRegistrationConfig, ccSetUserStatus, ccDeleteUser, uploadClient } from '../api/client';
 import { Card, PersonRow, imgSrc } from '../ui';
 
+// Normalise text for accent-insensitive search: lowercase and strip diacritics
+// so "Dercio" matches "Dércio" and vice-versa.
+const normalizeSearch = (value) =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
 const FIELD = 'w-full bg-surface border-2 border-line rounded-[10px] px-3 py-2 text-[.88rem] focus:border-primary-500 focus:outline-none';
 const BTN = 'rounded-full font-bold text-[.82rem] h-10 px-4';
 
@@ -136,7 +144,7 @@ export const OrganizerUsers = ({ showToast }) => {
     }
   };
 
-  const term = search.trim().toLowerCase();
+  const term = normalizeSearch(search.trim());
 
   const handleToggleActive = async (u) => {
     setActionId(u.id);
@@ -170,7 +178,7 @@ export const OrganizerUsers = ({ showToast }) => {
     if (roleFilter !== 'all' && u.role !== roleFilter) return false;
     if (landingOnly && !(u.role === 'mentor' && u.mentorProfile?.show_on_landing)) return false;
     if (!term) return true;
-    return (u.name || '').toLowerCase().includes(term) || (u.email || '').toLowerCase().includes(term);
+    return normalizeSearch(u.name).includes(term) || normalizeSearch(u.email).includes(term);
   });
 
   return (

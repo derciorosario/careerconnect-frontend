@@ -127,7 +127,7 @@ export const Participantes = ({ showToast }) => {
           onClick={() => setTab('mentee')}
           className={`flex-1 rounded-full py-2.5 font-semibold text-sm transition ${tab === 'mentee' ? 'bg-navy-800 text-white' : 'bg-transparent text-ink-muted hover:text-ink'}`}
         >
-          Mentees ({mentees.length})
+          Mentorados ({mentees.length})
         </button>
       </div>
 
@@ -167,7 +167,7 @@ export const Participantes = ({ showToast }) => {
               <span className={`rounded-full px-2.5 py-[3px] text-[.68rem] font-bold ${isMentor ? 'bg-primary-500 text-white' : 'bg-navy-800 text-white'}`}>
                 {isMentor ? 'Mentor' : 'Mentorado'}
               </span>
-              {isMentee && isMentor && (
+              {isMentee && isMentor &&  false && ( //leave like that with :false (it cannot be shown)
                 <button
                   onClick={() => toggleWish(user)}
                   className={`rounded-full font-bold text-[.76rem] h-[34px] px-3.5 ${isWished ? 'bg-primary-500 text-white' : 'bg-surface2 text-ink'}`}

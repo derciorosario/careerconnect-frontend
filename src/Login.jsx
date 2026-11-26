@@ -9,6 +9,12 @@ const FIELD_BASE = 'w-full font-normal text-base text-ink bg-surface border-2 bo
 
 import logo from './assets/logo.png';
 
+const NotifyWithWhastapp = false;
+
+const notifyChannelsOr = NotifyWithWhastapp ? 'email ou WhatsApp' : 'email';
+const emailLabel = NotifyWithWhastapp ? 'Email ou WhatsApp' : 'Email';
+const emailPlaceholder = NotifyWithWhastapp ? 'email ou número de WhatsApp' : 'email';
+
 
 export default function Login() {
   const navigate = useNavigate();
@@ -103,14 +109,14 @@ export default function Login() {
     setError('');
     setSuccess('');
     if (!email) {
-      setError('Insira o email ou WhatsApp primeiro.');
+      setError(NotifyWithWhastapp ? 'Insira o email ou WhatsApp primeiro.' : 'Insira o email primeiro.');
       return;
     }
     setSendingOtp(true);
     try {
       await ccRequestOTP({ email });
       setOtpSent(true);
-      setSuccess('Código OTP enviado por email e WhatsApp.');
+      setSuccess(NotifyWithWhastapp ? 'Código OTP enviado por email e WhatsApp.' : 'Código OTP enviado por email.');
     } catch (err) {
       setError(err.response?.data?.message || 'Erro ao enviar OTP.');
     } finally {
@@ -130,14 +136,14 @@ export default function Login() {
     setError('');
     setSuccess('');
     if (!email) {
-      setError('Insira o email ou WhatsApp primeiro.');
+      setError(NotifyWithWhastapp ? 'Insira o email ou WhatsApp primeiro.' : 'Insira o email primeiro.');
       return;
     }
     setSendingOtp(true);
     try {
       await ccForgotPassword({ email });
       setResetSent(true);
-      setSuccess('Código de redefinição enviado por email e WhatsApp.');
+      setSuccess(NotifyWithWhastapp ? 'Código de redefinição enviado por email e WhatsApp.' : 'Código de redefinição enviado por email.');
     } catch (err) {
       setError(err.response?.data?.message || 'Erro ao enviar código de redefinição.');
     } finally {
@@ -232,7 +238,7 @@ export default function Login() {
         {mode === 'forgot' && (
           <div className="mb-6">
             <h2 className="text-[1.1rem] font-extrabold tracking-tight text-white mb-1">Redefinir palavra-passe</h2>
-            <p className="text-ink-muted text-[.9rem]">Enviaremos um código para o seu email e WhatsApp.</p>
+            <p className="text-ink-muted text-[.9rem]">{NotifyWithWhastapp ? 'Enviaremos um código para o seu email e WhatsApp.' : 'Enviaremos um código para o seu email.'}</p>
           </div>
         )}
 
@@ -240,13 +246,13 @@ export default function Login() {
           {/* Email */}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="email" className="text-[.85rem] font-semibold">
-              Email ou WhatsApp
+              {emailLabel}
             </label>
             <input
               id="email"
               type="text"
               autoComplete="username"
-              placeholder="email ou número de WhatsApp"
+              placeholder={emailPlaceholder}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={FIELD_BASE}
@@ -307,7 +313,7 @@ export default function Login() {
                   className={FIELD_BASE}
                 />
                 <p className="text-[.8rem] text-ink-muted">
-                  Insira o código recebido por email ou WhatsApp.
+                  Insira o código recebido por {notifyChannelsOr}.
                 </p>
               </div>
               <button
@@ -350,7 +356,7 @@ export default function Login() {
                   className={FIELD_BASE}
                 />
                 <p className="text-[.8rem] text-ink-muted">
-                  Insira o código recebido por email ou WhatsApp.
+                  Insira o código recebido por {notifyChannelsOr}.
                 </p>
               </div>
               <div className="flex flex-col gap-1.5">

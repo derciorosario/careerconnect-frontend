@@ -309,7 +309,7 @@ export const MenteeHome = ({ showToast, totalRounds = 8 }) => {
         <div className="flex gap-1.5 flex-wrap mt-2.5">
           <ChecklistItem label="Perfil completo" done={!!profile} />
           <ChecklistItem label="Pitch escrito" done={!!(profile?.menteeProfile?.pitch)} />
-          <ChecklistItem label="3 mentores marcados" done={wishedMentorIds.size >= 3} />
+          {/**<ChecklistItem label="3 mentores marcados" done={wishedMentorIds.size >= 3} /> */}
         </div>
       </Card>
 

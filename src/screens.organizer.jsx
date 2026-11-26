@@ -23,6 +23,14 @@ import {
 } from './api/client';
 import { PersonRow, ProgressBar, Card, AnnouncementInput, Avatar } from './ui';
 
+// Normalise text for accent-insensitive search: lowercase and strip diacritics
+// so "Dercio" matches "Dércio" and vice-versa.
+const normalizeSearch = (value) =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
 // ── skeleton primitives ──────────────────────
 const SkeletonBar = ({ w = '100%', h = 14, r = 7, className = '', style }) => (
   <div
@@ -420,7 +428,7 @@ const RegistrationDetailsDialog = ({ reg, onClose }) => {
 // ── ORGANIZER REG ────────────────────────────
 export const OrganizerReg = ({ showToast }) => {
   const [registrations, setRegistrations] = useState([]);
-  const [pendingMentors, setPendingMentors] = useState([]);
+  const [pendingApprovals, setPendingApprovals] = useState([]);
   const [actionLoading, setActionLoading] = useState({});
   const [search, setSearch] = useState('');
   const [scanning, setScanning] = useState(false);
@@ -443,8 +451,13 @@ export const OrganizerReg = ({ showToast }) => {
         const regResp = await ccGetOrganizerRegistrations({});
         const regs = regResp.data?.registrations || [];
         setRegistrations(regs);
-        setPendingMentors(
-          regs.filter((r) => r.user?.role === 'mentor' && r.user?.mentorProfile?.approval === 'pending')
+
+        
+        setPendingApprovals(
+          regs.filter((r) =>
+            (r.user?.role === 'mentor' && r.user?.mentorProfile?.approval === 'pending') ||
+            (r.user?.role === 'mentee' && r.user?.menteeProfile?.approval === 'pending')
+          )
         );
       } catch (err) {
         console.error('Failed to load registrations:', err);
@@ -533,8 +546,15 @@ export const OrganizerReg = ({ showToast }) => {
     };
   }, [scanning]);
 
-  const filteredRegs = registrations.filter((reg) =>
-    (reg.user?.name || '').toLowerCase().includes(search.toLowerCase())
+  // Pending (not yet approved) participants must not appear in the check-in table.
+  const isPendingApproval = (reg) =>
+    reg.user?.mentorProfile?.approval === 'pending' ||
+    reg.user?.menteeProfile?.approval === 'pending';
+
+  const checkinBase = registrations.filter((reg) => !isPendingApproval(reg));
+
+  const filteredRegs = checkinBase.filter((reg) =>
+    normalizeSearch(reg.user?.name).includes(normalizeSearch(search))
   );
 
   const handleCheckIn = async (reg) => {
@@ -668,21 +688,27 @@ export const OrganizerReg = ({ showToast }) => {
 
       <Card>
         <div className="flex justify-between items-center"><b>Pendentes de aprovação</b></div>
-        {pendingMentors.length > 0 ? (
-          pendingMentors.map((r) => (
+        {pendingApprovals.length > 0 ? (
+          pendingApprovals.map((r) => (
             <div
               key={r.id}
               className="flex justify-between items-center mt-3 cursor-pointer"
               onClick={() => setSelectedReg(r)}
             >
-              <PersonRow name={r.user?.name || 'Mentor'} subtitle={r.user?.mentorProfile?.company || '-'} photoUrl={r.user?.photo_url} />
+              <PersonRow
+                name={r.user?.name || (r.user?.role === 'mentee' ? 'Mentorado' : 'Mentor')}
+                subtitle={r.user?.role === 'mentee'
+                  ? `Mentorado · ${r.user?.menteeProfile?.course || r.user?.menteeProfile?.institution || '-'}`
+                  : `Mentor · ${r.user?.mentorProfile?.company || '-'}`}
+                photoUrl={r.user?.photo_url}
+              />
               <button
                 onClick={async (e) => {
                   e.stopPropagation();
                   try {
                     await ccApproveMentor({ mentor_id: r.user_id, action: 'approve' });
-                    setPendingMentors((prev) => prev.filter((x) => x.id !== r.id));
-                    showToast('Mentor aprovado.');
+                    setPendingApprovals((prev) => prev.filter((x) => x.id !== r.id));
+                    showToast('Candidatura aprovada.');
                   } catch (err) {
                     showToast(err.response?.data?.message || 'Erro ao aprovar.');
                   }
@@ -700,7 +726,7 @@ export const OrganizerReg = ({ showToast }) => {
 
       <Card>
         <div className="flex items-center justify-between mb-3.5 gap-2">
-          <b>Check-in ({registrations.filter((r) => r.status === 'present').length}/{registrations.length})</b>
+          <b>Check-in ({checkinBase.filter((r) => r.status === 'present').length}/{checkinBase.length})</b>
           <button
             onClick={startScanner}
             disabled={scanning}

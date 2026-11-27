@@ -819,7 +819,7 @@ export default function Landingpage() {
         <section className="pt-5 pb-4 md:pb-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-9 items-start">
             <div>
-              <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-7">Perguntas Frequentes (FAQ)</h2>
+              <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-7">Perguntas Frequentes</h2>
               <div className="mt-7">
                 {faqs.map((item, i) => (
                   <details key={i} open={i === 0} className="border-b border-line py-4">

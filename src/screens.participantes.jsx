@@ -113,6 +113,14 @@ export const Participantes = ({ showToast }) => {
 
       {/* Tabs */}
       <div role="tablist" aria-label="Filtrar participantes" className="flex gap-1.5 bg-surface-soft p-1.5 rounded-full mb-3.5">
+           <button
+          role="tab"
+          aria-selected={tab === 'mentee'}
+          onClick={() => setTab('mentee')}
+          className={`flex-1 rounded-full py-2.5 font-semibold text-sm transition ${tab === 'mentee' ? 'bg-navy-800 text-white' : 'bg-transparent text-ink-muted hover:text-ink'}`}
+        >
+          Mentorados ({mentees.length})
+        </button>
         <button
           role="tab"
           aria-selected={tab === 'mentor'}
@@ -121,14 +129,7 @@ export const Participantes = ({ showToast }) => {
         >
           Mentores ({mentors.length})
         </button>
-        <button
-          role="tab"
-          aria-selected={tab === 'mentee'}
-          onClick={() => setTab('mentee')}
-          className={`flex-1 rounded-full py-2.5 font-semibold text-sm transition ${tab === 'mentee' ? 'bg-navy-800 text-white' : 'bg-transparent text-ink-muted hover:text-ink'}`}
-        >
-          Mentorados ({mentees.length})
-        </button>
+     
       </div>
 
       {/* Search */}

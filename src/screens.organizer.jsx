@@ -23,6 +23,12 @@ import {
 } from './api/client';
 import { PersonRow, ProgressBar, Card, AnnouncementInput, Avatar, levelLabel } from './ui';
 
+// Organizer menu layout — DESKTOP ONLY.
+//   'top'  → horizontal pill bar at the top (current behaviour)
+//   'left' → vertical sidebar on the left
+// On mobile the menu is ALWAYS the horizontal top bar, regardless of this value.
+const ORGANIZER_MENU_VARIANT = 'left';
+
 // Normalise text for accent-insensitive search: lowercase and strip diacritics
 // so "Dercio" matches "Dércio" and vice-versa.
 const normalizeSearch = (value) =>
@@ -1211,6 +1217,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
   const [photoFile, setPhotoFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [config, setConfig] = useState({
     areas: AREAS, goals: GOALS, support_types: SUPPORT_TYPES, levels: LEVELS,
     academic_education: ACADEMIC_EDUCATION, technical_courses: TECHNICAL_COURSES,
@@ -1343,6 +1350,14 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const confirmLogout = () => {
+    setStoredToken(null);
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('userRole');
+    setRole(null);
+    window.location.href = '/entrar';
   };
 
   if (loading) {
@@ -1506,7 +1521,45 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
         </button>
       </Card>
 
-      <button onClick={() => { setStoredToken(null); localStorage.removeItem('refresh_token'); localStorage.removeItem('userRole'); setRole(null); window.location.href = '/entrar'; }} className="w-full rounded-full font-bold text-[.92rem] h-12 bg-surface2 text-ink">Sair</button>
+      <button onClick={() => setShowLogoutConfirm(true)} className="w-full rounded-full font-bold text-[.92rem] h-12 bg-primary-500 text-white shadow-[0_0_0_4px_rgba(245,158,11,.25)] hover:brightness-110 transition">Sair</button>
+
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={() => setShowLogoutConfirm(false)}>
+          <div className="w-full max-w-sm rounded-card bg-surface-soft shadow-card overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-line flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-danger/15 text-danger grid place-items-center shrink-0">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </div>
+              <h3 className="text-[.92rem] font-bold">Terminar sessão</h3>
+            </div>
+            <div className="p-5">
+              <p className="text-[.82rem] text-ink-muted leading-relaxed">
+                Tem a certeza que quer sair da sua conta? Terá de iniciar sessão novamente para aceder ao seu perfil.
+              </p>
+            </div>
+            <div className="flex gap-2.5 px-5 pb-5">
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 py-3 rounded-full border border-line bg-surface text-ink text-[.82rem] font-bold hover:bg-surface-muted transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmLogout}
+                className="flex-1 py-3 rounded-full text-white text-[.82rem] font-bold bg-danger hover:brightness-110 transition"
+              >
+                Sair
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
@@ -1865,6 +1918,8 @@ export const OrganizerEvents = ({ showToast }) => {
 // ── ORGANIZER LAYOUT (tabs wrapper) ──────────
 export const OrganizerShell = ({ activeTab, setActiveTab, announcements, setRole, children }) => {
   const activeOrgTab = ORGANIZER_TABS.find((tab) => tab.key === activeTab) ? activeTab : 'live';
+  // Sidebar only on desktop (md+); mobile always keeps the horizontal top bar.
+  const isLeftMenu = ORGANIZER_MENU_VARIANT === 'left';
   return (
     <div className="max-w-[1040px] mx-auto pt-[18px] px-4 pb-10">
       <div className="flex justify-between items-center mb-3.5">
@@ -1878,18 +1933,22 @@ export const OrganizerShell = ({ activeTab, setActiveTab, announcements, setRole
           {announcements[announcements.length - 1]}
         </div>
       )}
-      <div className="flex gap-1 bg-surface-soft p-1 rounded-full mb-5 overflow-x-auto">
-        {ORGANIZER_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`rounded-full px-[18px] py-2.5 font-semibold text-[.85rem] whitespace-nowrap transition ${activeOrgTab === tab.key ? 'bg-navy-800 text-white' : 'text-ink-muted'}`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className={isLeftMenu ? 'md:flex md:items-start md:gap-6' : ''}>
+        <div className={`flex gap-1 bg-surface-soft p-1 rounded-full mb-5 overflow-x-auto ${isLeftMenu ? 'md:flex-col md:rounded-2xl md:mb-0 md:w-48 md:shrink-0 md:sticky md:top-4 md:overflow-visible' : ''}`}>
+          {ORGANIZER_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`rounded-full px-[18px] py-2.5 font-semibold text-[.85rem] whitespace-nowrap transition ${activeOrgTab === tab.key ? 'bg-navy-800 text-white' : 'text-ink-muted'}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <div className={isLeftMenu ? 'md:flex-1 md:min-w-0' : ''}>
+          {children}
+        </div>
       </div>
-      {children}
     </div>
   );
 };

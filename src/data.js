@@ -69,10 +69,10 @@ export const NAV_MENTEE = [
   { key: 'home',    label: 'Career Pass', icon: ICONS.home },
   { key: 'live',    label: 'Ao vivo',    icon: ICONS.live },
   { key: 'participantes', label: 'Participantes', icon: ICONS.mentees },
-  { key: 'met',     label: 'Conheci',    icon: ICONS.met },
-  { key: 'conn',    label: 'Conexões',   icon: ICONS.conn },
+ // { key: 'met',     label: 'Conheci',    icon: ICONS.met },
+  //{ key: 'conn',    label: 'Conexões',   icon: ICONS.conn },
   { key: 'msg',     label: 'Mensagens',  icon: ICONS.msg },
-  { key: 'fecho',   label: 'Fecho',      icon: ICONS.fecho },
+  { key: 'fecho',   label: 'Avaliação',      icon: ICONS.fecho },
  // { key: 'certificado', label: 'Certificado', icon: ICONS.fecho },
   { key: 'profile', label: 'Perfil',     icon: ICONS.profile },
 ];

@@ -743,37 +743,6 @@ export default function Landingpage() {
           <p className="text-navy-100 mt-3.5 max-w-[56ch] mb-10">
             Cria a tua conta para ver o programa completo, enviar perguntas aos palestrantes e reservar lugar em cada sessão.
           </p>
-          <div className="grid gap-4.5">
-            {masterclasses.map(masterclass => (
-              <div key={masterclass.id} className="grid grid-cols-[56px_1fr] md:grid-cols-[64px_1fr_auto] gap-4.5 items-center bg-surface-soft text-ink rounded-inner px-6 py-5">
-                <MentorAvatar
-                  src={masterclass.photo_url ? imgSrc(masterclass.photo_url) : ''}
-                  name={masterclass.name}
-                  initials={masterclass.initials}
-                  wrapperClassName="w-14 md:w-16 h-14 md:h-16 rounded-full overflow-hidden bg-navy-800 shadow-[0_0_0_3px_var(--color-surface),0_0_0_5px_var(--color-primary-500)]"
-                  imgClassName="w-full h-full object-cover"
-                />
-                <div>
-                  <div className="text-[.78rem] font-semibold text-primary-500">{masterclass.theme}</div>
-                  <h3 className="text-[1.15rem] font-extrabold">{masterclass.title}</h3>
-                  <p className="text-ink-muted text-[.9rem]">{masterclass.name} · {masterclass.role}</p>
-                </div>
-                {/** leave it hidden */}
-                <div className="text-[.82rem] hidden text-ink-muted font-semibold col-start-2 md:col-start-auto">
-                  Com sessão iniciada
-                </div>
-              </div>
-            ))}
-          </div>
-        </Container>
-      </section>
-      )}
-
-      {/* ── 8. Oradores e Mentores de Destaque (hidden when there is no event) ── */}
-      {hasEvent && (
-      <Container>
-        <section className="py-16 md:py-20">
-          <h2 className="text-[clamp(1.8rem,4.5vw,2.8rem)] font-extrabold tracking-tight max-w-[20ch] mb-11">Oradores e Mentores de Destaque</h2>
           <div className="mt-11 space-y-14">
             {masterclasses.map((masterclass, index) => {
               const isReversed = index % 2 === 1;
@@ -787,9 +756,9 @@ export default function Landingpage() {
                     imgClassName="w-full h-full object-cover"
                   />
                   <div className={isReversed ? 'md:text-right' : ''}>
-                    <h3 className="text-2xl font-extrabold">{masterclass.name}</h3>
+                    <h3 className="text-xl font-extrabold"><b>Tema:</b> {masterclass.title}</h3>
+                    <p className="mt-2 text-[1rem]">{masterclass.name}</p>
                     <div className="text-primary-500 font-semibold text-[.92rem] my-1">{masterclass.role}</div>
-                    <p className="mt-2 text-[.95rem]"><b>Tema:</b> {masterclass.title}</p>
                     <p className="text-ink-muted mt-3">{masterclass.biography}</p>
                     {masterclass.works && (<p className="mt-3 text-[.88rem] text-ink-muted">{masterclass.works}</p>)}
                   </div>
@@ -797,8 +766,8 @@ export default function Landingpage() {
               );
             })}
           </div>
-        </section>
-      </Container>
+        </Container>
+      </section>
       )}
 
       {/* ── Os jovens tornam-se: full-width band ── */}
@@ -829,7 +798,7 @@ export default function Landingpage() {
         <section className="py-16 md:py-20">
           <div className="bg-primary-500 text-white rounded-card p-10 md:p-14 text-center">
             <h2 className="text-[clamp(1.8rem,4.5vw,2.6rem)] font-extrabold mb-4">És profissional? Torna-te mentor.</h2>
-            <p className="text-primary-100 text-lg max-w-[45ch] mx-auto mb-6">Influencia a carreira de alguém. 40 min no dia, 1 a 3 mentorados depois do evento.</p>
+            <p className="text-primary-100 text-lg max-w-[45ch] mx-auto mb-6">Influencia a carreira de alguém. 40 min no dia, 1 a 5 mentorados depois do evento.</p>
             <Link to="/registo/mentor" className={`${BTN_BASE} !bg-primary-400`}>Candidatar-me como Mentor</Link>
           </div>
         </section>
@@ -888,14 +857,14 @@ export default function Landingpage() {
         </section>
 
 
-        <div className="pb-16 md:pb-20">
-          
-             <div className="mt-8 flex flex-wrap gap-3">
-                <Link to="/registo" className={BTN_BASE}>Inscrever-me como Participante</Link>
-                <Link to="/registo/mentor" className={`${BTN_BASE} ${BTN_GHOST}`}>Candidatar-me como Mentor</Link>
-             </div>
-              
-        </div>
+       {/* Mentee banner */}
+        <section className="py-16 md:py-20">
+          <div className="bg-primary-500 text-white rounded-card p-10 md:p-14 text-center">
+            <h2 className="text-[clamp(1.8rem,4.5vw,2.6rem)] font-extrabold mb-4">Estás a começar? Torna-te mentorado.</h2>
+            <p className="text-primary-100 text-lg max-w-[45ch] mx-auto mb-6">Liga-te a mentores experientes e dá o próximo passo na tua carreira.</p>
+            <Link to="/registo" className={`${BTN_BASE} !bg-primary-400`}>Inscrever-me como Participante</Link>
+          </div>
+        </section>
 
         {/* ── Install the app ── */}
         <InstallApp />
@@ -909,6 +878,7 @@ export default function Landingpage() {
                 <a href={`mailto:${email}`} className="hover:text-primary-500 transition-colors">{email}</a>
               )}
               <span>Tecnicol · Maputo, Moçambique</span>
+              <a href="https://vlms.visum.co.mz" target="_blank" rel="noopener noreferrer" className="hover:text-primary-500 transition-colors">Powered by <b>Visum</b></a>
             </span>
           </div>
         </footer>

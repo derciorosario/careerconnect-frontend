@@ -743,6 +743,10 @@ export const MentorMessages = ({ showToast, messageTarget, clearMessageTarget })
   const [connections, setConnections] = useState([]);
   const [sending, setSending] = useState({});
   const [loading, setLoading] = useState(true);
+  // People search (mentees) + the currently active conversation.
+  const [search, setSearch] = useState('');
+  const [directory, setDirectory] = useState([]);
+  const [activeId, setActiveId] = useState(null);
 
   // Stable ref for showToast so the load effect doesn't re-run when the
   // parent re-renders and passes a new function identity.
@@ -789,8 +793,12 @@ export const MentorMessages = ({ showToast, messageTarget, clearMessageTarget })
     const load = async () => {
       setLoading(true);
       try {
-        const resp = await ccGetConnections();
+        const [resp, dirResp] = await Promise.all([
+          ccGetConnections(),
+          ccGetMenteeDirectory({}).catch(() => ({ data: { mentees: [] } })),
+        ]);
         if (cancelled) return;
+        setDirectory(dirResp.data?.mentees || []);
         let conns = resp.data?.connections || [];
 
         // If the user arrived from Participantes with a chosen recipient,
@@ -811,7 +819,10 @@ export const MentorMessages = ({ showToast, messageTarget, clearMessageTarget })
         const menteeConns = conns.filter((c) => c.contact?.role === 'mentee');
         setConnections(menteeConns);
         if (target) {
-          if (targetConn) pendingFocusRef.current = targetConn.id;
+          if (targetConn) {
+            pendingFocusRef.current = targetConn.id;
+            setActiveId(targetConn.id);
+          }
           clearMessageTargetRef.current?.();
         }
 
@@ -909,12 +920,74 @@ export const MentorMessages = ({ showToast, messageTarget, clearMessageTarget })
     }
   };
 
+  // Open (creating if needed) a conversation with a searched mentee.
+  const openConversationWith = async (user) => {
+    try {
+      const eResp = await ccEnsureConnection({ to_user_id: user.id });
+      const ensured = eResp.data?.connection;
+      if (!ensured) return;
+      setConnections((prev) =>
+        prev.some((c) => c.id === ensured.id) ? prev : [ensured, ...prev]
+      );
+      setConv((p) => (p[String(ensured.id)] ? p : { ...p, [String(ensured.id)]: [] }));
+      setActiveId(ensured.id);
+      pendingFocusRef.current = ensured.id;
+      setSearch('');
+    } catch (err) {
+      showToastRef.current(err.response?.data?.message || 'Erro ao abrir conversa.');
+    }
+  };
+
+  const term = search.trim().toLowerCase();
+  const results = term
+    ? directory.filter(
+        (u) =>
+          (u.name || '').toLowerCase().includes(term) ||
+          (u.email || '').toLowerCase().includes(term)
+      )
+    : [];
+
+  // Only conversations with messages are shown, plus the active one.
+  const visibleConnections = connections.filter((c) => {
+    const key = String(c.id);
+    const hasMsgs = (conv[key] || []).length > 0;
+    return hasMsgs || String(c.id) === String(activeId);
+  });
+
   return (
     <>
       <h2 className="text-[1.45rem] font-extrabold tracking-tight">Mensagens</h2>
       <p className="text-ink-muted text-[.85rem] mt-1 mb-4">
         Escreve a mentorados para começares uma conversa.
       </p>
+
+      {/* Search for a mentee to message */}
+      <div className="mb-3.5">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Pesquisar mentorados por nome ou email..."
+          className="w-full text-base bg-surface border-2 border-line rounded-[14px] px-3.5 py-2.5 focus:border-primary-500 focus:outline-none"
+        />
+        {term && (
+          results.length > 0 ? (
+            <div className="mt-2 border border-line rounded-[14px] overflow-hidden">
+              {results.slice(0, 8).map((u) => (
+                <div key={u.id} className="px-3 py-2.5 hover:bg-surface-soft transition">
+                  <PersonRow
+                    name={u.name}
+                    subtitle={[u.menteeProfile?.course, u.menteeProfile?.institution].filter(Boolean).join(' · ') || 'Mentorado'}
+                    photoUrl={u.photo_url}
+                    onClick={() => openConversationWith(u)}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-ink-muted text-[.8rem] mt-2 px-1">Nenhum mentorado encontrado.</p>
+          )
+        )}
+      </div>
 
       {/* Header never unmounts — only the body below swaps, so no blink */}
       {loading ? (
@@ -937,16 +1010,16 @@ export const MentorMessages = ({ showToast, messageTarget, clearMessageTarget })
             </div>
           ))}
         </div>
-      ) : connections.length === 0 ? (
+      ) : visibleConnections.length === 0 ? (
         <Card>
           <b>Sem conversas ainda.</b>
           <p className="text-ink-muted text-[.85rem] mt-1.5">
-            Abre a lista de Participantes e toca em “Mensagem” para falar com um mentorado.
+            Pesquisa um mentorado acima ou abre a lista de Participantes e toca em “Mensagem”.
           </p>
         </Card>
       ) : (
         <div className="space-y-3 mb-5">
-          {connections.map((c) => {
+          {visibleConnections.map((c) => {
             const contact = c.contact;
             const key = String(c.id);
             const msgs = [...(conv[key] || [])].sort((a, b) => {

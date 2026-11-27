@@ -8,6 +8,7 @@ const BTN_SM     = 'px-[18px] py-[9px] text-sm';
 const FIELD_BASE = 'w-full font-normal text-base text-ink bg-surface border-2 border-line rounded-field px-3.5 py-3 focus:border-primary-500 focus:outline-none';
 
 import logo from './assets/logo.png';
+import mainLogo from './assets/patners/main.png';
 
 const NotifyWithWhastapp = false;
 
@@ -177,8 +178,10 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-navy-950 text-ink font-sans">
       <div className="max-w-[480px] mx-auto pt-[18px] px-4 pb-10">
-        <div className="font-extrabold text-[1.35rem] italic tracking-tight leading-none mb-6 text-white">
-           <Link to="/" aria-label="Página inicial"><img src={logo} alt="Career Connect" className="h-7 md:h-8 w-auto" /></Link>
+        <div className="flex items-center gap-3 mb-6">
+          <Link to="/" aria-label="Página inicial"><img src={logo} alt="Career Connect" className="h-7 md:h-8 w-auto" /></Link>
+          <div className="h-[18px] w-[1px] bg-gray-500 rounded-4xl"></div>
+          <a href="https://tecnicol.co.mz" target="_blank" rel="noreferrer"><img src={mainLogo} alt="Tecnicol" className="h-9 md:h-10 w-auto" /></a>
         </div>
 
         <h1 className="text-[1.5rem] font-extrabold tracking-tight mb-2 text-white">

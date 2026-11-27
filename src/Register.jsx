@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ccVerifyEmail, ccResendEmailOTP, uploadClient, ccGetRegistrationConfig } from './api/client';
 
 import logo from './assets/logo.png';
+import mainLogo from './assets/patners/main.png';
 
 const NotifyWithWhastapp = false;
 
@@ -510,8 +511,10 @@ export default function Register() {
   return (
     <div className="min-h-screen bg-surface text-ink font-sans bg-navy-950">
       <div className="max-w-[480px] mx-auto pt-[18px] px-4 pb-10">
-        <div className="font-extrabold text-[1.35rem] italic tracking-tight leading-none mb-6">
-         <Link to="/" aria-label="Página inicial"><img src={logo} alt="Career Connect" className="h-7 md:h-8 w-auto" /></Link>
+        <div className="flex items-center gap-3 mb-6">
+          <Link to="/" aria-label="Página inicial"><img src={logo} alt="Career Connect" className="h-7 md:h-8 w-auto" /></Link>
+          <div className="h-[18px] w-[1px] bg-gray-500 rounded-4xl"></div>
+          <a href="https://tecnicol.co.mz" target="_blank" rel="noreferrer"><img src={mainLogo} alt="Tecnicol" className="h-9 md:h-10 w-auto" /></a>
         </div>
         {step === 1 ? renderScreen1() : step === 2 ? renderScreen2() : renderScreen3()}
       </div>

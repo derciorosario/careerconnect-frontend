@@ -39,6 +39,7 @@ import Login from './Login';
 import { ccMe, setStoredToken, getStoredToken, getStoredRefreshToken, ccGetQuestions, ccGetPolls, ccGetPollResults, ccAdvanceRound, ccPauseRound, ccResumeRound, ccGetCurrentRound, ccTickRounds, ccResetRounds, ccGetRounds, ccGetEvent } from './api/client';
 
 import logo from './assets/logo.png';
+import mainLogo from './assets/patners/main.png';
 
 const BTN_BASE   = 'inline-block rounded-full bg-primary-500 text-white font-semibold text-base px-7 py-3.5 cursor-pointer no-underline hover:brightness-110 transition';
 
@@ -589,7 +590,11 @@ export function CareerConnectApp({ initialRole }) {
       {role && (
         <div className="sticky top-0 z-30 flex gap-1.5 items-center overflow-x-auto bg-navy-900 text-white px-3.5 pt-[calc(env(safe-area-inset-top,0px)+8px)] pb-2 text-[.78rem]">
           <b className="mr-auto font-bold tracking-wide whitespace-nowrap opacity-85 text-[.74rem] uppercase">
-              <img src={logo} alt="Career Connect" className="h-7 md:h-8 w-auto" />
+              <span className="flex items-center gap-2.5">
+                <img src={logo} alt="Career Connect" className="h-7 md:h-8 w-auto" />
+                <span className="h-[16px] w-[1px] bg-white/40 rounded-4xl"></span>
+                <a href="https://tecnicol.co.mz" target="_blank" rel="noreferrer"><img src={mainLogo} alt="Tecnicol" className="h-9 md:h-10 w-auto" /></a>
+              </span>
           </b>
           {[ // leave this itens commented!
             //{ key: 'mentee', label: 'Mentorado' },

@@ -381,7 +381,6 @@ const RegistrationDetailsDialog = ({ reg, onClose }) => {
       { label: 'Curso', value: profile.course || '–' },
       { label: 'Instituição', value: profile.institution || '–' },
       { label: 'Formação académica', value: profile.academic_education || '–' },
-      { label: 'Curso técnico-profissional', value: profile.technical_course || '–' },
       { label: 'Áreas de interesse', value: Array.isArray(profile.interests) ? profile.interests.join(', ') || '–' : '–' },
       { label: 'Objetivo', value: profile.goal || '–' },
       { label: 'Pitch', value: profile.pitch || '–' },
@@ -1202,7 +1201,7 @@ const EMPTY_MENTOR = {
   support_type: '', interests: [], can_help_goals: [], linkedin_url: '', photo_url: '',
 };
 const EMPTY_MENTEE = {
-  name: '', phone: '', level: '', course: '', institution: '', academic_education: '', technical_course: '', interests: [], goal: '', pitch: '', job_obstacle: '', linkedin_url: '', photo_url: '',
+  name: '', phone: '', level: '', course: '', institution: '', academic_education: '', interests: [], goal: '', pitch: '', job_obstacle: '', linkedin_url: '', photo_url: '',
 };
 
 export const ProfileScreen = ({ asRole, setRole, showToast }) => {
@@ -1269,7 +1268,6 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
             course: mp.course || '',
             institution: mp.institution || '',
             academic_education: mp.academic_education || '',
-            technical_course: mp.technical_course || '',
             interests: Array.isArray(mp.interests) ? mp.interests : [],
             goal: mp.goal || '',
             pitch: mp.pitch || '',
@@ -1330,7 +1328,6 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
         course: form.course,
         institution: form.institution,
         academic_education: form.academic_education || null,
-        technical_course: form.technical_course || null,
         interests: form.interests,
         goal: form.goal,
         pitch: form.pitch,
@@ -1421,20 +1418,19 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
                 {config.levels.map((l) => <option key={l} value={l}>{l}</option>)}
               </select>
             </div>
-            <div><label className={labelCls}>Curso</label><input value={form.course} onChange={set('course')} className={inputCls} /></div>
+            <div>
+              <label className={labelCls}>Curso técnico-profissional</label>
+              <select value={form.course} onChange={set('course')} className={inputCls}>
+                <option value="">Selecciona...</option>
+                {config.technical_courses.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
             <div><label className={labelCls}>Instituição</label><input value={form.institution} onChange={set('institution')} className={inputCls} /></div>
             <div>
               <label className={labelCls}>Formação académica</label>
               <select value={form.academic_education} onChange={set('academic_education')} className={inputCls}>
                 <option value="">Selecciona...</option>
                 {config.academic_education.map((a) => <option key={a} value={a}>{a}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Curso técnico-profissional</label>
-              <select value={form.technical_course} onChange={set('technical_course')} className={inputCls}>
-                <option value="">Selecciona...</option>
-                {config.technical_courses.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div>

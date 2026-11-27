@@ -102,7 +102,6 @@ export const OrganizerUsers = ({ showToast }) => {
       course: mep.course || '',
       institution: mep.institution || '',
       academic_education: mep.academic_education || '',
-      technical_course: mep.technical_course || '',
       goal: mep.goal || '',
       pitch: mep.pitch || '',
       job_obstacle: mep.job_obstacle || '',
@@ -138,7 +137,7 @@ export const OrganizerUsers = ({ showToast }) => {
       } else {
         fd.append('menteeProfile', JSON.stringify({
           level: form.level || null, course: form.course, institution: form.institution,
-          academic_education: form.academic_education || null, technical_course: form.technical_course || null,
+          academic_education: form.academic_education || null,
           goal: form.goal, pitch: form.pitch, job_obstacle: form.job_obstacle || null,
           interests: form.mentee_interests,
         }));
@@ -369,20 +368,19 @@ export const OrganizerUsers = ({ showToast }) => {
                     {opts.levels.map((l) => <option key={l} value={l}>{l}</option>)}
                   </select>
                 </div>
-                <div className="mb-3"><label className="block text-[.78rem] font-semibold mb-1">Curso</label><input value={form.course} onChange={(e) => set('course', e.target.value)} className={FIELD} /></div>
+                <div className="mb-3">
+                  <label className="block text-[.78rem] font-semibold mb-1">Curso técnico-profissional</label>
+                  <select value={form.course} onChange={(e) => set('course', e.target.value)} className={FIELD}>
+                    <option value="">Selecciona...</option>
+                    {opts.technical_courses.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
                 <div className="mb-3"><label className="block text-[.78rem] font-semibold mb-1">Instituição</label><input value={form.institution} onChange={(e) => set('institution', e.target.value)} className={FIELD} /></div>
                 <div className="mb-3">
                   <label className="block text-[.78rem] font-semibold mb-1">Formação académica</label>
                   <select value={form.academic_education} onChange={(e) => set('academic_education', e.target.value)} className={FIELD}>
                     <option value="">Selecciona...</option>
                     {opts.academic_education.map((a) => <option key={a} value={a}>{a}</option>)}
-                  </select>
-                </div>
-                <div className="mb-3">
-                  <label className="block text-[.78rem] font-semibold mb-1">Curso técnico-profissional</label>
-                  <select value={form.technical_course} onChange={(e) => set('technical_course', e.target.value)} className={FIELD}>
-                    <option value="">Selecciona...</option>
-                    {opts.technical_courses.map((t) => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div className="mb-3">

@@ -1465,7 +1465,7 @@ export const MenteeMessages = ({ showToast, messageTarget, clearMessageTarget })
                 <div className="flex justify-between items-center mb-2.5 gap-2">
                   <PersonRow
                     name={contact.name}
-                    subtitle={contact.role || ''}
+                    subtitle={contact.role === 'mentor' ? 'Mentor' : 'Mentorado'}
                     photoUrl={contact.photo_url}
                     onClick={() => setSelected({ ...(directory.find((u) => u.id === contact.id) || {}), ...contact })}
                   />

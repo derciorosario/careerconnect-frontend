@@ -152,7 +152,7 @@ export const MenteeHome = ({ showToast, totalRounds = 8 }) => {
   const badges = [
     { label: 'Primeira ligação',  earned: conversationsDone >= 1 },
     { label: 'Meio caminho',      earned: conversationsDone >= Math.ceil(totalConversations / 2) },
-    { label: 'Passaporte completo', earned: conversationsDone >= totalConversations },
+    { label: 'Career Pass completo', earned: conversationsDone >= totalConversations },
     { label: 'Primeira conexão',  earned: connectionsCount > 0 },
     { label: 'Mentoria ativa',    earned: badgeData.some((b) => b.code === 'MENTORIA_ATIVA') },
   ];
@@ -241,7 +241,7 @@ export const MenteeHome = ({ showToast, totalRounds = 8 }) => {
               </svg>` }}
           />
           <div>
-            <b>Passaporte</b>
+            <b>My Career Pass</b>
             <p className="text-[.85rem] text-navy-100">{conversationsDone} de {totalConversations} conversas · {connectionsCount} conexões</p>
           </div>
         </div>

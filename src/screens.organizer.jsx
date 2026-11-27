@@ -1189,7 +1189,7 @@ const GOALS = [
   'Desenvolver competências', 'Mudar de percurso', 'Criar o meu negócio',
 ];
 
-const LEVELS = ['Estudante', 'Recém-graduado'];
+const LEVELS = ['Estudante', 'Recém-graduado', 'Profissional Júnior'];
 const SUPPORT_TYPES = ['Mentor', 'Coach', 'Orientação pontual'];
 
 // ── PROFILE (shared) ─────────────────────────
@@ -1238,7 +1238,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
           setForm({
             name: user?.name || '',
             phone: user?.phone || '',
-            level: mp.level || '',
+            level: mp.level ? levelLabel(mp.level) : '',
             course: mp.course || '',
             institution: mp.institution || '',
             interests: Array.isArray(mp.interests) ? mp.interests : [],

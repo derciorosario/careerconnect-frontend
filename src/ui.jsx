@@ -12,6 +12,7 @@ export const imgSrc = (url) => {
 const LEVEL_LABELS = {
   estudante: 'Estudante',
   recem_graduado: 'Recém-graduado',
+  profissional_junior: 'Profissional Júnior',
 };
 
 export const levelLabel = (level) => {

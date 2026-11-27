@@ -66,7 +66,7 @@ export const ROUNDS = [
 ];
 
 export const NAV_MENTEE = [
-  { key: 'home',    label: 'Passaporte', icon: ICONS.home },
+  { key: 'home',    label: 'Career Pass', icon: ICONS.home },
   { key: 'live',    label: 'Ao vivo',    icon: ICONS.live },
   { key: 'participantes', label: 'Participantes', icon: ICONS.mentees },
   { key: 'met',     label: 'Conheci',    icon: ICONS.met },

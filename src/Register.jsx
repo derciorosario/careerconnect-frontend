@@ -33,7 +33,7 @@ const GOALS = [
   'Criar o meu negócio',
 ];
 
-const LEVELS = ['Estudante', 'Recém-graduado'];
+const LEVELS = ['Estudante', 'Recém-graduado', 'Profissional Júnior'];
 const SUPPORT_TYPES = ['Mentor', 'Coach', 'Orientação pontual'];
 
 function Progress({ step, total }) {

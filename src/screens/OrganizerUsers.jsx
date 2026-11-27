@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ccGetAllUsers, ccGetRegistrationConfig, ccSetUserStatus, ccDeleteUser, uploadClient } from '../api/client';
-import { Card, PersonRow, imgSrc } from '../ui';
+import { Card, PersonRow, imgSrc, levelLabel } from '../ui';
 
 // Normalise text for accent-insensitive search: lowercase and strip diacritics
 // so "Dercio" matches "Dércio" and vice-versa.
@@ -16,6 +16,8 @@ const BTN = 'rounded-full font-bold text-[.82rem] h-10 px-4';
 const DEFAULT_OPTS = {
   areas: [], goals: [], obstacles: [], support_types: [], levels: [],
 };
+
+const BASE_LEVELS = ['Estudante', 'Recém-graduado', 'Profissional Júnior'];
 
 const Chip = ({ active, label, onClick }) => (
   <button
@@ -51,7 +53,7 @@ export const OrganizerUsers = ({ showToast }) => {
         goals: Array.isArray(c.goals) ? c.goals : [],
         obstacles: Array.isArray(c.obstacles) ? c.obstacles : [],
         support_types: Array.isArray(c.support_types) ? c.support_types : [],
-        levels: Array.isArray(c.levels) ? c.levels : [],
+        levels: Array.from(new Set([...BASE_LEVELS, ...(Array.isArray(c.levels) ? c.levels : [])])),
       });
     } catch (err) {
       showToast(err.response?.data?.message || 'Erro ao carregar.');
@@ -94,7 +96,7 @@ export const OrganizerUsers = ({ showToast }) => {
       works: mp.works || '',
       interests: Array.isArray(mp.interests) ? mp.interests : [],
       can_help_goals: Array.isArray(mp.can_help_goals) ? mp.can_help_goals : [],
-      level: mep.level || '',
+      level: mep.level ? levelLabel(mep.level) : '',
       course: mep.course || '',
       institution: mep.institution || '',
       goal: mep.goal || '',

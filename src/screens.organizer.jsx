@@ -21,7 +21,7 @@ import {
   ccGetEvent, ccConfigureEvent,
   ccGetAllEvents, ccCreateEvent, ccUpdateEvent, ccDeleteEvent,
 } from './api/client';
-import { PersonRow, ProgressBar, Card, AnnouncementInput, Avatar } from './ui';
+import { PersonRow, ProgressBar, Card, AnnouncementInput, Avatar, levelLabel } from './ui';
 
 // Normalise text for accent-insensitive search: lowercase and strip diacritics
 // so "Dercio" matches "Dércio" and vice-versa.
@@ -344,6 +344,8 @@ export const OrganizerLive = ({
   );
 };
 
+
+
 // ── REGISTRATION DETAILS DIALOG ────────────────
 const RegistrationDetailsDialog = ({ reg, onClose }) => {
   const user = reg?.user || {};
@@ -359,7 +361,7 @@ const RegistrationDetailsDialog = ({ reg, onClose }) => {
     { label: 'Bilhete', value: reg?.ticket_code || '–' },
     { label: 'Estado', value: reg?.status || '–' },
     { label: 'Check-in', value: reg?.checked_in_at ? new Date(reg.checked_in_at).toLocaleString('pt-PT') : 'Não feito' },
-    { label: 'LinkedIn', value: user.linkedin_url || '–' },
+    { label: 'LinkedIn', value: user.linkedin_url || '–', isLink: true },
   ];
 
   const profileRows = [];
@@ -375,7 +377,7 @@ const RegistrationDetailsDialog = ({ reg, onClose }) => {
     );
   } else if (!isMentor && profile) {
     profileRows.push(
-      { label: 'Situação', value: profile.level || '–' },
+      { label: 'Situação', value: levelLabel(profile.level) },
       { label: 'Curso', value: profile.course || '–' },
       { label: 'Instituição', value: profile.institution || '–' },
       { label: 'Áreas de interesse', value: Array.isArray(profile.interests) ? profile.interests.join(', ') || '–' : '–' },
@@ -384,6 +386,26 @@ const RegistrationDetailsDialog = ({ reg, onClose }) => {
       { label: 'Maior obstáculo', value: profile.job_obstacle || '–' }
     );
   }
+
+  const renderRow = (r) => (
+    <div key={r.label} className="flex justify-between items-start gap-4 text-[.85rem]">
+      <span className="text-ink-muted shrink-0">{r.label}</span>
+      <span className="text-ink text-right min-w-0 break-words">
+        {r.isLink && r.value !== '–' ? (
+          <a
+            href={r.value}
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary-300 underline break-all"
+          >
+            {r.value}
+          </a>
+        ) : (
+          r.value
+        )}
+      </span>
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
@@ -400,23 +422,13 @@ const RegistrationDetailsDialog = ({ reg, onClose }) => {
           <span className="text-ink-muted text-[.8rem]">{user.role === 'mentor' ? 'Mentor' : 'Mentorado'}</span>
         </div>
         <div className="space-y-2">
-          {rows.map((r) => (
-            <div key={r.label} className="flex justify-between text-[.85rem]">
-              <span className="text-ink-muted">{r.label}</span>
-              <span className="text-ink whitespace-nowrap">{r.value}</span>
-            </div>
-          ))}
+          {rows.map(renderRow)}
         </div>
         {profileRows.length > 0 && (
           <div className="mt-6 pt-4 border-t border-line">
             <h4 className="text-[.8rem] font-bold text-primary-300 uppercase tracking-wide mb-3">{profileLabel}</h4>
             <div className="space-y-2">
-              {profileRows.map((r) => (
-                <div key={r.label} className="flex justify-between text-[.85rem]">
-                  <span className="text-ink-muted">{r.label}</span>
-                  <span className="text-ink whitespace-nowrap">{r.value}</span>
-                </div>
-              ))}
+              {profileRows.map(renderRow)}
             </div>
           </div>
         )}
@@ -424,6 +436,8 @@ const RegistrationDetailsDialog = ({ reg, onClose }) => {
     </div>
   );
 };
+
+
 
 // ── ORGANIZER REG ────────────────────────────
 export const OrganizerReg = ({ showToast }) => {

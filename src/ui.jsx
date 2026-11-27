@@ -9,6 +9,16 @@ export const imgSrc = (url) => {
   return `${API_URL.replace(/\/api$/, '')}${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
+const LEVEL_LABELS = {
+  estudante: 'Estudante',
+  recem_graduado: 'Recém-graduado',
+};
+
+export const levelLabel = (level) => {
+  if (!level) return '–';
+  return LEVEL_LABELS[level] || level;
+};
+
 export const Avatar = ({ name, size = 'md', variant = 'navy', photoUrl = null }) => {
   const sizeClass = size === 'lg' ? 'w-16 h-16 text-xl' : 'w-[46px] h-[46px] text-sm';
   const variantClass = variant === 'orange' ? 'bg-primary-500' : 'bg-navy-800';
@@ -40,6 +50,10 @@ export const PersonRow = ({ name, subtitle, extra = null, photoUrl = null, onCli
   </div>
 );
 
+
+
+
+
 export const PersonDetailsDialog = ({ user, onClose }) => {
   if (!user) return null;
   const isMentor = user.role === 'mentor';
@@ -51,7 +65,7 @@ export const PersonDetailsDialog = ({ user, onClose }) => {
     { label: 'E-mail', value: user.email || '–' },
     { label: 'Telefone', value: user.phone || '–' },
     { label: 'Perfil', value: isMentor ? 'Mentor' : 'Mentorado' },
-    { label: 'LinkedIn', value: user.linkedin_url || '–' },
+    { label: 'LinkedIn', value: user.linkedin_url || '–', isLink: true },
   ];
 
   const profileRows = [];
@@ -66,7 +80,7 @@ export const PersonDetailsDialog = ({ user, onClose }) => {
     );
   } else if (!isMentor && profile) {
     profileRows.push(
-      { label: 'Situação', value: profile.level || '–' },
+      { label: 'Situação', value: levelLabel(profile.level) },
       { label: 'Curso', value: profile.course || '–' },
       { label: 'Instituição', value: profile.institution || '–' },
       { label: 'Áreas de interesse', value: Array.isArray(profile.interests) ? profile.interests.join(', ') || '–' : '–' },
@@ -75,6 +89,26 @@ export const PersonDetailsDialog = ({ user, onClose }) => {
       { label: 'Maior obstáculo', value: profile.job_obstacle || '–' },
     );
   }
+
+  const renderRow = (r) => (
+    <div key={r.label} className="flex justify-between items-start gap-4 text-[.85rem]">
+      <span className="text-ink-muted shrink-0">{r.label}</span>
+      <span className="text-ink text-right min-w-0 break-words">
+        {r.isLink && r.value !== '–' ? (
+          <a
+            href={r.value}
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary-300 underline break-all"
+          >
+            {r.value}
+          </a>
+        ) : (
+          r.value
+        )}
+      </span>
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
@@ -91,23 +125,13 @@ export const PersonDetailsDialog = ({ user, onClose }) => {
           <span className="text-ink-muted text-[.8rem]">{isMentor ? 'Mentor' : 'Mentorado'}</span>
         </div>
         <div className="space-y-2">
-          {rows.map((r) => (
-            <div key={r.label} className="flex justify-between text-[.85rem]">
-              <span className="text-ink-muted">{r.label}</span>
-              <span className="text-ink whitespace-nowrap">{r.value}</span>
-            </div>
-          ))}
+          {rows.map(renderRow)}
         </div>
         {profileRows.length > 0 && (
           <div className="mt-6 pt-4 border-t border-line">
             <h4 className="text-[.8rem] font-bold text-primary-300 uppercase tracking-wide mb-3">{profileLabel}</h4>
             <div className="space-y-2">
-              {profileRows.map((r) => (
-                <div key={r.label} className="flex justify-between text-[.85rem]">
-                  <span className="text-ink-muted">{r.label}</span>
-                  <span className="text-ink whitespace-nowrap">{r.value}</span>
-                </div>
-              ))}
+              {profileRows.map(renderRow)}
             </div>
           </div>
         )}
@@ -115,6 +139,9 @@ export const PersonDetailsDialog = ({ user, onClose }) => {
     </div>
   );
 };
+
+
+
 
 export const ProgressBar = ({ value }) => (
   <div className="h-2 rounded-full bg-line overflow-hidden">

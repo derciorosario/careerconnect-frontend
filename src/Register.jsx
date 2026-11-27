@@ -68,7 +68,7 @@ export default function Register() {
   });
   const [form, setForm] = useState({
     name: '', email: '', phone: '', password: '', role: isMentor ? 'mentor' : 'mentee',
-    level: '', course: '', institution: '', academicEducation: '', interests: [], goal: '', pitch: '', jobObstacle: '',
+    level: '', course: '', institution: '', academicEducation: '', fieldOfStudy: '', interests: [], goal: '', pitch: '', jobObstacle: '',
     jobTitle: '', company: '', sector: '', years: '', mentorInterests: [], canHelpGoals: [], supportType: '',
     photo: '', photoFile: null, shareProfile: false, linkedin: '',
   });
@@ -146,6 +146,7 @@ export default function Register() {
       if (form.course) formData.append('course', form.course);
       if (form.institution) formData.append('institution', form.institution);
       if (form.academicEducation) formData.append('academicEducation', form.academicEducation);
+      if (form.fieldOfStudy) formData.append('fieldOfStudy', form.fieldOfStudy);
       formData.append('interests', JSON.stringify(form.interests));
       if (form.goal) formData.append('goal', form.goal);
       if (form.pitch) formData.append('pitch', form.pitch);
@@ -362,6 +363,10 @@ export default function Register() {
                   <option value="" disabled>Selecciona...</option>
                   {config.academic_education.map((a) => <option key={a} value={a}>{a}</option>)}
                 </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[.85rem] font-semibold">Área de formação</label>
+                <input value={form.fieldOfStudy} onChange={(e) => setField('fieldOfStudy', e.target.value)} placeholder="" className={FIELD_BASE} />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-[.85rem] font-semibold">Áreas de interesse (até 3) *</label>

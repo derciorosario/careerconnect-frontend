@@ -1179,6 +1179,7 @@ export const MenteeMessages = ({ showToast, messageTarget, clearMessageTarget })
   const [search, setSearch] = useState('');
   const [directory, setDirectory] = useState([]);
   const [activeId, setActiveId] = useState(null);
+  const [selected, setSelected] = useState(null);
 
   // Stable ref for showToast so the load effect doesn't re-run when the
   // parent re-renders and passes a new function identity.
@@ -1462,7 +1463,12 @@ export const MenteeMessages = ({ showToast, messageTarget, clearMessageTarget })
             return (
               <div key={c.id} className="border border-line rounded-[16px] p-3.5">
                 <div className="flex justify-between items-center mb-2.5 gap-2">
-                  <PersonRow name={contact.name} subtitle={contact.role || ''} photoUrl={contact.photo_url} />
+                  <PersonRow
+                    name={contact.name}
+                    subtitle={contact.role || ''}
+                    photoUrl={contact.photo_url}
+                    onClick={() => setSelected({ ...(directory.find((u) => u.id === contact.id) || {}), ...contact })}
+                  />
                   <span className="text-[.72rem] font-bold px-2 py-0.5 rounded-full bg-surface2 text-ink-muted">
                     {msgs.length}
                   </span>
@@ -1520,6 +1526,10 @@ export const MenteeMessages = ({ showToast, messageTarget, clearMessageTarget })
             );
           })}
         </div>
+      )}
+
+      {selected && (
+        <PersonDetailsDialog user={selected} onClose={() => setSelected(null)} />
       )}
     </>
   );

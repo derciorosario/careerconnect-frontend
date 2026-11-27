@@ -102,6 +102,7 @@ export const OrganizerUsers = ({ showToast }) => {
       course: mep.course || '',
       institution: mep.institution || '',
       academic_education: mep.academic_education || '',
+      field_of_study: mep.field_of_study || '',
       goal: mep.goal || '',
       pitch: mep.pitch || '',
       job_obstacle: mep.job_obstacle || '',
@@ -138,6 +139,7 @@ export const OrganizerUsers = ({ showToast }) => {
         fd.append('menteeProfile', JSON.stringify({
           level: form.level || null, course: form.course, institution: form.institution,
           academic_education: form.academic_education || null,
+          field_of_study: form.field_of_study || null,
           goal: form.goal, pitch: form.pitch, job_obstacle: form.job_obstacle || null,
           interests: form.mentee_interests,
         }));
@@ -383,6 +385,7 @@ export const OrganizerUsers = ({ showToast }) => {
                     {opts.academic_education.map((a) => <option key={a} value={a}>{a}</option>)}
                   </select>
                 </div>
+                <div className="mb-3"><label className="block text-[.78rem] font-semibold mb-1">Área de formação</label><input value={form.field_of_study} onChange={(e) => set('field_of_study', e.target.value)} className={FIELD} placeholder="" /></div>
                 <div className="mb-3">
                   <label className="block text-[.78rem] font-semibold mb-1.5">Áreas de interesse</label>
                   <div className="flex flex-wrap gap-2">

@@ -387,6 +387,7 @@ const RegistrationDetailsDialog = ({ reg, onClose }) => {
       { label: 'Curso', value: profile.course || '–' },
       { label: 'Instituição', value: profile.institution || '–' },
       { label: 'Formação académica', value: profile.academic_education || '–' },
+      { label: 'Área de formação', value: profile.field_of_study || '–' },
       { label: 'Áreas de interesse', value: Array.isArray(profile.interests) ? profile.interests.join(', ') || '–' : '–' },
       { label: 'Objetivo', value: profile.goal || '–' },
       { label: 'Pitch', value: profile.pitch || '–' },
@@ -1207,7 +1208,7 @@ const EMPTY_MENTOR = {
   support_type: '', interests: [], can_help_goals: [], linkedin_url: '', photo_url: '',
 };
 const EMPTY_MENTEE = {
-  name: '', phone: '', level: '', course: '', institution: '', academic_education: '', interests: [], goal: '', pitch: '', job_obstacle: '', linkedin_url: '', photo_url: '',
+  name: '', phone: '', level: '', course: '', institution: '', academic_education: '', field_of_study: '', interests: [], goal: '', pitch: '', job_obstacle: '', linkedin_url: '', photo_url: '',
 };
 
 export const ProfileScreen = ({ asRole, setRole, showToast }) => {
@@ -1275,6 +1276,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
             course: mp.course || '',
             institution: mp.institution || '',
             academic_education: mp.academic_education || '',
+            field_of_study: mp.field_of_study || '',
             interests: Array.isArray(mp.interests) ? mp.interests : [],
             goal: mp.goal || '',
             pitch: mp.pitch || '',
@@ -1335,6 +1337,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
         course: form.course,
         institution: form.institution,
         academic_education: form.academic_education || null,
+        field_of_study: form.field_of_study || null,
         interests: form.interests,
         goal: form.goal,
         pitch: form.pitch,
@@ -1448,6 +1451,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
                 {config.academic_education.map((a) => <option key={a} value={a}>{a}</option>)}
               </select>
             </div>
+            <div><label className={labelCls}>Área de formação</label><input value={form.field_of_study} onChange={set('field_of_study')} className={inputCls} placeholder="" /></div>
             <div>
               <label className={labelCls}>Áreas de interesse (até 3)</label>
               <div className="flex flex-wrap gap-2 mt-1.5">

@@ -181,6 +181,7 @@ export function CareerConnectApp({ initialRole }) {
   // UI
   const [toastMessage, setToastMessage] = useState('');
   const toastTimer = useRef(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const showToast = (message) => {
     setToastMessage(message);
@@ -598,11 +599,9 @@ export function CareerConnectApp({ initialRole }) {
                 <a href="https://tecnicol.co.mz" target="_blank" rel="noreferrer"><img src={mainLogo} alt="Tecnicol" className="h-9 md:h-10 w-auto" /></a>
               </span>
           </b>
-          {[ // leave this itens commented!
-            //{ key: 'mentee', label: 'Mentorado' },
-            //{ key: 'mentor', label: 'Mentor' },
-            //{ key: 'org', label: 'Organizador' },
-            { key: 'tv', label: 'Ecrã' },
+          {[ 
+            
+            //{ key: 'tv', label: 'Ecrã' },
           ].map((account) => (
             <button
               key={account.key}
@@ -612,9 +611,66 @@ export function CareerConnectApp({ initialRole }) {
               {account.label}
             </button>
           ))}
+          <button
+            onClick={() => setShowLogoutConfirm(true)}
+            aria-label="Sair"
+            title="Sair"
+            className="rounded-full px-3 py-[7px] min-h-[34px] flex items-center justify-center transition bg-white/10 text-white hover:bg-danger"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
         </div>
       )}
       {content}
+
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={() => setShowLogoutConfirm(false)}>
+          <div className="w-full max-w-sm rounded-card bg-surface-soft shadow-card overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-line flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-danger/15 text-danger grid place-items-center shrink-0">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </div>
+              <h3 className="text-[.92rem] font-bold">Terminar sessão</h3>
+            </div>
+            <div className="p-5">
+              <p className="text-[.82rem] text-ink-muted leading-relaxed">
+                Tem a certeza que quer sair da sua conta? Terá de iniciar sessão novamente para aceder ao seu perfil.
+              </p>
+            </div>
+            <div className="flex gap-2.5 px-5 pb-5">
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 py-3 rounded-full border border-line bg-surface text-ink text-[.82rem] font-bold hover:bg-surface-muted transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setStoredToken(null);
+                  localStorage.removeItem('refresh_token');
+                  localStorage.removeItem('userRole');
+                  setShowLogoutConfirm(false);
+                  setRole(null);
+                  window.location.href = '/entrar';
+                }}
+                className="flex-1 py-3 rounded-full text-white text-[.82rem] font-bold bg-danger hover:brightness-110 transition"
+              >
+                Sair
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <Toast message={toastMessage} />
     </div>
   );

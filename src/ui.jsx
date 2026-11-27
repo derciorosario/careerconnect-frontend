@@ -83,6 +83,7 @@ export const PersonDetailsDialog = ({ user, onClose }) => {
       { label: 'Curso', value: profile.course || '–' },
       { label: 'Instituição', value: profile.institution || '–' },
       { label: 'Formação académica', value: profile.academic_education || '–' },
+      { label: 'Área de formação', value: profile.field_of_study || '–' },
       { label: 'Áreas de interesse', value: Array.isArray(profile.interests) ? profile.interests.join(', ') || '–' : '–' },
       { label: 'Objetivo', value: profile.goal || '–' },
       { label: 'Pitch', value: profile.pitch || '–' },

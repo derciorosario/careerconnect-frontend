@@ -878,7 +878,7 @@ export default function Landingpage() {
                 <a href={`mailto:${email}`} className="hover:text-primary-500 transition-colors">{email}</a>
               )}
               <span>Tecnicol · Maputo, Moçambique</span>
-              <a href="https://vlms.visum.co.mz" target="_blank" rel="noopener noreferrer" className="hover:text-primary-500 transition-colors">Powered by <b>Visum</b></a>
+              <a href="https://visum.co.mz" target="_blank" rel="noopener noreferrer" className="hover:text-primary-500 transition-colors">Powered by <b>Visum</b></a>
             </span>
           </div>
         </footer>

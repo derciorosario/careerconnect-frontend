@@ -113,6 +113,8 @@ export function CareerConnectApp({ initialRole }) {
   const [role, setRole] = useState(initialRole || null);
   const [previousRole, setPreviousRole] = useState(null);
   const [activeTab, setActiveTabState] = useState(initialRole === 'org' ? 'live' : 'home');
+  // Participant the user chose to message from the Participantes screen.
+  const [messageTarget, setMessageTarget] = useState(null);
   const [user, setUser] = useState(null);
   const params = useParams();
   const navigate = useNavigate();
@@ -462,13 +464,13 @@ export function CareerConnectApp({ initialRole }) {
       case 'live':
         return <MenteeLive {...common} currentRound={currentRound} roundsPerBreak={roundsPerBreak} roundMinutes={roundMinutes} secondsLeft={secondsLeft} isRehearsal={isRehearsal} announcements={announcements} phaseLabel={phaseLabel} setActiveTab={setActiveTab} questions={questions} setQuestions={setQuestions} pollOptions={pollOptions} setPollOptions={setPollOptions} pollVotes={pollVotes} setPollVotes={setPollVotes} votedOption={votedOption} setVotedOption={setVotedOption} totalPollVotes={totalPollVotes} roundDataVersion={roundDataVersion} />;
       case 'participantes':
-        return <Participantes {...common} />;
+        return <Participantes {...common} setActiveTab={setActiveTab} setMessageTarget={setMessageTarget} />;
       case 'met':
         return <MenteeMet {...common} />;
       case 'conn':
         return <MenteeConnections {...common} />;
       case 'msg':
-        return <MenteeMessages {...common} />;
+        return <MenteeMessages {...common} messageTarget={messageTarget} clearMessageTarget={() => setMessageTarget(null)} />;
       case 'fecho':
         return <SurveyScreen {...common} />;
       case 'certificado':
@@ -490,11 +492,11 @@ export function CareerConnectApp({ initialRole }) {
       case 'req':
         return <MentorRequests {...common} />;
       case 'participantes':
-        return <Participantes {...common} />;
+        return <Participantes {...common} setActiveTab={setActiveTab} setMessageTarget={setMessageTarget} />;
       case 'conn':
         return <MentorConnections {...common} />;
       case 'msg':
-        return <MentorMessages {...common} />;
+        return <MentorMessages {...common} messageTarget={messageTarget} clearMessageTarget={() => setMessageTarget(null)} />;
       case 'fecho':
         return <SurveyScreen {...common} />;
       case 'certificado':

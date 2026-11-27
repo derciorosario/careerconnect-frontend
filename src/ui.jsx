@@ -63,8 +63,6 @@ export const PersonDetailsDialog = ({ user, onClose }) => {
 
   const rows = [
     { label: 'Nome', value: user.name || '–' },
-    { label: 'E-mail', value: user.email || '–' },
-    { label: 'Telefone', value: user.phone || '–' },
     { label: 'Perfil', value: isMentor ? 'Mentor' : 'Mentorado' },
     { label: 'LinkedIn', value: user.linkedin_url || '–', isLink: true },
   ];

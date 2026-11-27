@@ -8,7 +8,7 @@ import {
   ccGetMyMatch, ccGetMentorDirectory, ccAddWish, ccRemoveWish, ccGetMyWishes,
   ccGetCurrentRound,
   ccSubmitFeedback, ccGetMyFeedback,
-  ccGetConnections,
+  ccGetConnections, ccEnsureConnection,
   ccCreateMentorshipRequest, ccGetMyMentorshipRequests,
   ccGetMessages, ccSendMessage,
   ccGetQuestions, ccCreateQuestion, ccVoteQuestion,
@@ -1169,7 +1169,7 @@ export const MenteeConnections = ({ showToast }) => {
 
 
 // ── MESSAGES ─────────────────────────────────
-export const MenteeMessages = ({ showToast }) => {
+export const MenteeMessages = ({ showToast, messageTarget, clearMessageTarget }) => {
   const [drafts, setDrafts] = useState({});
   const [conv, setConv] = useState({});
   const [connections, setConnections] = useState([]);
@@ -1181,12 +1181,35 @@ export const MenteeMessages = ({ showToast }) => {
   const showToastRef = useRef(showToast);
   useEffect(() => { showToastRef.current = showToast; });
 
+  // Keep the latest message target / clear callback in refs so the load
+  // effect (which runs once) can read them without re-subscribing.
+  const messageTargetRef = useRef(messageTarget);
+  useEffect(() => { messageTargetRef.current = messageTarget; });
+  const clearMessageTargetRef = useRef(clearMessageTarget);
+  useEffect(() => { clearMessageTargetRef.current = clearMessageTarget; });
+
   // Refs to each conversation's scroll container
   const scrollRefs = useRef({});
+
+  // Refs to each conversation's message input (for autofocus).
+  const inputRefs = useRef({});
+  // Connection id whose input should be focused as soon as it mounts.
+  const pendingFocusRef = useRef(null);
 
   const scrollToNewest = (connectionId) => {
     const el = scrollRefs.current[connectionId];
     if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Callback ref: focus the input as soon as the target conversation mounts.
+  const setInputRef = (connectionId) => (el) => {
+    inputRefs.current[connectionId] = el;
+    if (el && pendingFocusRef.current === connectionId) {
+      pendingFocusRef.current = null;
+      el.focus();
+      requestAnimationFrame(() => el.focus());
+      setTimeout(() => el.focus(), 80);
+    }
   };
 
   // Runs once per mount. Uses showToastRef so [showToast] never needs to
@@ -1200,8 +1223,27 @@ export const MenteeMessages = ({ showToast }) => {
       try {
         const resp = await ccGetConnections();
         if (cancelled) return;
-        const conns = resp.data?.connections || [];
+        let conns = resp.data?.connections || [];
+
+        // If the user arrived from Participantes with a chosen recipient,
+        // make sure a conversation with them exists (no prior connection needed).
+        const target = messageTargetRef.current;
+        if (target && !conns.some((c) => c.contact?.id === target.id)) {
+          try {
+            const eResp = await ccEnsureConnection({ to_user_id: target.id });
+            const ensured = eResp.data?.connection;
+            if (ensured) conns = [ensured, ...conns];
+          } catch (err) {
+            showToastRef.current(err.response?.data?.message || 'Erro ao abrir conversa.');
+          }
+        }
+        if (cancelled) return;
         setConnections(conns);
+        if (target) {
+          const targetConn = conns.find((c) => c.contact?.id === target.id);
+          if (targetConn) pendingFocusRef.current = targetConn.id;
+          clearMessageTargetRef.current?.();
+        }
 
         const entries = await Promise.all(
           conns.map(async (c) => {
@@ -1301,7 +1343,7 @@ export const MenteeMessages = ({ showToast }) => {
     <>
       <h2 className="text-[1.45rem] font-extrabold tracking-tight">Mensagens</h2>
       <p className="text-ink-muted text-[.85rem] mt-1 mb-4">
-        Escreve apenas a mentores com quem estás conectado.
+        Escreve a mentores para começares uma conversa.
       </p>
 
       {/* Header never unmounts — only the body below swaps, so no blink */}
@@ -1327,9 +1369,9 @@ export const MenteeMessages = ({ showToast }) => {
         </div>
       ) : connections.length === 0 ? (
         <Card>
-          <b>Sem conexões ainda.</b>
+          <b>Sem conversas ainda.</b>
           <p className="text-ink-muted text-[.85rem] mt-1.5">
-            Marca interesse depois de cada conversa para desbloquear mensagens.
+            Abre a lista de Participantes e toca em “Mensagem” para falar com um mentor.
           </p>
         </Card>
       ) : (
@@ -1385,6 +1427,7 @@ export const MenteeMessages = ({ showToast }) => {
 
                 <div className="flex gap-2 max-md:flex-col">
                   <input
+                    ref={setInputRef(c.id)}
                     value={drafts[key] || ''}
                     onChange={(e) => setDrafts((p) => ({ ...p, [key]: e.target.value }))}
                     onKeyDown={(e) => handleKeyDown(e, c)}

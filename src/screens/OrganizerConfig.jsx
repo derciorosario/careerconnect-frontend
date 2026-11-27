@@ -9,7 +9,7 @@ const toText = (arr) => (Array.isArray(arr) ? arr.join('\n') : '');
 const toList = (text) => text.split('\n').map((s) => s.trim()).filter(Boolean);
 
 export const OrganizerConfig = ({ showToast }) => {
-  const [form, setForm] = useState({ areas: '', goals: '', obstacles: '', support_types: '', levels: '' });
+  const [form, setForm] = useState({ areas: '', goals: '', obstacles: '', support_types: '', levels: '', academic_education: '', technical_courses: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -27,6 +27,8 @@ export const OrganizerConfig = ({ showToast }) => {
           obstacles: toText(c.obstacles),
           support_types: toText(c.support_types),
           levels: toText(c.levels),
+          academic_education: toText(c.academic_education),
+          technical_courses: toText(c.technical_courses),
         });
       } catch (err) {
         showToast(err.response?.data?.message || 'Erro ao carregar configuração.');
@@ -47,6 +49,8 @@ export const OrganizerConfig = ({ showToast }) => {
         obstacles: toList(form.obstacles),
         support_types: toList(form.support_types),
         levels: toList(form.levels),
+        academic_education: toList(form.academic_education),
+        technical_courses: toList(form.technical_courses),
       });
       showToast('Configuração guardada.');
     } catch (err) {
@@ -62,6 +66,8 @@ export const OrganizerConfig = ({ showToast }) => {
     { key: 'obstacles', label: 'Maior obstáculo na busca de emprego' },
     { key: 'support_types', label: 'Tipos de apoio' },
     { key: 'levels', label: 'Níveis (situação)' },
+    { key: 'academic_education', label: 'Formação académica' },
+    { key: 'technical_courses', label: 'Curso técnico-profissional' },
   ];
 
   return (

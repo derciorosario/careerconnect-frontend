@@ -14,7 +14,7 @@ const FIELD = 'w-full bg-surface border-2 border-line rounded-[10px] px-3 py-2 t
 const BTN = 'rounded-full font-bold text-[.82rem] h-10 px-4';
 
 const DEFAULT_OPTS = {
-  areas: [], goals: [], obstacles: [], support_types: [], levels: [],
+  areas: [], goals: [], obstacles: [], support_types: [], levels: [], academic_education: [], technical_courses: [],
 };
 
 const BASE_LEVELS = ['Estudante', 'Recém-graduado', 'Profissional Júnior'];
@@ -54,6 +54,8 @@ export const OrganizerUsers = ({ showToast }) => {
         obstacles: Array.isArray(c.obstacles) ? c.obstacles : [],
         support_types: Array.isArray(c.support_types) ? c.support_types : [],
         levels: Array.from(new Set([...BASE_LEVELS, ...(Array.isArray(c.levels) ? c.levels : [])])),
+        academic_education: Array.isArray(c.academic_education) ? c.academic_education : [],
+        technical_courses: Array.isArray(c.technical_courses) ? c.technical_courses : [],
       });
     } catch (err) {
       showToast(err.response?.data?.message || 'Erro ao carregar.');
@@ -99,6 +101,8 @@ export const OrganizerUsers = ({ showToast }) => {
       level: mep.level ? levelLabel(mep.level) : '',
       course: mep.course || '',
       institution: mep.institution || '',
+      academic_education: mep.academic_education || '',
+      technical_course: mep.technical_course || '',
       goal: mep.goal || '',
       pitch: mep.pitch || '',
       job_obstacle: mep.job_obstacle || '',
@@ -134,6 +138,7 @@ export const OrganizerUsers = ({ showToast }) => {
       } else {
         fd.append('menteeProfile', JSON.stringify({
           level: form.level || null, course: form.course, institution: form.institution,
+          academic_education: form.academic_education || null, technical_course: form.technical_course || null,
           goal: form.goal, pitch: form.pitch, job_obstacle: form.job_obstacle || null,
           interests: form.mentee_interests,
         }));
@@ -366,6 +371,20 @@ export const OrganizerUsers = ({ showToast }) => {
                 </div>
                 <div className="mb-3"><label className="block text-[.78rem] font-semibold mb-1">Curso</label><input value={form.course} onChange={(e) => set('course', e.target.value)} className={FIELD} /></div>
                 <div className="mb-3"><label className="block text-[.78rem] font-semibold mb-1">Instituição</label><input value={form.institution} onChange={(e) => set('institution', e.target.value)} className={FIELD} /></div>
+                <div className="mb-3">
+                  <label className="block text-[.78rem] font-semibold mb-1">Formação académica</label>
+                  <select value={form.academic_education} onChange={(e) => set('academic_education', e.target.value)} className={FIELD}>
+                    <option value="">Selecciona...</option>
+                    {opts.academic_education.map((a) => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </div>
+                <div className="mb-3">
+                  <label className="block text-[.78rem] font-semibold mb-1">Curso técnico-profissional</label>
+                  <select value={form.technical_course} onChange={(e) => set('technical_course', e.target.value)} className={FIELD}>
+                    <option value="">Selecciona...</option>
+                    {opts.technical_courses.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
                 <div className="mb-3">
                   <label className="block text-[.78rem] font-semibold mb-1.5">Áreas de interesse</label>
                   <div className="flex flex-wrap gap-2">

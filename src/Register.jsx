@@ -34,6 +34,8 @@ const GOALS = [
 ];
 
 const LEVELS = ['Estudante', 'Recém-graduado', 'Profissional Júnior'];
+const ACADEMIC_EDUCATION = ['12.ª Classe (Ensino Secundário)', 'Ensino Técnico Médio', 'Ensino Superior (Licenciatura)', 'Pós-graduação'];
+const TECHNICAL_COURSES = ['Recursos Humanos', 'Secretariado', 'Contabilidade', 'Relações Públicas e Marketing', 'Tecnologia (Redes e Hardware)', 'Marketing Digital', 'Programação Web'];
 const SUPPORT_TYPES = ['Mentor', 'Coach', 'Orientação pontual'];
 
 function Progress({ step, total }) {
@@ -61,10 +63,11 @@ export default function Register() {
   const [config, setConfig] = useState({
     areas: AREAS, goals: GOALS, obstacles: ['Falta de experiência', 'Falta de contactos', 'Falta de formação', 'Outro'],
     support_types: SUPPORT_TYPES, levels: LEVELS,
+    academic_education: ACADEMIC_EDUCATION, technical_courses: TECHNICAL_COURSES,
   });
   const [form, setForm] = useState({
     name: '', email: '', phone: '', password: '', role: isMentor ? 'mentor' : 'mentee',
-    level: '', course: '', institution: '', interests: [], goal: '', pitch: '', jobObstacle: '',
+    level: '', course: '', institution: '', academicEducation: '', technicalCourse: '', interests: [], goal: '', pitch: '', jobObstacle: '',
     jobTitle: '', company: '', sector: '', years: '', mentorInterests: [], canHelpGoals: [], supportType: '',
     photo: '', photoFile: null, shareProfile: false, linkedin: '',
   });
@@ -84,6 +87,8 @@ export default function Register() {
           obstacles: Array.isArray(c.obstacles) ? c.obstacles : ['Falta de experiência', 'Falta de contactos', 'Falta de formação', 'Outro'],
           support_types: Array.isArray(c.support_types) ? c.support_types : SUPPORT_TYPES,
           levels: Array.isArray(c.levels) ? c.levels : LEVELS,
+          academic_education: Array.isArray(c.academic_education) ? c.academic_education : ACADEMIC_EDUCATION,
+          technical_courses: Array.isArray(c.technical_courses) ? c.technical_courses : TECHNICAL_COURSES,
         });
       })
       .catch(() => {});
@@ -118,7 +123,7 @@ export default function Register() {
     setError('');
 
     if (form.role === 'mentee') {
-      if (!form.level || !form.course || !form.institution || form.interests.length === 0 || !form.goal || !form.pitch) {
+      if (!form.level || !form.course || !form.institution || !form.academicEducation || !form.technicalCourse || form.interests.length === 0 || !form.goal || !form.pitch) {
         return setError('Preencha todos os campos obrigatórios.');
       }
       if (form.pitch.length > 120) return setError('O pitch deve ter no máximo 120 caracteres.');
@@ -139,6 +144,8 @@ export default function Register() {
       if (form.level) formData.append('level', form.level);
       if (form.course) formData.append('course', form.course);
       if (form.institution) formData.append('institution', form.institution);
+      if (form.academicEducation) formData.append('academicEducation', form.academicEducation);
+      if (form.technicalCourse) formData.append('technicalCourse', form.technicalCourse);
       formData.append('interests', JSON.stringify(form.interests));
       if (form.goal) formData.append('goal', form.goal);
       if (form.pitch) formData.append('pitch', form.pitch);
@@ -347,6 +354,20 @@ export default function Register() {
                 <input value={form.institution} onChange={(e) => setField('institution', e.target.value)} className={FIELD_BASE} />
               </div>
               <div className="flex flex-col gap-1.5">
+                <label className="text-[.85rem] font-semibold">Formação académica *</label>
+                <select value={form.academicEducation} onChange={(e) => setField('academicEducation', e.target.value)} className={FIELD_BASE}>
+                  <option value="" disabled>Selecciona...</option>
+                  {config.academic_education.map((a) => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[.85rem] font-semibold">Curso técnico-profissional *</label>
+                <select value={form.technicalCourse} onChange={(e) => setField('technicalCourse', e.target.value)} className={FIELD_BASE}>
+                  <option value="" disabled>Selecciona...</option>
+                  {config.technical_courses.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
                 <label className="text-[.85rem] font-semibold">Áreas de interesse (até 3) *</label>
                 <div className="flex flex-wrap gap-2 mt-1.5">
                   {config.areas.map((a) => (
@@ -372,7 +393,7 @@ export default function Register() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-[.85rem] font-semibold">Pitch (1 frase, máx. 120 caracteres) *</label>
-                <textarea value={form.pitch} onChange={(e) => setField('pitch', e.target.value)} maxLength={120} rows="2" className={FIELD_BASE} />
+                <textarea value={form.pitch} onChange={(e) => setField('pitch', e.target.value)} maxLength={120} rows="2" className={FIELD_BASE} placeholder="Ex.: Sou finalista de Contabilidade e procuro um mentor para entrar no mercado de trabalho." />
               </div>
             </>
           )}

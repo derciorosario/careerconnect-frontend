@@ -9,7 +9,7 @@ import {
   ccGetOrganizerDashboard, ccGetOrganizerRegistrations, ccApproveMentor,
   ccGetOrganizerRounds, ccGetOrganizerReports, ccGetAnnouncements,
   ccCreateAnnouncement, ccGetQuestions, ccGetPolls, ccGetBadges,
-  ccGetProfile, ccUpdateProfile, uploadClient,
+  ccGetProfile, ccUpdateProfile, ccGetRegistrationConfig, uploadClient,
   ccCheckIn, ccCancelCheckIn, ccWalkIn,
   ccCreatePoll, ccModerateQuestion,
   ccGetTVData, ccGetPollResults,
@@ -380,6 +380,8 @@ const RegistrationDetailsDialog = ({ reg, onClose }) => {
       { label: 'Situação', value: levelLabel(profile.level) },
       { label: 'Curso', value: profile.course || '–' },
       { label: 'Instituição', value: profile.institution || '–' },
+      { label: 'Formação académica', value: profile.academic_education || '–' },
+      { label: 'Curso técnico-profissional', value: profile.technical_course || '–' },
       { label: 'Áreas de interesse', value: Array.isArray(profile.interests) ? profile.interests.join(', ') || '–' : '–' },
       { label: 'Objetivo', value: profile.goal || '–' },
       { label: 'Pitch', value: profile.pitch || '–' },
@@ -1190,6 +1192,8 @@ const GOALS = [
 ];
 
 const LEVELS = ['Estudante', 'Recém-graduado', 'Profissional Júnior'];
+const ACADEMIC_EDUCATION = ['12.ª Classe (Ensino Secundário)', 'Ensino Técnico Médio', 'Ensino Superior (Licenciatura)', 'Pós-graduação'];
+const TECHNICAL_COURSES = ['Recursos Humanos', 'Secretariado', 'Contabilidade', 'Relações Públicas e Marketing', 'Tecnologia (Redes e Hardware)', 'Marketing Digital', 'Programação Web'];
 const SUPPORT_TYPES = ['Mentor', 'Coach', 'Orientação pontual'];
 
 // ── PROFILE (shared) ─────────────────────────
@@ -1198,7 +1202,7 @@ const EMPTY_MENTOR = {
   support_type: '', interests: [], can_help_goals: [], linkedin_url: '', photo_url: '',
 };
 const EMPTY_MENTEE = {
-  name: '', phone: '', level: '', course: '', institution: '', interests: [], goal: '', pitch: '', job_obstacle: '', linkedin_url: '', photo_url: '',
+  name: '', phone: '', level: '', course: '', institution: '', academic_education: '', technical_course: '', interests: [], goal: '', pitch: '', job_obstacle: '', linkedin_url: '', photo_url: '',
 };
 
 export const ProfileScreen = ({ asRole, setRole, showToast }) => {
@@ -1208,6 +1212,29 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
   const [photoFile, setPhotoFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [config, setConfig] = useState({
+    areas: AREAS, goals: GOALS, support_types: SUPPORT_TYPES, levels: LEVELS,
+    academic_education: ACADEMIC_EDUCATION, technical_courses: TECHNICAL_COURSES,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    ccGetRegistrationConfig({})
+      .then((resp) => {
+        if (cancelled) return;
+        const c = resp.data || {};
+        setConfig({
+          areas: Array.isArray(c.areas) ? c.areas : AREAS,
+          goals: Array.isArray(c.goals) ? c.goals : GOALS,
+          support_types: Array.isArray(c.support_types) ? c.support_types : SUPPORT_TYPES,
+          levels: Array.from(new Set([...LEVELS, ...(Array.isArray(c.levels) ? c.levels : [])])),
+          academic_education: Array.isArray(c.academic_education) ? c.academic_education : ACADEMIC_EDUCATION,
+          technical_courses: Array.isArray(c.technical_courses) ? c.technical_courses : TECHNICAL_COURSES,
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -1241,6 +1268,8 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
             level: mp.level ? levelLabel(mp.level) : '',
             course: mp.course || '',
             institution: mp.institution || '',
+            academic_education: mp.academic_education || '',
+            technical_course: mp.technical_course || '',
             interests: Array.isArray(mp.interests) ? mp.interests : [],
             goal: mp.goal || '',
             pitch: mp.pitch || '',
@@ -1300,6 +1329,8 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
         level: form.level || null,
         course: form.course,
         institution: form.institution,
+        academic_education: form.academic_education || null,
+        technical_course: form.technical_course || null,
         interests: form.interests,
         goal: form.goal,
         pitch: form.pitch,
@@ -1358,13 +1389,13 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
             <div>
               <label className={labelCls}>Tipo de apoio</label>
               <select value={form.support_type} onChange={set('support_type')} className={inputCls}>
-                {SUPPORT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                {config.support_types.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div>
               <label className={labelCls}>Áreas em que ajuda (até 3)</label>
               <div className="flex flex-wrap gap-2 mt-1.5">
-                {AREAS.map((a) => (
+                {config.areas.map((a) => (
                   <button key={a} type="button" onClick={() => toggle('interests', a)} className={chipCls(form.interests.includes(a))}>{a}</button>
                 ))}
               </div>
@@ -1372,7 +1403,7 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
             <div>
               <label className={labelCls}>Objetivos em que pode ajudar</label>
               <div className="flex flex-wrap gap-2 mt-1.5">
-                {GOALS.map((g) => (
+                {config.goals.map((g) => (
                   <button key={g} type="button" onClick={() => toggle('can_help_goals', g)} className={chipCls(form.can_help_goals.includes(g))}>{g}</button>
                 ))}
               </div>
@@ -1387,15 +1418,29 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
             <div>
               <label className={labelCls}>Situação</label>
               <select value={form.level} onChange={set('level')} className={inputCls}>
-                {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+                {config.levels.map((l) => <option key={l} value={l}>{l}</option>)}
               </select>
             </div>
             <div><label className={labelCls}>Curso</label><input value={form.course} onChange={set('course')} className={inputCls} /></div>
             <div><label className={labelCls}>Instituição</label><input value={form.institution} onChange={set('institution')} className={inputCls} /></div>
             <div>
+              <label className={labelCls}>Formação académica</label>
+              <select value={form.academic_education} onChange={set('academic_education')} className={inputCls}>
+                <option value="">Selecciona...</option>
+                {config.academic_education.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Curso técnico-profissional</label>
+              <select value={form.technical_course} onChange={set('technical_course')} className={inputCls}>
+                <option value="">Selecciona...</option>
+                {config.technical_courses.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
               <label className={labelCls}>Áreas de interesse (até 3)</label>
               <div className="flex flex-wrap gap-2 mt-1.5">
-                {AREAS.map((a) => (
+                {config.areas.map((a) => (
                   <button key={a} type="button" onClick={() => toggle('interests', a)} className={chipCls(form.interests.includes(a))}>{a}</button>
                 ))}
               </div>
@@ -1403,10 +1448,10 @@ export const ProfileScreen = ({ asRole, setRole, showToast }) => {
             <div>
               <label className={labelCls}>Objetivo</label>
               <select value={form.goal} onChange={set('goal')} className={inputCls}>
-                {GOALS.map((g) => <option key={g} value={g}>{g}</option>)}
+                {config.goals.map((g) => <option key={g} value={g}>{g}</option>)}
               </select>
             </div>
-            <div><label className={labelCls}>Pitch (120 caracteres)</label><textarea value={form.pitch} onChange={set('pitch')} maxLength={120} rows="3" className={inputCls} /></div>
+            <div><label className={labelCls}>Pitch (120 caracteres)</label><textarea value={form.pitch} onChange={set('pitch')} maxLength={120} rows="3" className={inputCls} placeholder="Ex.: Sou finalista de Contabilidade e procuro um mentor para entrar no mercado de trabalho." /></div>
             <div><label className={labelCls}>Maior obstáculo na busca de emprego</label><input value={form.job_obstacle} onChange={set('job_obstacle')} className={inputCls} /></div>
 
           </div>

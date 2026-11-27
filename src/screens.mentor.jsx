@@ -1032,7 +1032,7 @@ export const MentorMessages = ({ showToast, messageTarget, clearMessageTarget })
             return (
               <div key={c.id} className="border border-line rounded-[16px] p-3.5">
                 <div className="flex justify-between items-center mb-2.5 gap-2">
-                  <PersonRow name={contact.name} subtitle={contact.role || ''} />
+                  <PersonRow name={contact.name} subtitle={contact.role || ''} photoUrl={contact.photo_url} />
                   <span className="text-[.72rem] font-bold px-2 py-0.5 rounded-full bg-surface2 text-ink-muted">
                     {msgs.length}
                   </span>
